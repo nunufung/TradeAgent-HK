@@ -1,25 +1,10 @@
-import yfinance as yf
-import datetime
-
-# 你嘅港股清單
-HOLDINGS = ["0700.HK", "0005.HK", "0941.HK", "3690.HK", "9988.HK", "1810.HK", "1299.HK", "2318.HK"]
-
-print(f"=== TradeAgent-HK Report {datetime.datetime.now()} HKT ===")
-
-# 1. 財經20條 (簡化版，之後接API)
-print("\n--- 財經20條 Top ---")
-for code in HOLDINGS:
-    try:
-        t = yf.Ticker(code)
-        p = t.history(period="2d")
-        if len(p) >= 2:
-            chg = (p['Close'].iloc[-1] - p['Close'].iloc[-2])/p['Close'].iloc[-2]*100
-            print(f"{code} {p['Close'].iloc[-1]:.1f} {chg:+.2f}%")
-    except Exception as e:
-        print(f"{code} error {e}")
-
-# 2. Option掃描 (框架)
-print("\n--- Option Delta<=0.1 Scan ---")
-print("0700.HK 2026-11-01 CALL 480 Delta 0.09 Score 8.4 OI 2560 - 價外高槓桿")
-print("0005.HK 2026-11-30 PUT 60 Delta -0.08 Score 8.0 OI 2100 - 防守型")
-print("\nScan Done")
+import yfinance as yf, datetime
+HOLDINGS = ["0700.HK","0005.HK","0941.HK","3690.HK","9988.HK","1810.HK","1299.HK","2318.HK"]
+class DataAgent:
+    def get_chains(self):
+        mock=[]
+        for sym in HOLDINGS:
+            spot = yf.Ticker(sym).history(period="1d")['Close'].iloc[-1] if True else 100
+            mock.append({'symbol':sym,'type':'CALL','strike':round(spot*1.18,1),'spot':spot,'delta':0.09,'days_to_expiry':32,'oi':1200,'vol':350,'iv':0.42,'expiry':'2026-11-28','gex':0.5})
+            mock.append({'symbol':sym,'type':'PUT','strike':round(spot*0.85,1),'spot':spot,'delta':-0.08,'days_to_expiry':58,'oi':980,'vol':280,'iv':0.51,'expiry':'2026-12-20','gex':-0.2})
+        return mock
