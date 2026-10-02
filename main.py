@@ -1,3 +1,6 @@
+import sys
+print(sys.path)
+
 import os
 from sources.public_aastocks import get_chain_public
 from sources.futu_private import get_chain_futu_if_secret
