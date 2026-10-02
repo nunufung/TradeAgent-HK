@@ -1,0 +1,27 @@
+name: HK Daily
+on:
+  schedule:
+    - cron: '0 1 * * 1-5'
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -e ./tradingagents -q
+      - run: echo "__version__='0.1.0'" > tradingagents/tradingagents/__version__.py
+      - run: sed -i "s/from tradingagents import __version__/__version__='0.1.0'/" tradingagents/tradingagents/dataflows/vendors/sec_edgar.py || true
+      - run: |
+          export PYTHONPATH=$PWD/tradingagents:$PWD
+          export OPENAI_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+          export OPENAI_API_BASE=https://api.deepseek.com/v1
+          python -u hk_adapter.py 700 > report_0700.md
+          python -u hk_adapter.py 2800 > report_2800.md
+          cat report_0700.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hk-reports
+          path: report_*.md
