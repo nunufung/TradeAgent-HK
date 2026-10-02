@@ -3,11 +3,10 @@ on:
   workflow_dispatch:
     inputs:
       stock_code:
-        description: '輸入股票號碼 (700 / 1299 / 2800 / 388)'
+        description: '股票號碼 700/1299/2800/388'
         required: true
         default: '00700'
         type: string
-
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -16,11 +15,5 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-      - name: Install
-        run: pip install requests beautifulsoup4 lxml
-      - name: Run scan
-        run: python main.py ${{ inputs.stock_code }}
-        env:
-          STOCK_CODE: ${{ inputs.stock_code }}
-          FUTU_PWD: ${{ secrets.FUTU_PWD }}
-          FUTU_ID: ${{ secrets.FUTU_ID }}
+      - run: pip install requests beautifulsoup4 lxml
+      - run: python main.py ${{ inputs.stock_code }}
