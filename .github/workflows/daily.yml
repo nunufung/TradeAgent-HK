@@ -1,15 +1,14 @@
-name: daily-hk-scan
+name: daily-option-scan
 on:
-  schedule:
-    - cron: '0 23 * * *' #07:00 HKT
-    - cron: '0 2 * * *'  #10:00 HKT
+  schedule: [{cron: "30 1 * * 1-5"}] # 香港9:30開市
   workflow_dispatch:
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with: {python-version: '3.11'}
-      - run: pip install -r requirements.txt
-      - run: python -c "from agents.screening_agent import ScreeningAgent; from data_agent import DataAgent; print('Rules OK'); da=DataAgent(); chains=da.get_chains(); print(ScreeningAgent({'delta_max':0.1,'expiry_days':[30,60,90],'expiry_tolerance':5,'price_band_pct':0.2,'min_oi':500,'min_volume':100}).screen(chains)[:2])"
+      - uses: actions/checkout@v4
+      - run: pip install requests scipy
+      - run: python main.py
+        env:
+          FUTU_PWD: ${{ secrets.FUTU_PWD }}
+          FUTU_ID: ${{ secrets.FUTU_ID }}
