@@ -1,5 +1,6 @@
 name: scan
-on: workflow_dispatch:
+on: 
+  workflow_dispatch:
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -8,8 +9,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install requests
-      - run: python main.py
+      - name: Install
+        run: pip install requests
+      - name: Run
+        run: python main.py
         env:
           FUTU_PWD: ${{ secrets.FUTU_PWD }}
           FUTU_ID: ${{ secrets.FUTU_ID }}
