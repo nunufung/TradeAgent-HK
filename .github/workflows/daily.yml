@@ -1,20 +1,23 @@
-- run: pip install requests beautifulsoup4 lxml
-
 name: scan
-on: 
+on:
   workflow_dispatch:
+    inputs:
+      stock_code:
+        description: '輸入股票號碼 (700 / 1299 / 2800)'
+        required: true
+        default: '00700'
+        type: string
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-      - name: Install
-        run: pip install requests
-      - name: Run
-        run: python main.py
+      - run: pip install requests beautifulsoup4 lxml
+      - run: python main.py ${{ inputs.stock_code }}
         env:
+          STOCK_CODE: ${{ inputs.stock_code }}
           FUTU_PWD: ${{ secrets.FUTU_PWD }}
           FUTU_ID: ${{ secrets.FUTU_ID }}
