@@ -1,3 +1,5 @@
+- run: pip install requests beautifulsoup4 lxml
+
 name: scan
 on: 
   workflow_dispatch:
