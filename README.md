@@ -31,3 +31,5 @@
 - 數據：AASTOCKS, 經濟通, TradingView
 - 執行：富途 / 耀才 API (需手動確認)
 - 通知：WhatsApp + Telegram
+
+<img width="977" height="691" alt="Screenshot 2026-10-03 at 11 09 29 AM" src="https://github.com/user-attachments/assets/ffad0db5-17bf-4921-8725-6eca4b3c9339" />
