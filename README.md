@@ -32,4 +32,11 @@
 - 執行：富途 / 耀才 API (需手動確認)
 - 通知：WhatsApp + Telegram
 
-<img width="977" height="691" alt="Screenshot 2026-10-03 at 11 09 29 AM" src="https://github.com/user-attachments/assets/ffad0db5-17bf-4921-8725-6eca4b3c9339" />
+## Architecture Map v4.4
+
+Flow: Config & Controls → Multi-Agent Stock Scoring + Option Rules (Expiry min 30d, Stop -100% hard) → External Connections → Fusion Final = Trade*0.6 + Option*0.4
+
+- Option Rules v4.4: Direction >7.5→Call / <4.5→Put, TP +50% consider / +100% must, SL -50% consider / -100% hard stop, No new 09:30-10:00 HKT, Expiry min 30 days
+- Lot rules separated from Option rules
+
+<img width="536" height="379" alt="Screenshot 2026-10-03 at 11 12 11 AM" src="https://github.com/user-attachments/assets/660b6a82-d449-473e-bb50-398a743acbe9" />
