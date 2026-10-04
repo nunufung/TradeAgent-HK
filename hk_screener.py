@@ -7,6 +7,17 @@ import argparse
 import os
 import sys
 
+# --- Psychology of Money Skill ---
+def load_skill():
+    try:
+        with open("skills/psychology-of-money/SKILL.md","r",encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        return "Skill: psychology-of-money"
+SKILL_TEXT = load_skill()
+print(f"📚 Loaded Skill: {len(SKILL_TEXT)} chars")
+# ---------------------------------
+
 def get_api_key():
     return os.getenv("DEEPSEEK_API_KEY") or os.getenv("DEEPSEEK_KEY")
 
