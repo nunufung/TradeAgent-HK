@@ -1,11 +1,36 @@
 import os, argparse
 
-def get_api_key():
-    # FIX: don't crash if key missing - TradeAgent-HK can run without OpenAI for calc
-    key = os.getenv("OPENAI_API_KEY")
-    if key:
-        os.environ["OPENAI_API_KEY"] = key
-    return key
+# ===== DeepSeek 兼容 OpenAI SDK =====
+try:
+    from openai import OpenAI
+    api_key = os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY")
+    base_url = "https://api.deepseek.com" if os.getenv("DEEPSEEK_API_KEY") else None
+
+    if api_key:
+        client = OpenAI(api_key=api_key, base_url=base_url) if base_url else OpenAI(api_key=api_key)
+        print(f"✅ LLM client ready: {'DeepSeek' if base_url else 'OpenAI'}")
+    else:
+        client = None
+        print("⚠️ No DEEPSEEK_API_KEY / OPENAI_API_KEY, use local calc only")
+except Exception as e:
+    client = None
+    print(f"⚠️ LLM init failed ({e}), use local calc only")
+
+# 用嘅時候咁 check：
+def ask_llm(prompt):
+    if client is None:
+        return None # fallback 去本地 R/R 計算
+    try:
+        resp = client.chat.completions.create(
+            model="deepseek-chat", # 用 deepseek-chat / deepseek-reasoner
+            messages=[{"role":"user","content":prompt}],
+            temperature=0.3
+        )
+        return resp.choices[0].message.content
+    except Exception as e:
+        print(f"LLM call failed: {e}")
+        return None
+        
 
 def bull_call_spread(long_strike, short_strike, debit, lot_size=100):
     max_loss = debit * lot_size
