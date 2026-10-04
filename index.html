@@ -1,86 +1,30 @@
-<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>收租Agent HK</title>
-<style>body{font-family:sans-serif;padding:20px;max-width:380px;margin:auto}input{width:100%;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:8px}button{width:100%;padding:14px;background:#25D366;color:#fff;border:none;border-radius:8px;font-weight:bold;font-size:16px}.card{background:#f1f1f1;padding:12px;border-radius:10px;margin-top:10px}</style>
-</head><body>
-<h3>收租Agent - 任何港股都入得</h3>
-<input id="ticker" value="9988.HK" placeholder="股票代號">
-<input id="shares" type="number" value="200" placeholder="股數">
-<input id="cost" type="number" value="105" placeholder="成本價">
-<input id="cur" type="number" value="108.5" placeholder="現價">
-<button onclick="calc()">計收租</button>
-<div id="r" class="card"></div>
-<hr>
-<h3>Bull Spread 計 R/R</h3>
-<input id="long" type="number" value="110" placeholder="Long">
-<input id="short" type="number" value="120" placeholder="Short">
-<input id="debit" type="number" value="2.5" placeholder="Debit">
-<button onclick="calc2()">計賺蝕</button>
-<div id="r2" class="card"></div>
-<script>
-function calc(){
- let t=ticker.value,s=+shares.value,curV=+cur.value;
- let strike=Math.round(curV*1.06);
- let prem=curV*0.025*s;
- document.getElementById('r').innerHTML=`${t} 賣 ${strike} Call<br>今個月收: HKD ${prem.toFixed(0)}<br>月收益率: 2.5%<br>操作: 60%止賺 40%止蝕<br>循環: Hold->Sell->Collect->Roll`;
-}
-function calc2(){
- let l=+long.value,sh=+short.value,d=+debit.value;
- let loss=d*100,gain=(sh-l-d)*100;
- document.getElementById('r2').innerHTML=`Max蝕: ${loss}<br>Max賺: ${gain}<br>Breakeven: ${l+d}<br>R/R: ${(gain/loss).toFixed(2)}<br>${gain/loss>1.5?'PASS可做':'R/R低'}`;
-}
-calc();calc2();
-
- <!-- Add Book Skill Section -->
-<div id="skill-bookshelf">
+<div id="skill-bookshelf" style="margin:20px 0;padding:16px;border:2px dashed #4CAF50;border-radius:12px;background:#f9fff9;">
   <h3>📚 My Skills (ePub)</h3>
   <input type="file" id="epubUpload" accept=".epub" />
   <div id="bookList"></div>
 </div>
-<!-- ====== START: ePub Skill Bookshelf - Paste before </body> ====== -->
-<div id="skill-bookshelf" style="margin:20px;padding:16px;border:2px dashed #4CAF50;border-radius:12px;background:#f9fff9;">
-  <h3 style="margin:0 0 12px 0;">📚 My Skills (ePub)</h3>
-  <p style="font-size:12px;color:#666;">Upload.epub -> 自動變 Skill，之後打 1818 都會用書規則</p>
-  <input type="file" id="epubUpload" accept=".epub" style="padding:8px;width:100%;" />
-  <div id="bookList" style="margin-top:12px;"></div>
-</div>
-<div id="skill-bookshelf" style="margin:20px;padding:16px;border:2px dashed #4CAF50;border-radius:12px;background:#f9fff9;">
-  <h3 style="margin:0 0 12px 0;">📚 My Skills (ePub)</h3>
-  <input type="file" id="epubUpload" accept=".epub" style="padding:8px;width:100%;border:1px solid #ccc;border-radius:8px;" />
-  <div id="bookList" style="margin-top:12px;"></div>
-</div>
 <script src="https://unpkg.com/epubjs@0.3.93/dist/epub.min.js"></script>
 <script>
-const listDiv = document.getElementById('bookList');
-function refreshBooks(){
-  listDiv.innerHTML = '';
-  for(let i=0;i<localStorage.length;i++){
-    const k = localStorage.key(i);
-    if(k.startsWith('skill_')){
-      const d = document.createElement('div');
-      d.textContent = '✅ Skill: ' + k.replace('skill_','');
-      d.style.cssText='padding:6px;background:#e8f5e9;margin:4px 0;border-radius:6px;font-size:13px;';
-      listDiv.appendChild(d);
+document.addEventListener('DOMContentLoaded', ()=>{
+  const listDiv=document.getElementById('bookList');
+  function refreshBooks(){
+    listDiv.innerHTML='';
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k.startsWith('skill_')){
+        const d=document.createElement('div');
+        d.textContent='✅ Skill: '+k.replace('skill_','');
+        d.style='padding:6px;background:#e8f5e9;margin:4px 0;border-radius:6px';
+        listDiv.appendChild(d);
+      }
     }
   }
-}
-document.getElementById('epubUpload').addEventListener('change', function(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev){
-    try{
-      localStorage.setItem('skill_' + file.name, 'stored');
-      alert('成功！ ' + file.name + ' 已加入為 Skill');
-      refreshBooks();
-    }catch(err){ alert('太大本，localStorage滿。試本細啲嘅'); }
-  };
-  reader.readAsArrayBuffer(file);
+  document.getElementById('epubUpload').addEventListener('change',e=>{
+    const f=e.target.files[0];
+    localStorage.setItem('skill_'+f.name,'stored');
+    alert('成功！ '+f.name+' 已加入為 Skill');
+    refreshBooks();
+  });
+  refreshBooks();
 });
-refreshBooks();
-console.log('Skill bookshelf loaded');
 </script>
-<!-- ====== END ====== -->
-
-</script>
-</body></html>
