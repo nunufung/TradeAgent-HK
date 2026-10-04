@@ -30,5 +30,26 @@ function calc2(){
  document.getElementById('r2').innerHTML=`Max蝕: ${loss}<br>Max賺: ${gain}<br>Breakeven: ${l+d}<br>R/R: ${(gain/loss).toFixed(2)}<br>${gain/loss>1.5?'PASS可做':'R/R低'}`;
 }
 calc();calc2();
+
+ <!-- Add Book Skill Section -->
+<div id="skill-bookshelf">
+  <h3>📚 My Skills (ePub)</h3>
+  <input type="file" id="epubUpload" accept=".epub" />
+  <div id="bookList"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+<script>
+document.getElementById('epubUpload').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    localStorage.setItem('skill_' + file.name, ev.target.result);
+    alert(file.name + ' 已加入 Skill！之後打 1818 我就會用本書規則');
+    location.reload();
+  };
+  reader.readAsArrayBuffer(file);
+});
+</script>
 </script>
 </body></html>
