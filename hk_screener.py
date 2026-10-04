@@ -1,52 +1,37 @@
-import os, sys
-sys.path.insert(0, "./tradingagents")
-from datetime import datetime
-from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.default_config import DEFAULT_CONFIG
-import yfinance as yf
+import os, argparse
 
-# 你嘅自選watchlist，日後改呢度就得
-WATCHLIST = ["0700","2800","0005","1299","0941","0939","0388","2318","9988","3690","1810","1211"]
+def get_api_key():
+    # FIX: don't crash if key missing - TradeAgent-HK can run without OpenAI for calc
+    key = os.getenv("OPENAI_API_KEY")
+    if key:
+        os.environ["OPENAI_API_KEY"] = key
+    return key
 
-def to_ticker(n):
-    n=str(n).replace(".HK","").zfill(4)
-    return f"{n}.HK"
+def bull_call_spread(long_strike, short_strike, debit, lot_size=100):
+    max_loss = debit * lot_size
+    max_gain = (short_strike - long_strike - debit) * lot_size
+    breakeven = long_strike + debit
+    rr = max_gain / max_loss if max_loss else 0
+    print(f"--- TradeAgent-HK Option Calc: Bull Call Spread ---")
+    print(f"Ticker: {args.ticker} | Long {long_strike} / Short {short_strike}")
+    print(f"Net Debit: {debit} x {lot_size} = HKD {max_loss}")
+    print(f"Max Loss: HKD {max_loss}")
+    print(f"Max Gain: HKD {max_gain}")
+    print(f"Breakeven: {breakeven}")
+    print(f"R/R: {round(rr,2)}")
+    print(f"2-min check: IV high? -> Spread is safer. Don't hold past Thu.")
+    return
 
 def run():
-    key = os.getenv("DEEPSEEK_API_KEY")
-    os.environ["OPENAI_API_KEY"]=key
-    os.environ["OPENAI_API_BASE"]="https://api.deepseek.com/v1"
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    config = DEFAULT_CONFIG.copy()
-    config.update({"llm_provider":"openai","deep_think_llm":"deepseek-reasoner","quick_think_llm":"deepseek-chat","max_debate_rounds":1,"online_tools":True})
+    get_api_key() # now safe even if None
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--ticker', default='0700.HK')
+    parser.add_argument('--long', type=float, required=True)
+    parser.add_argument('--short', type=float, required=True)
+    parser.add_argument('--debit', type=float, required=True)
+    global args
+    args = parser.parse_args()
+    bull_call_spread(args.long, args.short, args.debit)
 
-    results=[]
-    for code in WATCHLIST:
-        ticker=to_ticker(code)
-        print(f"\n--- Scanning {ticker} ---")
-        try:
-            ta=TradingAgentsGraph(debug=False, config=config)
-            _, decision = ta.propagate(ticker, date_str)
-            action="BUY" if "BUY" in decision.upper()[:500] else "SELL" if "SELL" in decision.upper()[:500] else "HOLD"
-            results.append((code, ticker, action, decision))
-            with open(f"report_{code}.md","w",encoding="utf-8") as f:
-                f.write(f"# {ticker} {date_str} - {action}\n\n{decision}")
-        except Exception as e:
-            print(f"Failed {ticker}: {e}")
-            results.append((code, ticker, "ERROR", str(e)))
-
-    # 出總結
-    buys=[r for r in results if r[2]=="BUY"]
-    with open("daily_buy_list.md","w",encoding="utf-8") as f:
-        f.write(f"# 每日買入清單 {date_str}\n\n")
-        f.write(f"掃描 {len(WATCHLIST)} 隻，發現 {len(buys)} 隻 BUY：\n\n")
-        for code,ticker,action,dec in buys:
-            f.write(f"## ✅ {code} {ticker} - {action}\n")
-        f.write("\n---\n\n")
-        for code,ticker,action,dec in results:
-            f.write(f"- {code} {ticker}: **{action}**\n")
-    print("\n=== DONE ===")
-    print(open("daily_buy_list.md").read())
-
-if __name__=="__main__":
+if __name__ == "__main__":
     run()
