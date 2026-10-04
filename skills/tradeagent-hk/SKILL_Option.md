@@ -40,3 +40,23 @@ Never give financial advice as guarantee, always show max loss.
 
 ### 4. Link to Deal-Review
 If this options trade is to hedge a Gov/DC deal cashflow, link back to `deal-review` skill ARR logic.
+
+## Strategy 2: Covered Call (收租)
+Trigger: use TradeAgent-HK option covered call
+
+When user says: "我有 0700 正股, 想做 covered call"
+
+Flow:
+1. Input: holding qty (e.g. 100 shares = 1 option lot), cost basis
+2. Suggest: OTM Call 5-8% above spot, 2-3 weeks expiry
+3. Calc: Premium income / month, yield %, what-if assigned
+
+Output Template:
+**持有:** 0700.HK x 100 @ 410
+**策略:** Sell Call 450 expiry 2026-10-24
+**收租:** Premium HKD 2.1 x 100 = HKD 210 (0.5% / 2週)
+**年化:** ~13% if repeat
+**風控:** If assigned at 450 -> Profit = (450-410)*100 + 210 = HKD 4210, Max loss still stock downside
+**2-min 習慣:** 每週五睇 Delta >0.4 就 roll 上/後
+
+Rule: Never sell ATM call if you don't want to lose stock. Prefer 0.25 Delta.
