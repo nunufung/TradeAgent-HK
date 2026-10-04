@@ -27,4 +27,35 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   refreshBooks();
 });
+  </div> <!-- 你而家 Bull Spread 個 div 要閂咗先 -->
+
+<!-- 貼喺呢度 - 一定出 -->
+<div id="skill-bookshelf" style="margin:24px 16px;padding:16px;border:2px dashed #4CAF50;border-radius:12px;background:#f9fff9;">
+  <h3 style="margin:0 0 8px 0;">📚 My Skills (ePub)</h3>
+  <input type="file" id="epubUpload" accept=".epub" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;" />
+  <div id="bookList" style="margin-top:12px;"></div>
+</div>
+  <script src="https://unpkg.com/epubjs@0.3.93/dist/epub.min.js"></script>
+<script>
+const listDiv = document.getElementById('bookList');
+function refreshBooks(){
+  listDiv.innerHTML='';
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k && k.startsWith('skill_')){
+      const d=document.createElement('div');
+      d.textContent='✅ Skill: '+k.replace('skill_','');
+      d.style='padding:6px;background:#e8f5e9;margin:4px 0;border-radius:6px;font-size:13px';
+      listDiv.appendChild(d);
+    }
+  }
+}
+document.getElementById('epubUpload').addEventListener('change',e=>{
+  const f=e.target.files[0];
+  localStorage.setItem('skill_'+f.name,'stored');
+  alert('成功！ '+f.name+' 已加入');
+  refreshBooks();
+});
+refreshBooks();
+
 </script>
