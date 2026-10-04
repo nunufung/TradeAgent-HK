@@ -1,80 +1,66 @@
-import os, argparse, json
+#!/usr/bin/env python3
+"""
+hk_screener.py - Dynamic Bull Call Spread R/R calculator
+No hardcoded tickers. All inputs via CLI.
+"""
+import argparse
+import os
+import sys
 
-# ===== DeepSeek 兼容 OpenAI SDK (你寫嘅保留) =====
-try:
-    from openai import OpenAI
-    api_key = os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY")
-    base_url = "https://api.deepseek.com" if os.getenv("DEEPSEEK_API_KEY") else None
-
-    if api_key:
-        client = OpenAI(api_key=api_key, base_url=base_url) if base_url else OpenAI(api_key=api_key)
-        print(f"✅ LLM client ready: {'DeepSeek' if base_url else 'OpenAI'}")
-    else:
-        client = None
-        print("⚠️ No DEEPSEEK_API_KEY / OPENAI_API_KEY, use local calc only")
-except Exception as e:
-    client = None
-    print(f"⚠️ LLM init failed ({e}), use local calc only")
-
-def ask_llm(prompt):
-    if client is None:
-        return None # fallback 去本地 R/R 計算
-    try:
-        # 根據有冇 deepseek key 自動揀 model
-        model_name = "deepseek-chat" if os.getenv("DEEPSEEK_API_KEY") else "gpt-4o-mini"
-        resp = client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {"role":"system","content":"You are TradeAgent-HK, HK option expert. Reply zh-HK concise."},
-                {"role":"user","content":prompt}
-            ],
-            temperature=0.3,
-            max_tokens=300
-        )
-        return resp.choices[0].message.content
-    except Exception as e:
-        print(f"LLM call failed: {e}")
-        return None
-
-# ===== 兼容舊 code: 呢個就係你之前 get_api_key() 想做嘅嘢 =====
 def get_api_key():
-    # 已經喺上面處理好，無 key 都唔 crash，回傳 None 就得
-    return os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY")
+    return os.getenv("DEEPSEEK_API_KEY") or os.getenv("DEEPSEEK_KEY")
 
-def bull_call_spread(long_strike, short_strike, debit, lot_size=100):
-    max_loss = debit * lot_size
-    max_gain = (short_strike - long_strike - debit) * lot_size
-    breakeven = long_strike + debit
+def calc_spread(long_strike, short_strike, debit, lot_size=100, fx=1.0):
+    if long_strike >= short_strike:
+        raise ValueError("long_strike must < short_strike")
+    if debit <= 0:
+        raise ValueError("debit must > 0")
+
+    max_loss = debit * lot_size * fx
+    max_gain = (short_strike - long_strike - debit) * lot_size * fx
     rr = max_gain / max_loss if max_loss else 0
-    print(f"--- TradeAgent-HK Option Calc: Bull Call Spread ---")
-    print(f"Ticker: {args.ticker} | Long {long_strike} / Short {short_strike}")
-    print(f"Net Debit: {debit} x {lot_size} = HKD {max_loss}")
-    print(f"Max Loss: HKD {max_loss}")
-    print(f"Max Gain: HKD {max_gain}")
-    print(f"Breakeven: {breakeven}")
-    print(f"R/R: {round(rr,2)}")
-    print(f"2-min check: IV high? -> Spread is safer. Don't hold past Thu.")
+    breakeven = long_strike + debit
+    return max_loss, max_gain, rr, breakeven
 
-    # 加埋 Psychology of Money Skill (有 key 先叫 LLM，無就用本地)
-    prompt = f"{args.ticker} Bull {long_strike}/{short_strike} debit {debit} R/R {round(rr,2)}，用 Psychology of Money 評 1句"
-    skill = ask_llm(prompt)
-    if skill:
-        print(f"📚 Skill: {skill}")
-    else:
-        print(f"📚 Skill: R/R {round(rr,2)} 屬 Reasonable，止蝕40%符合Survival，到60%記住Enough。")
-    return
+def ask_llm(rr, ticker, long_s, short_s, debit):
+    key = get_api_key()
+    # local fallback - no ticker specific logic
+    local_msg = f"R/R {rr:.2f} -> {'High Conviction' if rr>=3 else 'Reasonable' if rr>=2 else 'Low'}: Reward {'covers' if rr>=2 else 'barely covers'} risk. Check breakeven & position size."
 
-def run():
-    get_api_key() # 而家 safe，就算 None 都唔 crash
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--ticker', default='0700.HK')
-    parser.add_argument('--long', type=float, required=True)
-    parser.add_argument('--short', type=float, required=True)
-    parser.add_argument('--debit', type=float, required=True)
-    parser.add_argument('--lot', type=int, default=100)
-    global args
-    args = parser.parse_args()
-    bull_call_spread(args.long, args.short, args.debit, args.lot)
+    if not key:
+        print("⚠️ No DEEPSEEK_API_KEY, use local calc only")
+        return f"📚 Skill: {local_msg} | Ticker={ticker} Long={long_s} Short={short_s} Debit={debit}"
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=key, base_url="https://api.deepseek.com")
+        prompt = f"Ticker {ticker} Bull Call Spread: long {long_s} short {short_s} debit {debit} R/R {rr:.2f}. Give 1-line Quant-Risk skill comment."
+        resp = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[{"role":"user","content":prompt}],
+            max_tokens=120
+        )
+        return f"📚 Skill (deepseek-chat): {resp.choices[0].message.content.strip()}"
+    except Exception as e:
+        return f"📚 Skill: {local_msg} (LLM fallback: {e})"
+
+def main():
+    p = argparse.ArgumentParser(description="Dynamic HK Bull Call R/R - no hardcoded tickers")
+    p.add_argument("--ticker", required=True, help="Any ticker e.g. 0700.HK, 1818, AAPL")
+    p.add_argument("--long", type=float, required=True, dest="long_strike", help="Long strike")
+    p.add_argument("--short", type=float, required=True, dest="short_strike", help="Short strike")
+    p.add_argument("--debit", type=float, required=True, help="Debit per share")
+    p.add_argument("--lot", type=int, default=100, help="Lot size, default 100")
+    p.add_argument("--fx", type=float, default=1.0, help="FX multiplier")
+    args = p.parse_args()
+
+    max_loss, max_gain, rr, breakeven = calc_spread(args.long_strike, args.short_strike, args.debit, args.lot, args.fx)
+
+    print(f"\nTicker: {args.ticker} | Long {args.long_strike} / Short {args.short_strike} / Debit {args.debit}")
+    print(f"Max Loss {max_loss:.2f} / Max Gain {max_gain:.2f} / R/R {rr:.2f} / Breakeven {breakeven:.2f}")
+
+    skill_msg = ask_llm(rr, args.ticker, args.long_strike, args.short_strike, args.debit)
+    print(skill_msg)
 
 if __name__ == "__main__":
-    run()
+    main()
