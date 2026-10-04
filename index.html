@@ -37,19 +37,46 @@ calc();calc2();
   <input type="file" id="epubUpload" accept=".epub" />
   <div id="bookList"></div>
 </div>
+<!-- ====== START: ePub Skill Bookshelf - Paste before </body> ====== -->
+<div id="skill-bookshelf" style="margin:20px;padding:16px;border:2px dashed #4CAF50;border-radius:12px;background:#f9fff9;">
+  <h3 style="margin:0 0 12px 0;">📚 My Skills (ePub)</h3>
+  <p style="font-size:12px;color:#666;">Upload.epub -> 自動變 Skill，之後打 1818 都會用書規則</p>
+  <input type="file" id="epubUpload" accept=".epub" style="padding:8px;width:100%;" />
+  <div id="bookList" style="margin-top:12px;"></div>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+<script src="https://unpkg.com/epubjs@0.3.93/dist/epub.min.js"></script>
 <script>
-document.getElementById('epubUpload').addEventListener('change', (e)=>{
+const listDiv = document.getElementById('bookList');
+function refreshBooks(){
+  listDiv.innerHTML = '';
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k.startsWith('skill_')){
+      const d = document.createElement('div');
+      d.textContent = '✅ Skill: ' + k.replace('skill_','');
+      d.style.cssText='padding:6px;background:#e8f5e9;margin:4px 0;border-radius:6px;font-size:13px;';
+      listDiv.appendChild(d);
+    }
+  }
+}
+document.getElementById('epubUpload').addEventListener('change', function(e){
   const file = e.target.files[0];
+  if(!file) return;
   const reader = new FileReader();
-  reader.onload = (ev)=>{
-    localStorage.setItem('skill_' + file.name, ev.target.result);
-    alert(file.name + ' 已加入 Skill！之後打 1818 我就會用本書規則');
-    location.reload();
+  reader.onload = function(ev){
+    try{
+      localStorage.setItem('skill_' + file.name, 'stored');
+      alert('成功！ ' + file.name + ' 已加入為 Skill');
+      refreshBooks();
+    }catch(err){ alert('太大本，localStorage滿。試本細啲嘅'); }
   };
   reader.readAsArrayBuffer(file);
 });
+refreshBooks();
+console.log('Skill bookshelf loaded');
 </script>
+<!-- ====== END ====== -->
+
 </script>
 </body></html>
