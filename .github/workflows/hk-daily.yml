@@ -3,6 +3,12 @@ on:
   schedule:
     - cron: '0 1 * * 1-5'
   workflow_dispatch:
+    inputs:
+      stock_code:
+        description: '手動分析邊隻? 例如 0700, 2800, 9988 (留空就跑每日Top10 scan)'
+        required: false
+        default: ''
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -11,17 +17,31 @@ jobs:
         with: { submodules: recursive }
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - run: pip install -e ./tradingagents -q
-      - run: echo "__version__='0.1.0'" > tradingagents/tradingagents/__version__.py
-      - run: sed -i "s/from tradingagents import __version__/__version__='0.1.0'/" tradingagents/tradingagents/dataflows/vendors/sec_edgar.py || true
-      - run: |
-          export PYTHONPATH=$PWD/tradingagents:$PWD
-          export OPENAI_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
-          export OPENAI_API_BASE=https://api.deepseek.com/v1
-          python -u hk_adapter.py 700 > report_0700.md
-          python -u hk_adapter.py 2800 > report_2800.md
-          cat report_0700.md
+      - name: Install
+        run: |
+          pip install -e./tradingagents -q
+          pip install yfinance pandas -q
+          echo "__version__='0.1.0'" > tradingagents/tradingagents/__version__.py
+          sed -i "s/from tradingagents import __version__/__version__='0.1.0'/" tradingagents/tradingagents/dataflows/vendors/sec_edgar.py || true
+      - name: Run
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENAI_API_BASE: https://api.deepseek.com/v1
+          STOCK_INPUT: ${{ github.event.inputs.stock_code }}
+          PYTHONPATH: ${{ github.workspace }}/tradingagents:${{ github.workspace }}
+        run: |
+          if [ -z "$STOCK_INPUT" ]; then
+            echo "=== Daily Scan Mode ==="
+            python hk_screener.py
+          else
+            echo "=== Manual Mode: $STOCK_INPUT ==="
+            python hk_adapter.py $STOCK_INPUT
+          fi
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: hk-reports
-          path: report_*.md
+          path: |
+            report_*.md
+            daily_buy_list.md
