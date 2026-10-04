@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>收租Agent HK</title>
+<style>body{font-family:sans-serif;padding:20px;max-width:380px;margin:auto}input{width:100%;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:8px}button{width:100%;padding:14px;background:#25D366;color:#fff;border:none;border-radius:8px;font-weight:bold;font-size:16px}.card{background:#f1f1f1;padding:12px;border-radius:10px;margin-top:10px}</style>
+</head><body>
+<h3>收租Agent - 任何港股都入得</h3>
+<input id="ticker" value="9988.HK" placeholder="股票代號">
+<input id="shares" type="number" value="200" placeholder="股數">
+<input id="cost" type="number" value="105" placeholder="成本價">
+<input id="cur" type="number" value="108.5" placeholder="現價">
+<button onclick="calc()">計收租</button>
+<div id="r" class="card"></div>
+<hr>
+<h3>Bull Spread 計 R/R</h3>
+<input id="long" type="number" value="110" placeholder="Long">
+<input id="short" type="number" value="120" placeholder="Short">
+<input id="debit" type="number" value="2.5" placeholder="Debit">
+<button onclick="calc2()">計賺蝕</button>
+<div id="r2" class="card"></div>
+<script>
+function calc(){
+ let t=ticker.value,s=+shares.value,curV=+cur.value;
+ let strike=Math.round(curV*1.06);
+ let prem=curV*0.025*s;
+ document.getElementById('r').innerHTML=`${t} 賣 ${strike} Call<br>今個月收: HKD ${prem.toFixed(0)}<br>月收益率: 2.5%<br>操作: 60%止賺 40%止蝕<br>循環: Hold->Sell->Collect->Roll`;
+}
+function calc2(){
+ let l=+long.value,sh=+short.value,d=+debit.value;
+ let loss=d*100,gain=(sh-l-d)*100;
+ document.getElementById('r2').innerHTML=`Max蝕: ${loss}<br>Max賺: ${gain}<br>Breakeven: ${l+d}<br>R/R: ${(gain/loss).toFixed(2)}<br>${gain/loss>1.5?'PASS可做':'R/R低'}`;
+}
+calc();calc2();
+</script>
+</body></html>
