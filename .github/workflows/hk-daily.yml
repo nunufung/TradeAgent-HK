@@ -23,6 +23,8 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       OPENAI_API_BASE: https://api.deepseek.com/v1
       PYTHONPATH: ${{ github.workspace }}/tradingagents:${{ github.workspace }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +50,45 @@ jobs:
             python -u hk_adapter.py $TICKER | tee report_${TICKER}.md
             cat report_${TICKER}.md
           fi
+
+                - name: Send report to Telegram
+        run: |
+          python - <<'PY'
+          import os
+          import glob
+          import requests
+
+          token = os.environ["TELEGRAM_BOT_TOKEN"]
+          chat_id = os.environ["TELEGRAM_CHAT_ID"]
+
+          files = sorted(glob.glob("report_*.md"))
+
+          if not files:
+              message = "TradeAgent-HK: No report was generated."
+          else:
+              parts = []
+              for filename in files:
+                  with open(filename, "r", encoding="utf-8") as f:
+                      parts.append(f.read())
+
+              report = "\n\n".join(parts)
+              report = report[:3500]
+
+              message = "📊 TradeAgent-HK Report\n\n" + report
+
+          r = requests.post(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              json={
+                  "chat_id": chat_id,
+                  "text": message
+              },
+              timeout=30
+          )
+
+          r.raise_for_status()
+          print("Telegram report sent.")
+          PY
+          
 
       - uses: actions/upload-artifact@v4
         if: always()
