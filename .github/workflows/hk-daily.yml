@@ -73,189 +73,111 @@ jobs:
             cat "report_${TICKER}.md"
           fi
 
+      - name: Generate PDF report
+        if: success()
+        continue-on-error: true
+        run: |
+          mkdir -p pdf_reports
+          python generate_pdf.py --output-dir pdf_reports
+          echo "Generated PDF files:"
+          ls -lh pdf_reports || true
+
       - name: Send report to Telegram
         if: success()
-
-        # Telegram failure must NOT break your existing report workflow.
         continue-on-error: true
-
         run: |
           python - <<'PY'
           import glob
           import os
-          import time
           import requests
-
           from datetime import datetime
           from zoneinfo import ZoneInfo
-
 
           token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
           chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
-
-          # If Telegram is not configured yet,
-          # keep the normal HK report workflow running.
           if not token or not chat_id:
-              print(
-                  "Telegram secrets are not configured. "
-                  "Skipping Telegram delivery."
-              )
+              print("Telegram secrets are not configured. Skipping Telegram.")
               raise SystemExit(0)
 
+          now_hkt = datetime.now(ZoneInfo("Asia/Hong_Kong"))
 
-          files = sorted(glob.glob("report_*.md"))
+          pdf_files = sorted(glob.glob("pdf_reports/*.pdf"))
 
-          if not files:
-              print(
-                  "No report files found. "
-                  "Skipping Telegram delivery."
-              )
-              raise SystemExit(0)
-
-
-          # Some existing report commands may create duplicate content
-          # under different filenames.
-          # Do not send the same report twice.
-          reports = []
-          seen = set()
-
-          for filename in files:
-
-              try:
-                  with open(
-                      filename,
-                      "r",
-                      encoding="utf-8",
-                  ) as f:
-                      body = f.read().strip()
-
-              except Exception as exc:
-                  print(
-                      f"Could not read {filename}: {exc}"
-                  )
-                  continue
-
-
-              if not body:
-                  continue
-
-              if body in seen:
-                  continue
-
-
-              seen.add(body)
-
-              reports.append(
-                  (
-                      filename,
-                      body,
-                  )
-              )
-
-
-          if not reports:
-              print(
-                  "No non-empty report content found. "
-                  "Skipping Telegram delivery."
-              )
-              raise SystemExit(0)
-
-
-          now_hkt = datetime.now(
-              ZoneInfo("Asia/Hong_Kong")
-          )
-
-          header = (
-              "📊 TradeAgent-HK | "
-              f"{now_hkt:%Y-%m-%d %H:%M HKT}"
-          )
-
-
-          # Telegram has a message-size limit.
-          # Split long TradingAgents reports safely
-          # instead of cutting away the rest.
-          def chunks(
-              text,
-              limit=3800,
-          ):
-
-              text = text.strip()
-
-              while text:
-
-                  if len(text) <= limit:
-                      yield text
-                      break
-
-
-                  cut = text.rfind(
-                      "\n",
-                      0,
-                      limit,
+          # Preferred: send the PDF report
+          if pdf_files:
+              for pdf_path in pdf_files:
+                  caption = (
+                      "📊 TradeAgent-HK Daily Report\n"
+                      f"{now_hkt:%Y-%m-%d %H:%M HKT}\n\n"
+                      "Full analysis attached as PDF."
                   )
 
-
-                  if cut < limit // 2:
-                      cut = limit
-
-
-                  yield text[:cut].strip()
-
-                  text = text[cut:].strip()
-
-
-          endpoint = (
-              "https://api.telegram.org/"
-              f"bot{token}/sendMessage"
-          )
-
-
-          first_message = True
-
-
-          for filename, body in reports:
-
-              report_text = (
-                  f"{filename}\n\n"
-                  f"{body}"
-              )
-
-
-              for part in chunks(report_text):
-
-                  if first_message:
-                      message = (
-                          f"{header}\n\n"
-                          f"{part}"
+                  with open(pdf_path, "rb") as pdf:
+                      response = requests.post(
+                          f"https://api.telegram.org/bot{token}/sendDocument",
+                          data={
+                              "chat_id": chat_id,
+                              "caption": caption,
+                          },
+                          files={
+                              "document": (
+                                  os.path.basename(pdf_path),
+                                  pdf,
+                                  "application/pdf",
+                              )
+                          },
+                          timeout=60,
                       )
-                  else:
-                      message = part
-
-
-                  response = requests.post(
-                      endpoint,
-                      json={
-                          "chat_id": chat_id,
-                          "text": message,
-                          "disable_web_page_preview": True,
-                      },
-                      timeout=30,
-                  )
-
 
                   response.raise_for_status()
+                  print(f"Telegram PDF sent: {pdf_path}")
 
+              raise SystemExit(0)
 
-                  first_message = False
+          # Fallback: if PDF generation failed, send the old text report
+          print("No PDF found. Falling back to text report.")
 
-                  time.sleep(0.5)
+          report_files = sorted(glob.glob("report_*.md"))
 
+          if not report_files:
+              print("No report files available.")
+              raise SystemExit(0)
 
-          print(
-              "Telegram report sent successfully."
+          parts = []
+
+          for path in report_files:
+              with open(path, "r", encoding="utf-8") as f:
+                  text = f.read().strip()
+
+              if text:
+                  parts.append(text)
+
+          if not parts:
+              print("Report files were empty.")
+              raise SystemExit(0)
+
+          message = (
+              "📊 TradeAgent-HK Report\n"
+              f"{now_hkt:%Y-%m-%d %H:%M HKT}\n\n"
+              + "\n\n".join(parts)
           )
 
+          # Telegram text message safety limit
+          message = message[:3800]
+
+          response = requests.post(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              json={
+                  "chat_id": chat_id,
+                  "text": message,
+                  "disable_web_page_preview": True,
+              },
+              timeout=30,
+          )
+
+          response.raise_for_status()
+          print("Telegram text fallback sent.")
           PY
 
       - name: Upload report artifacts
