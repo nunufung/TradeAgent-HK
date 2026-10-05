@@ -1,15 +1,12 @@
 name: HK Daily Report
-
 on:
   schedule:
-    - cron: '0 23 * * *'  # 07:00 HKT
-    - cron: '0 2 * * *'   # 10:00 HKT
+    - cron: '0 23 * * *'
+    - cron: '0 2 * * *'
   workflow_dispatch:
-
 concurrency:
   group: hk-daily
   cancel-in-progress: false
-
 jobs:
   report:
     runs-on: ubuntu-latest
@@ -18,37 +15,22 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       OPENAI_API_BASE: https://api.deepseek.com/v1
       PYTHONPATH: ${{ github.workspace }}/tradingagents:${{ github.workspace }}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-
-      - name: Install dependencies
-        run: |
+      - run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Run HK reports
-        run: |
+      - run: |
           set -e
-          if [ -z "$DEEPSEEK_API_KEY" ]; then
-            echo "::error::DEEPSEEK_API_KEY is not set in repo secrets"
-            exit 1
-          fi
           python -u hk_adapter.py 700 | tee report_0700.md
           python -u hk_adapter.py 2800 | tee report_2800.md
-          echo "--- 0700 REPORT ---"
           cat report_0700.md
-
-      - name: Upload reports
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: hk-reports
           path: report_*.md
