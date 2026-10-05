@@ -38,5 +38,24 @@ Flow: Config & Controls → Multi-Agent Stock Scoring + Option Rules (Expiry min
 
 - Option Rules v4.4: Direction >7.5→Call / <4.5→Put, TP +50% consider / +100% must, SL -50% consider / -100% hard stop, No new 09:30-10:00 HKT, Expiry min 30 days
 - Lot rules separated from Option rules
+- TradeAgent-HK PDF Upgrade
+=========================
+
+Files to replace/add in your GitHub repository:
+
+1. Add generate_pdf.py at the repository root.
+2. Replace .github/workflows/hk-daily.yml with the included version.
+3. Replace requirements.txt with the included version (same current packages + reportlab).
+
+What changes:
+- TradingAgents report logic remains in hk_adapter.py and is not modified.
+- Clean report_*.md files remain available as audit output.
+- Verbose console output is stored as run_*.log instead of overwriting report_*.md.
+- A styled PDF is created in pdf_reports/.
+- Telegram sends the PDF via sendDocument instead of sending the full raw text.
+- GitHub artifacts retain Markdown, log, and PDF files.
+- Telegram/PDF failure is non-blocking for the underlying report run.
+
+After committing, manually run Actions > HK Daily Report with ticker 700 and check Telegram.
 
 <img width="536" height="379" alt="Screenshot 2026-10-03 at 11 12 11 AM" src="https://github.com/user-attachments/assets/660b6a82-d449-473e-bb50-398a743acbe9" />
