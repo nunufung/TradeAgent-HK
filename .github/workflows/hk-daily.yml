@@ -258,7 +258,4 @@ jobs:
         with:
           name: hk-reports
           path: report_*.md
-        if: always()
-        with:
-          name: hk-reports
-          path: report_*.md
+       
