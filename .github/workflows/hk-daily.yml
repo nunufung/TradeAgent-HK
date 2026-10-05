@@ -4,12 +4,19 @@ on:
   schedule:
     - cron: '0 23 * * *'  # 07:00 HKT
     - cron: '0 2 * * *'   # 10:00 HKT
+
   workflow_dispatch:
     inputs:
       ticker:
-        description: '輸入港股號碼，例如 700 / 2800 / 981 / 9988'
-        required: false
+        description: 'Hong Kong stock number, e.g. 700 / 2800 / 981 / 9988'
+        required: true
         default: '700'
+        type: string
+
+      request_source:
+        description: 'Request source'
+        required: false
+        default: 'github'
         type: string
 
 concurrency:
