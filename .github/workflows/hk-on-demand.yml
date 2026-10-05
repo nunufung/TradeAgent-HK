@@ -1,0 +1,31 @@
+name: HK On-Demand
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: '港股號碼'
+        required: true
+        type: string
+
+jobs:
+  ondemand:
+    runs-on: ubuntu-latest
+    env:
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      OPENAI_API_BASE: https://api.deepseek.com/v1
+      PYTHONPATH: ${{ github.workspace }}/tradingagents:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - run: |
+          python -u hk_adapter.py ${{ inputs.ticker }} | tee report_${{ inputs.ticker }}.md
+          cat report_${{ inputs.ticker }}.md >> $GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: report-${{ inputs.ticker }}
+          path: report_*.md
