@@ -1,47 +1,54 @@
-name: HK Daily
+name: HK Daily Report
+
 on:
   schedule:
-    - cron: '0 1 * * 1-5'
+    - cron: '0 23 * * *'  # 07:00 HKT
+    - cron: '0 2 * * *'   # 10:00 HKT
   workflow_dispatch:
-    inputs:
-      stock_code:
-        description: '手動分析邊隻? 例如 0700, 2800, 9988 (留空就跑每日Top10 scan)'
-        required: false
-        default: ''
+
+concurrency:
+  group: hk-daily
+  cancel-in-progress: false
 
 jobs:
-  run:
+  report:
     runs-on: ubuntu-latest
+    env:
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      OPENAI_API_BASE: https://api.deepseek.com/v1
+      PYTHONPATH: ${{ github.workspace }}/tradingagents:${{ github.workspace }}
+
     steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.11' }
-      - name: Install
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
         run: |
-          pip install -e./tradingagents -q
-          pip install yfinance pandas -q
-          echo "__version__='0.1.0'" > tradingagents/tradingagents/__version__.py
-          sed -i "s/from tradingagents import __version__/__version__='0.1.0'/" tradingagents/tradingagents/dataflows/vendors/sec_edgar.py || true
-      - name: Run
-        env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          OPENAI_API_BASE: https://api.deepseek.com/v1
-          STOCK_INPUT: ${{ github.event.inputs.stock_code }}
-          PYTHONPATH: ${{ github.workspace }}/tradingagents:${{ github.workspace }}
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run HK reports
         run: |
-          if [ -z "$STOCK_INPUT" ]; then
-            echo "=== Daily Scan Mode ==="
-            python hk_screener.py
-          else
-            echo "=== Manual Mode: $STOCK_INPUT ==="
-            python hk_adapter.py $STOCK_INPUT
+          set -e
+          if [ -z "$DEEPSEEK_API_KEY" ]; then
+            echo "::error::DEEPSEEK_API_KEY is not set in repo secrets"
+            exit 1
           fi
-      - uses: actions/upload-artifact@v4
+          python -u hk_adapter.py 700 | tee report_0700.md
+          python -u hk_adapter.py 2800 | tee report_2800.md
+          echo "--- 0700 REPORT ---"
+          cat report_0700.md
+
+      - name: Upload reports
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: hk-reports
-          path: |
-            report_*.md
-            daily_buy_list.md
+          path: report_*.md
