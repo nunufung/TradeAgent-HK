@@ -1,9 +1,0 @@
-yfinance>=0.2.66
-PyYAML>=6.0
-requests>=2.32
-pandas>=2.2
-beautifulsoup4>=4.12
-lxml>=5.3
-scipy>=1.14
-openai>=1.55
-pytest>=8.3
