@@ -1,19 +1,6 @@
-TradeAgent-HK PDF Upgrade
-=========================
-
-Files to replace/add in your GitHub repository:
-
-1. Add generate_pdf.py at the repository root.
-2. Replace .github/workflows/hk-daily.yml with the included version.
-3. Replace requirements.txt with the included version (same current packages + reportlab).
-
-What changes:
-- TradingAgents report logic remains in hk_adapter.py and is not modified.
-- Clean report_*.md files remain available as audit output.
-- Verbose console output is stored as run_*.log instead of overwriting report_*.md.
-- A styled PDF is created in pdf_reports/.
-- Telegram sends the PDF via sendDocument instead of sending the full raw text.
-- GitHub artifacts retain Markdown, log, and PDF files.
-- Telegram/PDF failure is non-blocking for the underlying report run.
-
-After committing, manually run Actions > HK Daily Report with ticker 700 and check Telegram.
+yfinance
+pyyaml
+requests
+pandas
+beautifulsoup4
+reportlab>=4.0
