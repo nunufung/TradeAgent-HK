@@ -1,7 +1,8 @@
 name: HK Daily Report
+
 on:
   schedule:
-    - cron: '0 23 * * *'  # 07:00 HKT -> 700,2800
+    - cron: '0 23 * * *'  # 07:00 HKT
     - cron: '0 2 * * *'   # 10:00 HKT
   workflow_dispatch:
     inputs:
@@ -18,79 +19,245 @@ concurrency:
 jobs:
   report:
     runs-on: ubuntu-latest
+
     env:
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       OPENAI_API_BASE: https://api.deepseek.com/v1
       PYTHONPATH: ${{ github.workspace }}/tradingagents:${{ github.workspace }}
+
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-      - run: |
+
+      - name: Install dependencies
+        run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run report (dynamic)
         run: |
           set -e
+
           TICKER="${{ inputs.ticker }}"
-          # 如果係 schedule 自動跑，TICKER 會係空，就跑晒 700 同 2800
+
+          # Scheduled runs keep the existing behaviour:
+          # run both 700 and 2800.
+          #
+          # Manual workflow runs use the ticker entered above.
           if [ -z "$TICKER" ] || [ "${{ github.event_name }}" = "schedule" ]; then
             echo "Scheduled run -> 700 + 2800"
+
             python -u hk_adapter.py 700 | tee report_0700.md
             python -u hk_adapter.py 2800 | tee report_2800.md
           else
             echo "Manual run -> $TICKER"
-            python -u hk_adapter.py $TICKER | tee report_${TICKER}.md
-            cat report_${TICKER}.md
+
+            python -u hk_adapter.py "$TICKER" | tee "report_${TICKER}.md"
+            cat "report_${TICKER}.md"
           fi
 
-                - name: Send report to Telegram
+      - name: Send report to Telegram
+        if: success()
+
+        # Telegram failure must NOT break your existing report workflow.
+        continue-on-error: true
+
         run: |
           python - <<'PY'
-          import os
           import glob
+          import os
+          import time
           import requests
 
-          token = os.environ["TELEGRAM_BOT_TOKEN"]
-          chat_id = os.environ["TELEGRAM_CHAT_ID"]
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+
+          token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+          chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+
+
+          # If Telegram is not configured yet,
+          # keep the normal HK report workflow running.
+          if not token or not chat_id:
+              print(
+                  "Telegram secrets are not configured. "
+                  "Skipping Telegram delivery."
+              )
+              raise SystemExit(0)
+
 
           files = sorted(glob.glob("report_*.md"))
 
           if not files:
-              message = "TradeAgent-HK: No report was generated."
-          else:
-              parts = []
-              for filename in files:
-                  with open(filename, "r", encoding="utf-8") as f:
-                      parts.append(f.read())
+              print(
+                  "No report files found. "
+                  "Skipping Telegram delivery."
+              )
+              raise SystemExit(0)
 
-              report = "\n\n".join(parts)
-              report = report[:3500]
 
-              message = "📊 TradeAgent-HK Report\n\n" + report
+          # Some existing report commands may create duplicate content
+          # under different filenames.
+          # Do not send the same report twice.
+          reports = []
+          seen = set()
 
-          r = requests.post(
-              f"https://api.telegram.org/bot{token}/sendMessage",
-              json={
-                  "chat_id": chat_id,
-                  "text": message
-              },
-              timeout=30
+          for filename in files:
+
+              try:
+                  with open(
+                      filename,
+                      "r",
+                      encoding="utf-8",
+                  ) as f:
+                      body = f.read().strip()
+
+              except Exception as exc:
+                  print(
+                      f"Could not read {filename}: {exc}"
+                  )
+                  continue
+
+
+              if not body:
+                  continue
+
+              if body in seen:
+                  continue
+
+
+              seen.add(body)
+
+              reports.append(
+                  (
+                      filename,
+                      body,
+                  )
+              )
+
+
+          if not reports:
+              print(
+                  "No non-empty report content found. "
+                  "Skipping Telegram delivery."
+              )
+              raise SystemExit(0)
+
+
+          now_hkt = datetime.now(
+              ZoneInfo("Asia/Hong_Kong")
           )
 
-          r.raise_for_status()
-          print("Telegram report sent.")
-          PY
-          
+          header = (
+              "📊 TradeAgent-HK | "
+              f"{now_hkt:%Y-%m-%d %H:%M HKT}"
+          )
 
-      - uses: actions/upload-artifact@v4
+
+          # Telegram has a message-size limit.
+          # Split long TradingAgents reports safely
+          # instead of cutting away the rest.
+          def chunks(
+              text,
+              limit=3800,
+          ):
+
+              text = text.strip()
+
+              while text:
+
+                  if len(text) <= limit:
+                      yield text
+                      break
+
+
+                  cut = text.rfind(
+                      "\n",
+                      0,
+                      limit,
+                  )
+
+
+                  if cut < limit // 2:
+                      cut = limit
+
+
+                  yield text[:cut].strip()
+
+                  text = text[cut:].strip()
+
+
+          endpoint = (
+              "https://api.telegram.org/"
+              f"bot{token}/sendMessage"
+          )
+
+
+          first_message = True
+
+
+          for filename, body in reports:
+
+              report_text = (
+                  f"{filename}\n\n"
+                  f"{body}"
+              )
+
+
+              for part in chunks(report_text):
+
+                  if first_message:
+                      message = (
+                          f"{header}\n\n"
+                          f"{part}"
+                      )
+                  else:
+                      message = part
+
+
+                  response = requests.post(
+                      endpoint,
+                      json={
+                          "chat_id": chat_id,
+                          "text": message,
+                          "disable_web_page_preview": True,
+                      },
+                      timeout=30,
+                  )
+
+
+                  response.raise_for_status()
+
+
+                  first_message = False
+
+                  time.sleep(0.5)
+
+
+          print(
+              "Telegram report sent successfully."
+          )
+
+          PY
+
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+
+        with:
+          name: hk-reports
+          path: report_*.md
         if: always()
         with:
           name: hk-reports
