@@ -1,0 +1,13 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+.DS_Store
+data/options.csv
+reports/*.md
+reports/*.json
+!reports/latest_premarket.md
+!reports/latest_premarket.json
+!reports/latest_actionable.md
+!reports/latest_actionable.json
+!reports/.gitkeep
