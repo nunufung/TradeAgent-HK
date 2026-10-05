@@ -264,5 +264,8 @@ jobs:
 
         with:
           name: hk-reports
-          path: report_*.md
+          path: |
+  report_*.md
+  pdf_reports/*.pdf
+if-no-files-found: warn
        
