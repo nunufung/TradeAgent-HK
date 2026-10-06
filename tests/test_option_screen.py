@@ -73,6 +73,22 @@ class ScreeningAgentTests(unittest.TestCase):
         result = self.agent.screen([candidate(option_type="CALL", strike=115, delta=0.08)])
         self.assertEqual(len(result), 1)
 
+    def test_stock_signal_gate_only_keeps_matching_option_side(self):
+        put = candidate()
+        call = candidate(option_type="CALL", strike=115, delta=0.08)
+        result = self.agent.screen(
+            [put, call],
+            allowed_option_types={"HK.00700": {"PUT"}},
+        )
+        self.assertEqual([row["option_type"] for row in result], ["PUT"])
+
+    def test_neutral_stock_signal_blocks_all_options(self):
+        result = self.agent.screen(
+            [candidate()],
+            allowed_option_types={"HK.00700": set()},
+        )
+        self.assertEqual(result, [])
+
 
 if __name__ == "__main__":
     unittest.main()
