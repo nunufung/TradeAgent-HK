@@ -15,6 +15,7 @@ The script only reads quotes and asks OpenD for the account-specific short initi
 ## Screening gates
 
 - Short Put / Short Call only; absolute Delta at or below 0.10.
+- IV must be present; whether IV is high relative to its own history remains a human check.
 - 21–45 calendar days to expiry.
 - Both Bid and Ask must be valid; relative spread `(Ask - Bid) / midpoint` at or below 30%.
 - Open interest at least 100 and daily volume at least 1 contract.
