@@ -1,0 +1,97 @@
+name: Futu HK Option Screen
+
+on:
+  schedule:
+    # 10:10 HKT, Monday to Friday. GitHub cron is UTC.
+    - cron: '10 2 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: 'Optional comma-separated HK stock codes, e.g. 700,2800'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: futu-option-screen
+  cancel-in-progress: false
+
+jobs:
+  screen:
+    # Must run on the Mac where OpenD is signed in and listening on localhost.
+    runs-on: [self-hosted, macOS]
+    timeout-minutes: 20
+    env:
+      FUTU_OPEND_HOST: 127.0.0.1
+      FUTU_OPEND_PORT: 11111
+      FUTU_SECURITY_FIRM: FUTUSECURITIES
+      FUTU_TRD_ENV: REAL
+      FUTU_ACC_ID: ${{ secrets.FUTU_ACC_ID }}
+      FUTU_ACC_INDEX: ${{ vars.FUTU_ACC_INDEX || '0' }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install screen dependencies
+        run: python -m pip install --upgrade pip futu-api pandas requests
+
+      - name: Run real-quote option screen
+        env:
+          TICKERS_INPUT: ${{ inputs.tickers }}
+        run: |
+          set -euo pipefail
+          if [ -n "${TICKERS_INPUT:-}" ]; then
+            TICKERS_ARGS=()
+            IFS=',' read -r -a RAW_TICKERS <<< "$TICKERS_INPUT"
+            for ticker in "${RAW_TICKERS[@]}"; do
+              TICKERS_ARGS+=("$ticker")
+            done
+            python main.py "${TICKERS_ARGS[@]}" --output option_screen.md
+          else
+            python main.py --output option_screen.md
+          fi
+
+      - name: Send screening report to Telegram
+        if: always() && hashFiles('option_screen.md') != ''
+        run: |
+          python - <<'PY'
+          import os
+          import requests
+          from pathlib import Path
+
+          token = os.getenv('TELEGRAM_BOT_TOKEN', '').strip()
+          chat = os.getenv('TELEGRAM_CHAT_ID', '').strip()
+          if not token or not chat:
+              raise SystemExit('Telegram bot secrets are not configured.')
+          message = Path('option_screen.md').read_text(encoding='utf-8')
+          if len(message) > 3900:
+              message = message[:3850] + '\n…（完整結果見 GitHub Actions artifact）'
+          response = requests.post(
+              f'https://api.telegram.org/bot{token}/sendMessage',
+              json={'chat_id': chat, 'text': message, 'disable_web_page_preview': True},
+              timeout=30,
+          )
+          if response.status_code != 200 or not response.json().get('ok'):
+              raise SystemExit('Telegram delivery failed; see the Actions log.')
+          print('Option-screen report sent to Telegram.')
+          PY
+
+      - name: Save report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: futu-option-screen-${{ github.run_number }}
+          path: option_screen.md
+          if-no-files-found: warn
+          retention-days: 14
