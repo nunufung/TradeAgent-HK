@@ -82,10 +82,22 @@ class ScreeningAgent:
                 return False
         return True
 
-    def screen(self, chains: list[dict[str, Any]], *, check_margin: bool = True) -> list[dict[str, Any]]:
+    def screen(
+        self,
+        chains: list[dict[str, Any]],
+        *,
+        check_margin: bool = True,
+        allowed_option_types: dict[str, set[str]] | None = None,
+    ) -> list[dict[str, Any]]:
         """Filter by hard gates, rank by quote quality, return up to top_n."""
         result = []
         for source in chains:
+            if allowed_option_types is not None:
+                underlying = str(source.get("underlying", ""))
+                allowed = allowed_option_types.get(underlying, set())
+                option_type = str(source.get("option_type", source.get("type", ""))).upper()
+                if option_type not in allowed:
+                    continue
             if not self._passes(source, check_margin):
                 continue
             opt = dict(source)
