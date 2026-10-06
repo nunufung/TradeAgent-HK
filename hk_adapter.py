@@ -27,7 +27,9 @@ def run_market_agent(hk_code: str):
         sys.exit(1)
     os.environ["OPENAI_API_KEY"] = key
     os.environ["OPENAI_API_BASE"] = "https://api.deepseek.com/v1"
-    ta = TradingAgentsGraph(debug=True, config=config)
+    selected_analysts = ("market", "social", "news", "fundamentals")
+    print(f"Analyst team: {\", \".join(selected_analysts)}")
+    ta = TradingAgentsGraph(selected_analysts=selected_analysts, debug=True, config=config)
     _, decision = ta.propagate(ticker, date_str)
     print("\n" + "="*60 + "\nFINAL\n" + "="*60)
     print(decision)
