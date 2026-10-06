@@ -44,6 +44,9 @@ def evaluate_option(row: dict[str, Any], rules: Rules = Rules(), *, check_margin
     delta = row.get("delta")
     if delta is None or not math.isfinite(float(delta)) or abs(float(delta)) > rules.max_abs_delta:
         failures.append("Delta 缺失或絕對值高於 0.10")
+    iv = row.get("iv")
+    if iv is None or not math.isfinite(float(iv)) or float(iv) <= 0:
+        failures.append("IV 數據缺失或無效")
     bid, ask = float(row.get("bid", 0) or 0), float(row.get("ask", 0) or 0)
     if bid <= 0 or ask <= 0 or ask < bid:
         failures.append("Bid/Ask 無效或單邊報價")
@@ -62,7 +65,9 @@ def evaluate_option(row: dict[str, Any], rules: Rules = Rules(), *, check_margin
     premium_per_lot = bid * lot
     if margin is None or float(margin) <= 0 or premium_per_lot <= 0:
         failures.append("無法核實賣出初始保證金 / Premium")
-    elif not math.isfinite(float(margin)) or float(margin) / premium_per_lot > rules.max_margin_premium_multiple:
+    elif not math.isfinite(float(margin)):
+        failures.append("賣出初始保證金數據無效")
+    elif float(margin) / premium_per_lot > rules.max_margin_premium_multiple:
         failures.append("Margin / Premium 高於 10x")
     return not failures, failures
 
@@ -261,7 +266,7 @@ def render(candidates: list[dict[str, Any]], errors: list[str], watchlist: list[
             ratio = c["short_required_im"] / per_contract_premium
             lines.append(
                 f"{n}. {c['underlying']} {side}｜行使價 {c['strike']:g}｜到期 {c['expiry']} ({c['dte']} DTE)\n"
-                f"   Delta {c['delta']:.3f}｜Bid/Ask {c['bid']:.3f}/{c['ask']:.3f}｜Spread {spread_pct:.1f}%\n"
+                f"   正股 {c['spot']:g}｜Delta {c['delta']:.3f}｜Bid/Ask {c['bid']:.3f}/{c['ask']:.3f}｜Spread {spread_pct:.1f}%\n"
                 f"   IV {c['iv']:.1f}%｜Vol {c['volume']}｜OI {c['open_interest']}｜每張 Premium 約 HK${per_contract_premium:,.0f}\n"
                 f"   賣出初始保證金約 HK${c['short_required_im']:,.0f}｜Margin/Premium {ratio:.1f}x｜代碼 {c['option_code']}"
             )
