@@ -1,0 +1,65 @@
+name: Futu OpenD Connectivity Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: 'HK stock code to query, e.g. 700'
+        required: false
+        default: '700'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: futu-opend-smoke-test
+  cancel-in-progress: false
+
+jobs:
+  quote-smoke-test:
+    runs-on: [self-hosted, macOS]
+    timeout-minutes: 5
+    env:
+      FUTU_OPEND_HOST: 127.0.0.1
+      FUTU_OPEND_PORT: 11111
+      TICKER_INPUT: ${{ inputs.ticker }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Futu quote client
+        run: python -m pip install "futu-api>=9.3"
+
+      - name: Verify OpenD quote and options endpoints
+        run: |
+          python - <<'PY'
+          import os
+          from futu import OpenQuoteContext, RET_OK
+
+          raw = os.getenv("TICKER_INPUT", "700").strip().upper()
+          code = "HK." + str(int(raw.replace("HK.", "").replace(".HK", ""))).zfill(5)
+          quote = OpenQuoteContext(
+              host=os.getenv("FUTU_OPEND_HOST", "127.0.0.1"),
+              port=int(os.getenv("FUTU_OPEND_PORT", "11111")),
+          )
+          try:
+              ret, snapshot = quote.get_market_snapshot([code])
+              if ret != RET_OK or snapshot.empty:
+                  raise SystemExit(f"OpenD snapshot failed: ret={ret}, {snapshot}")
+              ret, expiries = quote.get_option_expiration_date(code=code)
+              if ret != RET_OK or expiries.empty:
+                  raise SystemExit(f"OpenD options endpoint failed: ret={ret}, {expiries}")
+              row = snapshot.iloc[0]
+              print(f"OpenD connected: {code}")
+              print(f"Last price: {row.get('last_price')}")
+              print(f"Quote update: {row.get('update_time')}")
+              print(f"Option expiry dates returned: {len(expiries)}")
+          finally:
+              quote.close()
+          PY
