@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -65,7 +66,13 @@ def _snapshot_map(quote_ctx, codes: list[str]) -> dict[str, dict[str, Any]]:
     return result
 
 
-def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True) -> tuple[list[dict[str, Any]], list[str]]:
+def scan(
+    watchlist: list[str],
+    host: str,
+    port: int,
+    require_margin: bool = True,
+    stock_signals: dict[str, dict[str, Any]] | None = None,
+) -> tuple[list[dict[str, Any]], list[str]]:
     """Connect to local OpenD and return real, rule-qualified candidates."""
     try:
         from futu import (  # type: ignore
@@ -89,6 +96,13 @@ def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True
         today = _hkt_today()
         screener = ScreeningAgent(SCREENING_RULES)
         for underlying in watchlist:
+            signal = (stock_signals or {}).get(underlying, {})
+            allowed_types = set(signal.get("allowed_option_types", []))
+            if stock_signals is not None and not allowed_types:
+                errors.append(
+                    f"{underlying}: 正股評級 {signal.get('rating', '缺少')}，方向未明或分析不完整；期權篩選已封鎖"
+                )
+                continue
             ret, expiries = quote_ctx.get_option_expiration_date(code=underlying)
             if ret != RET_OK:
                 errors.append(f"{underlying}: 無法取得到期日 ({expiries})")
@@ -147,7 +161,16 @@ def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True
 
         # First pass follows the original Data -> ScreeningAgent design without
         # margin data; then query account margin only for its top 50 candidates.
-        prequalified = screener.screen(quote_candidates, check_margin=False)
+        allowed_types_by_underlying = (
+            {ticker: set(signal.get("allowed_option_types", [])) for ticker, signal in stock_signals.items()}
+            if stock_signals is not None
+            else None
+        )
+        prequalified = screener.screen(
+            quote_candidates,
+            check_margin=False,
+            allowed_option_types=allowed_types_by_underlying,
+        )
         for row in prequalified:
             # Query the broker/account specific incremental initial margin. Never
             # treat an estimate as a valid value when this read-only query fails.
@@ -166,7 +189,11 @@ def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True
                         row["short_required_im"] = float(value)
                     except (TypeError, ValueError):
                         pass
-        candidates = screener.screen(prequalified, check_margin=True)
+        candidates = screener.screen(
+            prequalified,
+            check_margin=True,
+            allowed_option_types=allowed_types_by_underlying,
+        )
         return candidates, errors
     finally:
         quote_ctx.close()
@@ -174,16 +201,36 @@ def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True
             trade_ctx.close()
 
 
-def render(candidates: list[dict[str, Any]], errors: list[str], watchlist: list[str], *, now: datetime | None = None) -> str:
+def render(
+    candidates: list[dict[str, Any]],
+    errors: list[str],
+    watchlist: list[str],
+    *,
+    stock_signals: dict[str, dict[str, Any]] | None = None,
+    now: datetime | None = None,
+) -> str:
     now = now or datetime.now(HKT)
     lines = [
         "📊 TradeAgent-HK｜Futu OpenD 期權篩選",
         f"報價時間：{now:%Y-%m-%d %H:%M HKT}",
         f"掃描：{', '.join(watchlist)}",
         "硬性篩選：Short Put/Call｜Delta 絕對值 ≤0.10｜21–45 DTE｜Spread ≤30%｜OI ≥100｜Margin/Premium ≤10x",
-        "此清單只通過可量化篩選；開倉前仍須人工核對股價趨勢、支撐/阻力、業績/新聞、假期及現金 buffer。",
+        "正股方向連動：Buy/Overweight → 只篩 Short Put；Underweight/Sell → 只篩 Short Call；Hold/REVIEW/分析不完整 → 不篩期權。",
+        "TradingAgents 四位分析員：市場技術、社交情緒、新聞、基本面；以下評級由完整分析流程產生。",
         "",
     ]
+    if stock_signals is not None:
+        lines.append("正股篩選結果：")
+        for ticker in watchlist:
+            signal = stock_signals.get(ticker, {})
+            analysts = signal.get("analysts", {})
+            analyst_status = "/".join(
+                f"{name}:{'✓' if analysts.get(name, {}).get('complete') else '✗'}"
+                for name in ("market", "social", "news", "fundamentals")
+            )
+            allowed = ", ".join(signal.get("allowed_option_types", [])) or "不開倉"
+            lines.append(f"- {ticker}｜{signal.get('rating', 'REVIEW')}｜期權方向：{allowed}｜四分析員 {analyst_status}")
+        lines.append("")
     if not _is_open_window(now):
         lines.append("⏸️ 現在未符合 10:00 HKT 後開倉時段，今日不會提出新倉建議。")
     elif candidates:
@@ -202,7 +249,7 @@ def render(candidates: list[dict[str, Any]], errors: list[str], watchlist: list[
             )
         lines.append("\n結論：以上為合規候選，並非自動下單或保證買賣指示。")
     else:
-        lines.append("⛔ 沒有合約同時通過硬性數據篩選；今日不做。")
+        lines.append("⛔ 沒有合約通過正股方向及期權硬性篩選；今日不做。")
     if errors:
         lines.append("\n資料 / 連線提示：")
         lines.extend(f"- {e}" for e in errors[:8])
@@ -215,12 +262,24 @@ def main() -> int:
     parser.add_argument("--host", default=os.getenv("FUTU_OPEND_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.getenv("FUTU_OPEND_PORT", "11111")))
     parser.add_argument("--output", default="option_screen.md")
+    parser.add_argument(
+        "--stock-signals",
+        help="TradingAgents 正股評級 JSON；指定後每隻股票必須有有效評級才會篩期權",
+    )
     args = parser.parse_args()
 
     try:
         watchlist = [_market_code(x) for x in args.tickers] if args.tickers else DEFAULT_WATCHLIST
-        candidates, errors = scan(watchlist, args.host, args.port)
-        report = render(candidates, errors, watchlist)
+        stock_signals = None
+        if args.stock_signals:
+            with open(args.stock_signals, encoding="utf-8") as f:
+                payload = json.load(f)
+            stock_signals = payload.get("signals", {})
+            missing = [ticker for ticker in watchlist if ticker not in stock_signals]
+            if missing:
+                raise ValueError(f"正股分析缺少股票評級，期權流程封鎖：{', '.join(missing)}")
+        candidates, errors = scan(watchlist, args.host, args.port, stock_signals=stock_signals)
+        report = render(candidates, errors, watchlist, stock_signals=stock_signals)
     except Exception as exc:
         report = (
             "📊 TradeAgent-HK｜Futu OpenD 期權篩選\n"
