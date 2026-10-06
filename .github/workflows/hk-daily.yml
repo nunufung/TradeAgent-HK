@@ -2,7 +2,8 @@ name: HK Daily Report
 
 on:
   schedule:
-    - cron: '0 23 * * *'  # 07:00 HKT
+    - cron: '0 21 * * *'  # 05:00 HKT: prebuild, no Telegram send
+    - cron: '0 23 * * *'  # 07:00 HKT: send the saved morning PDF
     - cron: '0 2 * * *'   # 10:00 HKT
 
   workflow_dispatch:
@@ -20,11 +21,16 @@ on:
         type: string
 
 concurrency:
-  group: hk-daily
+  group: hk-daily-${{ github.event.schedule || 'on-demand' }}
   cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   report:
+    if: github.event_name != 'schedule' || github.event.schedule != '0 23 * * *'
     runs-on: ubuntu-latest
 
     env:
@@ -37,6 +43,10 @@ jobs:
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
+      - name: Record morning report date
+        id: morning
+        run: echo "date=$(TZ=Asia/Hong_Kong date +%F)" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -59,26 +69,33 @@ jobs:
           pip install ./tradingagents
 
       - name: Run report (dynamic)
+        env:
+          TICKER: ${{ inputs.ticker }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          set -e
-
-          TICKER="${{ inputs.ticker }}"
+          set -euo pipefail
 
           # Scheduled runs keep the existing behaviour:
           # run both 700 and 2800.
           #
           # Manual workflow runs use the ticker entered above.
-          if [ -z "$TICKER" ] || [ "${{ github.event_name }}" = "schedule" ]; then
+          if [ -z "$TICKER" ] || [ "$EVENT_NAME" = "schedule" ]; then
             echo "Scheduled run -> 700 + 2800"
 
             python -u hk_adapter.py 700 | tee report_0700.md
             python -u hk_adapter.py 2800 | tee report_2800.md
           else
+            [[ "$TICKER" =~ ^[0-9]{1,5}$ ]] && (( 10#$TICKER > 0 )) || { echo "Invalid stock code"; exit 1; }
             echo "Manual run -> $TICKER"
 
             python -u hk_adapter.py "$TICKER" | tee "report_${TICKER}.md"
             cat "report_${TICKER}.md"
           fi
+
+      - name: Install embedded PDF fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-wqy-zenhei fonts-dejavu-core
 
       - name: Generate PDF report
         if: success()
@@ -89,8 +106,17 @@ jobs:
           echo "Generated PDF files:"
           ls -lh pdf_reports || true
 
+      - name: Store the 05:00 PDF for 07:00 delivery
+        if: success() && github.event_name == 'schedule' && github.event.schedule == '0 21 * * *'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hk-morning-${{ steps.morning.outputs.date }}
+          path: pdf_reports/*.pdf
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Send report to Telegram
-        if: success()
+        if: success() && (github.event_name != 'schedule' || github.event.schedule != '0 21 * * *')
         continue-on-error: true
         run: |
           python - <<'PY'
@@ -99,6 +125,9 @@ jobs:
           import requests
           from datetime import datetime
           from zoneinfo import ZoneInfo
+
+          import sys
+          sys.excepthook = lambda *_: print('Telegram delivery failed; sensitive details omitted.')
 
           token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
           chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
@@ -137,7 +166,8 @@ jobs:
                           timeout=60,
                       )
 
-                  response.raise_for_status()
+                  if response.status_code != 200:
+                      raise SystemExit('Telegram delivery failed; sensitive response omitted.')
                   print(f"Telegram PDF sent: {pdf_path}")
 
               raise SystemExit(0)
@@ -183,7 +213,8 @@ jobs:
               timeout=30,
           )
 
-          response.raise_for_status()
+          if response.status_code != 200:
+              raise SystemExit('Telegram delivery failed; sensitive response omitted.')
           print("Telegram text fallback sent.")
           PY
 
@@ -197,3 +228,103 @@ jobs:
             pdf_reports/*.pdf
           if-no-files-found: warn
        
+
+  send_morning:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 23 * * *'
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - name: Locate today's completed morning PDF
+        id: locate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const day = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(new Date());
+            const name = 'hk-morning-' + day;
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo, name, per_page: 100
+            });
+            const candidates = artifacts.filter(a => a.name === name && !a.expired)
+              .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+            for (const artifact of candidates) {
+              const { data: run } = await github.rest.actions.getWorkflowRun({
+                ...context.repo, run_id: artifact.workflow_run.id
+              });
+              if (run.path === '.github/workflows/hk-daily.yml' &&
+                  run.event === 'schedule' && run.head_branch === context.payload.repository.default_branch &&
+                  run.conclusion === 'success') {
+                core.setOutput('name', name);
+                core.setOutput('run_id', String(run.id));
+                return;
+              }
+            }
+            core.setFailed('No completed morning PDF for today. An old report will not be sent.');
+
+      - name: Download today's morning PDF
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.locate.outputs.name }}
+          run-id: ${{ steps.locate.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: morning_pdf
+
+      - name: Send saved morning PDF to Telegram
+        if: always()
+        env:
+          PREVIOUS_STATUS: ${{ job.status }}
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          import os
+          import secrets
+          import urllib.request
+          from datetime import datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+          if not token or not chat:
+              raise SystemExit("Telegram credentials are missing.")
+          day = datetime.now(ZoneInfo("Asia/Hong_Kong")).strftime("%Y-%m-%d")
+          files = sorted(glob.glob("morning_pdf/**/*.pdf", recursive=True))
+
+          def post(method, body, content_type):
+              try:
+                  request = urllib.request.Request(
+                      f"https://api.telegram.org/bot{token}/{method}",
+                      data=body, headers={"Content-Type": content_type}, method="POST")
+                  with urllib.request.urlopen(request, timeout=60) as response:
+                      result = json.loads(response.read())
+                  if not result.get("ok"):
+                      raise ValueError()
+              except Exception:
+                  raise SystemExit("Telegram delivery failed; sensitive details omitted.")
+
+          if os.environ.get("PREVIOUS_STATUS") != "success" or not files:
+              post("sendMessage", json.dumps({
+                  "chat_id": chat,
+                  "text": f"TradeAgent-HK {day}: the 05:00 HKT morning PDF is not ready or could not be retrieved. Check GitHub Actions. No old report was sent."
+              }).encode(), "application/json")
+              raise SystemExit("Morning PDF unavailable.")
+
+          for path in files:
+              boundary = "TradeAgentHK" + secrets.token_hex(16)
+              body = bytearray()
+              fields = {
+                  "chat_id": chat,
+                  "caption": f"TradeAgent-HK Morning Report | {day}\nPrebuilt from the 05:00 HKT run; scheduled for 07:00 HKT delivery.\nMarket data reflects the report generation time."
+              }
+              for key, value in fields.items():
+                  body.extend((f"--{boundary}\r\nContent-Disposition: form-data; name=\"{key}\"\r\n\r\n{value}\r\n").encode())
+              body.extend((f"--{boundary}\r\nContent-Disposition: form-data; name=\"document\"; filename=\"{Path(path).name}\"\r\nContent-Type: application/pdf\r\n\r\n").encode())
+              body.extend(Path(path).read_bytes())
+              body.extend(f"\r\n--{boundary}--\r\n".encode())
+              post("sendDocument", bytes(body), f"multipart/form-data; boundary={boundary}")
+          print("Morning PDF delivery completed.")
+          PY
