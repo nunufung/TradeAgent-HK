@@ -10,7 +10,7 @@ The option screen uses Futu OpenD on the same Mac as a GitHub Actions self-hoste
 4. In **Settings → Secrets and variables → Actions**, confirm `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` exist. Optionally add secret `FUTU_ACC_ID` if the first Hong Kong securities account is not the intended account. `FUTU_ACC_INDEX` is an optional repository variable (default `0`).
 5. Run **Actions → Futu HK Option Screen → Run workflow** to test. A custom ticker list accepts comma-separated stock numbers such as `700,2800`.
 
-The script only reads quotes and asks OpenD for the account-specific short initial margin. It never unlocks trading or submits, changes, or cancels an order. If margin data, a fresh two-sided quote, or another required field is unavailable, that contract is excluded. No mock or fallback option prices are used.
+The workflow runs `main.py`, which collects real OpenD option-chain and snapshot data, then passes those rows to `agents/screening_agent.py` through its `ScreeningAgent.screen(chains)` interface. It screens once for quote quality, queries account-specific short initial margin only for the highest-ranked quotes, then screens again with the complete rule set. The code only reads quotes and margin; it never unlocks trading or submits, changes, or cancels an order. If margin data, a fresh two-sided quote, or another required field is unavailable, that contract is excluded. No mock or fallback option prices are used.
 
 ## Screening gates
 
