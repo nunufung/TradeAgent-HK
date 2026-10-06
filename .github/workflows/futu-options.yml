@@ -23,7 +23,7 @@ jobs:
   screen:
     # Must run on the Mac where OpenD is signed in and listening on localhost.
     runs-on: [self-hosted, macOS]
-    timeout-minutes: 20
+    timeout-minutes: 120
     env:
       FUTU_OPEND_HOST: 127.0.0.1
       FUTU_OPEND_PORT: 11111
@@ -33,9 +33,12 @@ jobs:
       FUTU_ACC_INDEX: ${{ vars.FUTU_ACC_INDEX || '0' }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -43,10 +46,13 @@ jobs:
           python-version: '3.11'
           cache: pip
 
-      - name: Install screen dependencies
-        run: python -m pip install --upgrade pip futu-api pandas requests
+      - name: Install TradingAgents and screen dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -e ./tradingagents
 
-      - name: Run OpenD quote scan through ScreeningAgent
+      - name: Run four-analyst stock screen and linked Futu option scan
         env:
           TICKERS_INPUT: ${{ inputs.tickers }}
         run: |
@@ -57,9 +63,11 @@ jobs:
             for ticker in "${RAW_TICKERS[@]}"; do
               TICKERS_ARGS+=("$ticker")
             done
-            python main.py "${TICKERS_ARGS[@]}" --output option_screen.md
+            python linked_stock_analysis.py "${TICKERS_ARGS[@]}" --signals stock_signals.json --report stock_analysis.md
+            python main.py "${TICKERS_ARGS[@]}" --stock-signals stock_signals.json --output option_screen.md
           else
-            python main.py --output option_screen.md
+            python linked_stock_analysis.py --signals stock_signals.json --report stock_analysis.md
+            python main.py --stock-signals stock_signals.json --output option_screen.md
           fi
 
       - name: Send screening report to Telegram
@@ -92,6 +100,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: futu-option-screen-${{ github.run_number }}
-          path: option_screen.md
+          path: |
+            option_screen.md
+            stock_analysis.md
+            stock_signals.json
           if-no-files-found: warn
           retention-days: 14
