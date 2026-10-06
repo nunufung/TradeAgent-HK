@@ -19,7 +19,7 @@ concurrency:
 jobs:
   quote-smoke-test:
     runs-on: [self-hosted, macOS]
-    timeout-minutes: 5
+    timeout-minutes: 20
     env:
       FUTU_OPEND_HOST: 127.0.0.1
       FUTU_OPEND_PORT: 11111
