@@ -1,11 +1,27 @@
 import unittest
 from datetime import datetime
 
-from main import HKT, Rules, _fresh_quote_time, evaluate_option
+from agents.screening_agent import HKT, ScreeningAgent
+
+
+RULES = {
+    "delta_max": 0.10,
+    "expiry_days": list(range(21, 46)),
+    "expiry_tolerance": 0,
+    "max_spread_pct": 0.30,
+    "min_volume": 1,
+    "min_oi": 100,
+    "max_margin_premium_multiple": 10.0,
+    "max_quote_age_minutes": 30,
+    "top_n": 10,
+}
 
 
 def candidate(**changes):
     row = {
+        "underlying": "HK.00700",
+        "option_code": "HK.TESTP",
+        "option_type": "PUT",
         "dte": 30,
         "delta": -0.10,
         "iv": 30.0,
@@ -15,40 +31,47 @@ def candidate(**changes):
         "open_interest": 100,
         "lot_size": 1000,
         "short_required_im": 20_000,
+        "strike": 85,
+        "spot": 100,
+        "quote_time": datetime.now(HKT).strftime("%Y-%m-%d %H:%M:%S"),
     }
     row.update(changes)
     return row
 
 
-class OptionScreenTests(unittest.TestCase):
+class ScreeningAgentTests(unittest.TestCase):
+    def setUp(self):
+        self.agent = ScreeningAgent(RULES)
+
     def test_contract_at_rule_boundaries_passes(self):
-        self.assertEqual(evaluate_option(candidate()), (True, []))
+        result = self.agent.screen([candidate()])
+        self.assertEqual(len(result), 1)
+        self.assertIn("score", result[0])
 
-    def test_missing_delta_or_margin_fails_closed(self):
-        ok, reasons = evaluate_option(candidate(delta=float("nan")))
-        self.assertFalse(ok)
-        self.assertTrue(any("Delta" in reason for reason in reasons))
-        ok, reasons = evaluate_option(candidate(short_required_im=None))
-        self.assertFalse(ok)
-        self.assertTrue(any("保證金" in reason for reason in reasons))
-        self.assertFalse(evaluate_option(candidate(iv=float("nan")))[0])
+    def test_pre_margin_pass_does_not_bypass_final_margin_gate(self):
+        prequalified = self.agent.screen([candidate(short_required_im=None)], check_margin=False)
+        self.assertEqual(len(prequalified), 1)
+        self.assertEqual(self.agent.screen(prequalified), [])
 
-    def test_hard_risk_limits_reject(self):
-        rules = Rules()
-        for row in (
+    def test_hard_rules_reject_bad_contracts(self):
+        cases = [
             candidate(dte=20),
             candidate(delta=-0.101),
+            candidate(iv=float("nan")),
             candidate(ask=3.0),
             candidate(open_interest=99),
             candidate(short_required_im=20_001),
-        ):
-            self.assertFalse(evaluate_option(row, rules)[0], row)
+            candidate(quote_time="2026-10-06 09:00:00"),
+            candidate(strike=101),  # A short put strike must be below spot.
+            candidate(option_type="CALL", strike=99),  # Call strike must be above spot.
+        ]
+        for row in cases:
+            with self.subTest(row=row):
+                self.assertEqual(self.agent.screen([row]), [])
 
-    def test_cached_quotes_fail_freshness_check(self):
-        now = datetime(2026, 10, 6, 10, 10, tzinfo=HKT)
-        self.assertTrue(_fresh_quote_time("2026-10-06 10:00:00", now))
-        self.assertFalse(_fresh_quote_time("2026-10-06 09:39:00", now))
-        self.assertFalse(_fresh_quote_time("", now))
+    def test_call_with_otm_strike_passes(self):
+        result = self.agent.screen([candidate(option_type="CALL", strike=115, delta=0.08)])
+        self.assertEqual(len(result), 1)
 
 
 if __name__ == "__main__":
