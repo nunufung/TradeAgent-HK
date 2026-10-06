@@ -8,6 +8,7 @@ def candidate(**changes):
     row = {
         "dte": 30,
         "delta": -0.10,
+        "iv": 30.0,
         "bid": 2.0,
         "ask": 2.2,
         "volume": 1,
@@ -30,6 +31,7 @@ class OptionScreenTests(unittest.TestCase):
         ok, reasons = evaluate_option(candidate(short_required_im=None))
         self.assertFalse(ok)
         self.assertTrue(any("保證金" in reason for reason in reasons))
+        self.assertFalse(evaluate_option(candidate(iv=float("nan")))[0])
 
     def test_hard_risk_limits_reject(self):
         rules = Rules()
