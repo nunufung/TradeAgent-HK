@@ -4,3 +4,4 @@ requests
 pandas
 beautifulsoup4
 reportlab>=4.0
+futu-api>=9.3
