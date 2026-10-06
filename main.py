@@ -3,28 +3,30 @@
 from __future__ import annotations
 
 import argparse
-import math
 import os
 import sys
 import time
-from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
+from agents.screening_agent import ScreeningAgent
 
 HKT = ZoneInfo("Asia/Hong_Kong")
 DEFAULT_WATCHLIST = ["HK.00700", "HK.02800", "HK.01299", "HK.09988", "HK.00388", "HK.00005", "HK.00941", "HK.01810"]
 
 
-@dataclass(frozen=True)
-class Rules:
-    min_dte: int = 21
-    max_dte: int = 45
-    max_abs_delta: float = 0.10
-    max_relative_spread: float = 0.30
-    min_volume: int = 1
-    min_open_interest: int = 100
-    max_margin_premium_multiple: float = 10.0
+SCREENING_RULES = {
+    "delta_max": 0.10,
+    "expiry_days": list(range(21, 46)),
+    "expiry_tolerance": 0,
+    "max_spread_pct": 0.30,
+    "min_volume": 1,
+    "min_oi": 100,
+    "max_margin_premium_multiple": 10.0,
+    "max_quote_age_minutes": 30,
+    # Query account-specific margin only for the best 50 quote candidates.
+    "top_n": 50,
+}
 
 
 def _number(row: Any, key: str, default: float = 0.0) -> float:
@@ -33,43 +35,6 @@ def _number(row: Any, key: str, default: float = 0.0) -> float:
         return value if value == value else default
     except (KeyError, TypeError, ValueError):
         return default
-
-
-def evaluate_option(row: dict[str, Any], rules: Rules = Rules(), *, check_margin: bool = True) -> tuple[bool, list[str]]:
-    """Apply measurable entry gates. Missing required data fails closed."""
-    failures: list[str] = []
-    dte = int(row.get("dte", 0) or 0)
-    if not rules.min_dte <= dte <= rules.max_dte:
-        failures.append("DTE 不在 21–45 日")
-    delta = row.get("delta")
-    if delta is None or not math.isfinite(float(delta)) or abs(float(delta)) > rules.max_abs_delta:
-        failures.append("Delta 缺失或絕對值高於 0.10")
-    iv = row.get("iv")
-    if iv is None or not math.isfinite(float(iv)) or float(iv) <= 0:
-        failures.append("IV 數據缺失或無效")
-    bid, ask = float(row.get("bid", 0) or 0), float(row.get("ask", 0) or 0)
-    if bid <= 0 or ask <= 0 or ask < bid:
-        failures.append("Bid/Ask 無效或單邊報價")
-    else:
-        mid = (bid + ask) / 2
-        if (ask - bid) / mid > rules.max_relative_spread:
-            failures.append("相對 Spread 高於 30%")
-    if int(row.get("volume", 0) or 0) < rules.min_volume:
-        failures.append("成交量不足")
-    if int(row.get("open_interest", 0) or 0) < rules.min_open_interest:
-        failures.append("未平倉量低於 100 張")
-    if not check_margin:
-        return not failures, failures
-    margin = row.get("short_required_im")
-    lot = float(row.get("lot_size", 0) or 0)
-    premium_per_lot = bid * lot
-    if margin is None or float(margin) <= 0 or premium_per_lot <= 0:
-        failures.append("無法核實賣出初始保證金 / Premium")
-    elif not math.isfinite(float(margin)):
-        failures.append("賣出初始保證金數據無效")
-    elif float(margin) / premium_per_lot > rules.max_margin_premium_multiple:
-        failures.append("Margin / Premium 高於 10x")
-    return not failures, failures
 
 
 def _hkt_today() -> date:
@@ -86,17 +51,6 @@ def _market_code(raw: str) -> str:
     if not code.isdigit() or not 1 <= int(code) <= 99999:
         raise ValueError(f"無效港股代號：{raw}")
     return f"HK.{int(code):05d}"
-
-
-def _fresh_quote_time(value: Any, now: datetime | None = None) -> bool:
-    """Reject cached/closed-market prices older than 30 minutes."""
-    try:
-        quote_time = datetime.strptime(str(value), "%Y-%m-%d %H:%M:%S").replace(tzinfo=HKT)
-    except (TypeError, ValueError):
-        return False
-    now = now or datetime.now(HKT)
-    age_minutes = (now - quote_time).total_seconds() / 60
-    return -1 <= age_minutes <= 30
 
 
 def _snapshot_map(quote_ctx, codes: list[str]) -> dict[str, dict[str, Any]]:
@@ -133,6 +87,7 @@ def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True
         raw_contracts: list[dict[str, Any]] = []
         errors: list[str] = []
         today = _hkt_today()
+        screener = ScreeningAgent(SCREENING_RULES)
         for underlying in watchlist:
             ret, expiries = quote_ctx.get_option_expiration_date(code=underlying)
             if ret != RET_OK:
@@ -142,7 +97,7 @@ def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True
             for text in expiries.get("strike_time", []).tolist():
                 exp = date.fromisoformat(str(text)[:10])
                 dte = (exp - today).days
-                if Rules().min_dte <= dte <= Rules().max_dte:
+                if 21 <= dte <= 45:
                     expiry_dates.append((exp, dte))
 
             for expiry, dte in expiry_dates:
@@ -171,7 +126,7 @@ def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True
 
         snapshots = _snapshot_map(quote_ctx, [c["option_code"] for c in raw_contracts]) if raw_contracts else {}
         underlying_snaps = _snapshot_map(quote_ctx, watchlist)
-        prequalified: list[dict[str, Any]] = []
+        quote_candidates: list[dict[str, Any]] = []
         for contract in raw_contracts:
             snap = snapshots.get(contract["option_code"])
             if not snap:
@@ -188,26 +143,12 @@ def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True
                 "spot": _number(underlying_snaps.get(contract["underlying"], {}), "last_price"),
                 "short_required_im": None,
             }
-            if not _fresh_quote_time(row["quote_time"]):
-                continue
-            if row["spot"] <= 0:
-                continue
-            if row["option_type"] == "PUT" and row["strike"] >= row["spot"]:
-                continue
-            if row["option_type"] == "CALL" and row["strike"] <= row["spot"]:
-                continue
-            accepted, _ = evaluate_option(row, check_margin=False)
-            if accepted:
-                prequalified.append(row)
+            quote_candidates.append(row)
 
-        # Rank by quote quality first; margin queries are only needed for a small
-        # set of viable contracts, not every contract in the chain.
-        prequalified.sort(key=lambda x: (
-            (x["ask"] - x["bid"]) / ((x["ask"] + x["bid"]) / 2),
-            -x["open_interest"], -x["volume"],
-        ))
-        candidates: list[dict[str, Any]] = []
-        for row in prequalified[:50]:
+        # First pass follows the original Data -> ScreeningAgent design without
+        # margin data; then query account margin only for its top 50 candidates.
+        prequalified = screener.screen(quote_candidates, check_margin=False)
+        for row in prequalified:
             # Query the broker/account specific incremental initial margin. Never
             # treat an estimate as a valid value when this read-only query fails.
             if trade_ctx is not None:
@@ -225,18 +166,7 @@ def scan(watchlist: list[str], host: str, port: int, require_margin: bool = True
                         row["short_required_im"] = float(value)
                     except (TypeError, ValueError):
                         pass
-            accepted, reasons = evaluate_option(row)
-            row["accepted"] = accepted
-            row["failures"] = reasons
-            if accepted:
-                candidates.append(row)
-
-        # Prefer tighter markets and better displayed liquidity. Premium/IV are
-        # reported but never used alone to override a hard risk gate.
-        candidates.sort(key=lambda x: (
-            (x["ask"] - x["bid"]) / ((x["ask"] + x["bid"]) / 2),
-            -x["open_interest"], -x["volume"],
-        ))
+        candidates = screener.screen(prequalified, check_margin=True)
         return candidates, errors
     finally:
         quote_ctx.close()
