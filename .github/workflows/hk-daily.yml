@@ -1,6 +1,9 @@
 name: HK Daily Report
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/hk-daily.yml']
   schedule:
     - cron: '0 21 * * *'  # 05:00 HKT: prebuild, no Telegram send
     - cron: '0 23 * * *'  # 07:00 HKT: send the saved morning PDF
@@ -38,7 +41,7 @@ permissions:
 
 jobs:
   report:
-    if: github.event_name != 'schedule' || github.event.schedule != '0 23 * * *'
+    if: (github.event_name != 'push' || github.event.head_commit.message == 'Test four-analyst market report and Telegram delivery once') && (github.event_name != 'schedule' || github.event.schedule != '0 23 * * *')
     runs-on: ubuntu-latest
     timeout-minutes: 115
 
@@ -81,7 +84,7 @@ jobs:
         env:
           TICKER: ${{ inputs.ticker }}
           EVENT_NAME: ${{ github.event_name }}
-          REPORT_SCOPE: ${{ inputs.scope || 'stock' }}
+          REPORT_SCOPE: ${{ github.event_name == 'push' && 'market' || inputs.scope || 'stock' }}
         run: bash scripts/run-report.sh
 
       - name: Install embedded PDF fonts
