@@ -626,7 +626,7 @@ def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str =
                 metric_card("RSS sources read", metadata.get("source_coverage", "-"), styles),
             ]], colWidths=[43.5 * mm] * 4)
             cards.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
-            story += [cards, Spacer(1, 3 * mm), Paragraph("市場新聞概覽", styles["section"]), Paragraph(escape(r.decision), styles["body"])]
+            story += [cards, Spacer(1, 3 * mm), Paragraph(escape("市場新聞概覽"), styles["section"]), Paragraph(escape(r.decision), styles["body"])]
             story.extend(news_flowables(r.news_text, styles, show_urls=False))
             continue
 

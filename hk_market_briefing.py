@@ -105,6 +105,21 @@ def safe_comment(value: object) -> str:
     return text
 
 
+def similar_company_event(first: dict, second: dict, watchlist: list[dict]) -> bool:
+    if not set(first['direct_codes']).intersection(second['direct_codes']):
+        return False
+    def grams(title):
+        text = title.casefold().replace('滙', '匯')
+        for stock in watchlist:
+            for alias in stock['aliases']:
+                text = text.replace(alias.casefold(), '')
+        text = re.sub(r'\W+', '', text)
+        return {text[index:index+2] for index in range(len(text)-1)}
+    a, b = grams(first['title']), grams(second['title'])
+    shared = len(a.intersection(b))
+    return bool(a and b and shared >= 6 and shared / min(len(a), len(b)) >= 0.33)
+
+
 def validate_selection(answer: dict, candidates: list[dict], watchlist: list[dict]) -> list[dict]:
     lookup = {row['id']: row for row in candidates}
     allowed = {stock['code'] for stock in watchlist}
@@ -115,6 +130,11 @@ def validate_selection(answer: dict, candidates: list[dict], watchlist: list[dic
         row = lookup[choice['id']]
         if row['url'] in seen:
             continue
+        existing = next((story for story in selected if similar_company_event(story, row, watchlist)), None)
+        if existing is not None:
+            existing['supporting_sources'].append({key: row[key] for key in ('title', 'url', 'source')})
+            seen.add(row['url'])
+            continue
         direct = row['direct_codes']
         if len(direct) == 1 and company_counts.get(direct[0], 0) >= 2:
             continue
@@ -124,6 +144,7 @@ def validate_selection(answer: dict, candidates: list[dict], watchlist: list[dic
         proposed = choice.get('indirect_codes', [])
         indirect = [code for code in proposed if isinstance(code, str) and code in allowed and code not in row['direct_codes']] if isinstance(proposed, list) else []
         selected.append({**row, 'indirect_codes': list(dict.fromkeys(indirect)),
+                         'supporting_sources': [],
                          'impact': safe_comment(choice.get('impact')),
                          'uncertainty': safe_comment(choice.get('uncertainty'))})
         if len(selected) == 10:
@@ -197,6 +218,8 @@ def write_briefing(batch: dict, candidates: list[dict], watchlist: list[dict], a
                   f'RSS摘錄（未全文查核）：{plain_text(row.get("summary", ""), 180) or row["title"]}',
                   f'分析員解讀：{row["impact"]}', f'待核實：{row["uncertainty"]}',
                   f'[閱讀來源（RSS連結）]({row["url"]})']
+        for support in row.get('supporting_sources', []):
+            lines.append(f'相關報道（標題相近）：[{support["source"]}]({support["url"]})')
     if not selected:
         lines += ['', '本批次未選出符合條件的重要新聞；不代表市場沒有相關消息。']
     lines += ['', '# 觀察名單及本批新聞覆蓋', '此為重點觀察名單，並非完整恒指成分股；科技組不代表全部屬藍籌。']

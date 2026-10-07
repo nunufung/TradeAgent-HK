@@ -65,12 +65,25 @@ class MarketBriefingTests(unittest.TestCase):
         self.assertEqual(len(selected), 1)
 
     def test_one_company_cannot_dominate_the_daily_news_selection(self):
-        self.batch['articles'] = [article(f'騰訊業務更新事件 {index}', f'https://example.com/tencent/{index}') for index in range(4)] + self.batch['articles']
+        titles = ['騰訊公布季度盈利及遊戲收入', '騰訊收購海外音樂平台資產', '騰訊暫停旗下支付產品服務', '騰訊引進半導體公司策略投資']
+        self.batch['articles'] = [article(title, f'https://example.com/tencent/{index}') for index, title in enumerate(titles)] + self.batch['articles']
         rows = market.prepare_candidates(self.batch, self.watchlist)
         selected = market.validate_selection({'selected': [{'id': row['id']} for row in rows]}, rows, self.watchlist)
         self.assertEqual(sum(row['direct_codes'] == ['0700'] for row in selected), 2)
         self.assertTrue(any('0005' in row['direct_codes'] for row in selected))
         self.assertTrue(any('1810' in row['direct_codes'] for row in selected))
+
+    def test_two_reports_of_one_company_event_share_one_story_and_keep_sources(self):
+        self.batch['articles'] = [
+            article('匯豐新加坡設AI中心 傳遭金管局詢問', 'https://example.com/ai-centre'),
+            article('【HSBC】據報金管局曾向滙豐質問為何於星設AI中心 施壓背景為盼鞏固香港國際金融中心地位', 'https://example.com/ai-centre-second'),
+            article('匯豐公布季度業績及盈利更新', 'https://example.com/earnings'),
+        ]
+        rows = market.prepare_candidates(self.batch, self.watchlist)
+        selected = market.validate_selection({'selected': [{'id': row['id']} for row in rows]}, rows, self.watchlist)
+        self.assertEqual(len(selected), 2)
+        self.assertIn('匯豐公布季度業績及盈利更新', [row['title'] for row in selected])
+        self.assertEqual(selected[0].get('supporting_sources'), [{'title': rows[1]['title'], 'url': 'https://example.com/ai-centre-second', 'source': 'RTHK Finance'}])
 
     def test_price_listing_and_external_url_claims_are_removed_from_commentary(self):
         rows = market.prepare_candidates(self.batch, self.watchlist)
@@ -101,6 +114,7 @@ class MarketBriefingTests(unittest.TestCase):
             reader = PdfReader(root/'market.pdf')
             text = '\n'.join(page.extract_text() for page in reader.pages)
             self.assertIn('港股藍籌及科技股', text)
+            self.assertIn('市場新聞概覽', text)
             for code in ('0005', '1810', '9988'):
                 self.assertIn(code, text)
             self.assertNotIn('Reference price', text)
