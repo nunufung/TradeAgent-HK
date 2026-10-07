@@ -1,6 +1,9 @@
 name: HK Daily Report
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/hk-daily.yml']
   schedule:
     - cron: '0 21 * * *'  # 05:00 HKT: prebuild, no Telegram send
     - cron: '0 23 * * *'  # 07:00 HKT: send the saved morning PDF
@@ -30,7 +33,7 @@ permissions:
 
 jobs:
   report:
-    if: github.event_name != 'schedule' || github.event.schedule != '0 23 * * *'
+    if: (github.event_name != 'push' || github.event.head_commit.message == 'Run requested 700 report after PDF and news validation fixes') && (github.event_name != 'schedule' || github.event.schedule != '0 23 * * *')
     runs-on: ubuntu-latest
 
     env:
@@ -70,7 +73,7 @@ jobs:
 
       - name: Run report (dynamic)
         env:
-          TICKER: ${{ inputs.ticker }}
+          TICKER: ${{ github.event_name == 'push' && '700' || inputs.ticker }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
