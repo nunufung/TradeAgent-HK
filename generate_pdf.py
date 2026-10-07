@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import glob
 import html
+import json
 import os
 import re
 from dataclasses import dataclass
@@ -68,6 +69,7 @@ class ReportSummary:
     warnings: list[str]
     raw_text: str
     news_text: str = ""
+    market_metadata: dict | None = None
 
 
 def register_fonts() -> tuple[str, str]:
@@ -296,6 +298,11 @@ def parse_report(path: str) -> ReportSummary:
     code = str(int(code)).zfill(4) if code.isdigit() else code
     news_path = Path(path).with_name(f"news_{code}.md")
     news_text = news_path.read_text(encoding="utf-8") if news_path.is_file() else ""
+    market_metadata = None
+    if Path(path).stem == "report_market":
+        audit_path = Path(path).with_name("market_briefing.json")
+        market_metadata = json.loads(audit_path.read_text()) if audit_path.is_file() else {}
+        ticker = "港股藍籌及科技股市場晨報"
 
     return ReportSummary(
         filename=Path(path).name,
@@ -310,6 +317,7 @@ def parse_report(path: str) -> ReportSummary:
         warnings=warnings,
         raw_text=clean_markdown(text),
         news_text=news_text,
+        market_metadata=market_metadata,
     )
 
 
@@ -466,7 +474,7 @@ def footer(canvas, doc):
     canvas.line(15 * mm, 11 * mm, width - 15 * mm, 11 * mm)
     canvas.setFont(FONT, 7)
     canvas.setFillColor(MUTED)
-    canvas.drawString(15 * mm, 7 * mm, "TradeAgent-HK | Generated automatically from TradingAgents output")
+    canvas.drawString(15 * mm, 7 * mm, "TradeAgent-HK | Automated research report")
     canvas.drawRightString(width - 15 * mm, 7 * mm, f"Page {doc.page}")
     canvas.restoreState()
 
@@ -493,12 +501,20 @@ def metric_card(label: str, value: str, styles):
     return t
 
 
-def news_flowables(text: str, styles) -> list:
+def news_flowables(text: str, styles, *, show_urls: bool = True) -> list:
     """Keep news evidence and clickable source URLs in the PDF, without clipping it."""
     # The general summary cleaner intentionally drops link targets; news must keep them.
-    text = re.sub(r"\[([^\]]+)\]\((https?://[^\s)]+)\)", r"\1 - \2", text)
+    link_pattern = r"\[([^\]]+)\]\((https?://[^\s)]+)\)"
+    if show_urls:
+        text = re.sub(link_pattern, r"\1 - \2", text)
     result = []
     for raw_line in text.splitlines():
+        short_links = []
+        if not show_urls:
+            def remember(match):
+                short_links.append((match.group(1), match.group(2)))
+                return f"TAHKLINK{len(short_links)-1}TOKEN"
+            raw_line = re.sub(link_pattern, remember, raw_line)
         line = raw_line.strip()
         if not line or re.fullmatch(r"[|:\s-]+", line):
             continue
@@ -518,11 +534,16 @@ def news_flowables(text: str, styles) -> list:
         if previous < len(line):
             pieces.append(escape(line[previous:]))
         style = styles["section"] if is_heading else styles["body"]
-        result.append(Paragraph("".join(pieces), style))
+        rendered = "".join(pieces)
+        for index, (label, url) in enumerate(short_links):
+            rendered = rendered.replace(f"TAHKLINK{index}TOKEN", f'<link href="{html.escape(url, quote=True)}" color="#2563EB">{escape(label)}</link>')
+        result.append(Paragraph(rendered, style))
     return result
 
 
 def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str = "Daily Market Intelligence") -> None:
+    if reports and all(report.market_metadata is not None for report in reports):
+        report_mode = "HK Blue-chip & Tech Market Briefing"
     styles = build_styles()
     doc = BaseDocTemplate(
         output_path,
@@ -594,6 +615,20 @@ def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str =
     for idx, r in enumerate(reports):
         if idx > 0:
             story.append(PageBreak())
+
+        if r.market_metadata is not None:
+            metadata = r.market_metadata
+            story.append(Paragraph(escape(r.ticker), styles["section"]))
+            cards = Table([[
+                metric_card("Report date", r.date, styles),
+                metric_card("Stocks watched", str(metadata.get("watchlist_count", "-")), styles),
+                metric_card("News selected", str(metadata.get("selected_count", "-")), styles),
+                metric_card("RSS sources read", metadata.get("source_coverage", "-"), styles),
+            ]], colWidths=[43.5 * mm] * 4)
+            cards.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+            story += [cards, Spacer(1, 3 * mm), Paragraph("市場新聞概覽", styles["section"]), Paragraph(escape(r.decision), styles["body"])]
+            story.extend(news_flowables(r.news_text, styles, show_urls=False))
+            continue
 
         badge = Table([[Paragraph(escape(r.action), styles["badge"])]], colWidths=[35 * mm], rowHeights=[11 * mm])
         badge.setStyle(

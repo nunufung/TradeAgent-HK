@@ -1,0 +1,29 @@
+{
+  "verified_at": "2026-10-07",
+  "note": "重點觀察名單，並非完整恒指成分股名單；科技組亦不代表全部屬藍籌。",
+  "stocks": [
+    {"code": "0005", "name": "匯豐控股", "group": "bluechip", "aliases": ["匯豐", "汇丰", "HSBC"]},
+    {"code": "0388", "name": "香港交易所", "group": "bluechip", "aliases": ["港交所", "香港交易所", "HKEX"]},
+    {"code": "1299", "name": "友邦保險", "group": "bluechip", "aliases": ["友邦", "AIA"]},
+    {"code": "2318", "name": "中國平安", "group": "bluechip", "aliases": ["中國平安", "中国平安", "Ping An"]},
+    {"code": "0939", "name": "建設銀行", "group": "bluechip", "aliases": ["建設銀行", "建设银行", "建行", "China Construction Bank"]},
+    {"code": "1398", "name": "工商銀行", "group": "bluechip", "aliases": ["工商銀行", "工商银行", "工行", "ICBC"]},
+    {"code": "3988", "name": "中國銀行", "group": "bluechip", "aliases": ["中國銀行", "中国银行", "Bank of China"]},
+    {"code": "0941", "name": "中國移動", "group": "bluechip", "aliases": ["中國移動", "中国移动", "China Mobile"]},
+    {"code": "0883", "name": "中國海洋石油", "group": "bluechip", "aliases": ["中海油", "中國海洋石油", "中国海洋石油", "CNOOC"]},
+    {"code": "0016", "name": "新鴻基地產", "group": "bluechip", "aliases": ["新鴻基", "新鸿基", "新地", "Sun Hung Kai"]},
+    {"code": "0700", "name": "騰訊控股", "group": "technology", "aliases": ["騰訊", "腾讯", "Tencent"]},
+    {"code": "9988", "name": "阿里巴巴", "group": "technology", "aliases": ["阿里巴巴", "Alibaba"]},
+    {"code": "3690", "name": "美團", "group": "technology", "aliases": ["美團", "美团", "Meituan", "Keeta"]},
+    {"code": "1810", "name": "小米集團", "group": "technology", "aliases": ["小米", "Xiaomi"]},
+    {"code": "9618", "name": "京東集團", "group": "technology", "aliases": ["京東", "京东", "JD.com"]},
+    {"code": "9888", "name": "百度集團", "group": "technology", "aliases": ["百度", "Baidu"]},
+    {"code": "9999", "name": "網易", "group": "technology", "aliases": ["網易", "网易", "NetEase"]},
+    {"code": "0981", "name": "中芯國際", "group": "technology", "aliases": ["中芯", "SMIC"]},
+    {"code": "1024", "name": "快手", "group": "technology", "aliases": ["快手", "Kuaishou"]},
+    {"code": "0992", "name": "聯想集團", "group": "technology", "aliases": ["聯想", "联想", "Lenovo"]},
+    {"code": "0020", "name": "商湯", "group": "technology", "aliases": ["商湯", "商汤", "SenseTime"]},
+    {"code": "0100", "name": "MiniMax", "group": "technology", "aliases": ["MiniMax", "稀宇"]},
+    {"code": "2513", "name": "智譜", "group": "technology", "aliases": ["智譜", "智谱", "Zhipu"]}
+  ]
+}

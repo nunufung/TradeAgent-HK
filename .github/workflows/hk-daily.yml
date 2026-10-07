@@ -8,6 +8,14 @@ on:
 
   workflow_dispatch:
     inputs:
+      scope:
+        description: 'Market news briefing or an individual stock analysis'
+        required: true
+        default: 'stock'
+        type: choice
+        options:
+          - stock
+          - market
       ticker:
         description: 'Hong Kong stock number, e.g. 700 / 2800 / 981 / 9988'
         required: true
@@ -72,24 +80,8 @@ jobs:
         env:
           TICKER: ${{ inputs.ticker }}
           EVENT_NAME: ${{ github.event_name }}
-        run: |
-          set -euo pipefail
-
-          # Scheduled runs keep the existing behaviour:
-          # run both 700 and 2800.
-          #
-          # Manual workflow runs use the ticker entered above.
-          if [ -z "$TICKER" ] || [ "$EVENT_NAME" = "schedule" ]; then
-            echo "Scheduled run -> 700 + 2800"
-
-            python -u hk_adapter.py 700 | tee run_0700.log
-            python -u hk_adapter.py 2800 | tee run_2800.log
-          else
-            [[ "$TICKER" =~ ^[0-9]{1,5}$ ]] && (( 10#$TICKER > 0 )) || { echo "Invalid stock code"; exit 1; }
-            echo "Manual run -> $TICKER"
-
-            python -u hk_adapter.py "$TICKER" | tee "run_${TICKER}.log"
-          fi
+          REPORT_SCOPE: ${{ inputs.scope || 'stock' }}
+        run: bash scripts/run-report.sh
 
       - name: Install embedded PDF fonts
         run: |
@@ -143,8 +135,8 @@ jobs:
           if pdf_files:
               for pdf_path in pdf_files:
                   caption = (
-                      "📊 TradeAgent-HK Daily Report\n"
-                      f"{now_hkt:%Y-%m-%d %H:%M HKT}\n\n"
+                      ("📊 TradeAgent-HK 藍籌／科技股市場報告\n" if os.path.isfile("report_market.md") else "📊 TradeAgent-HK Daily Report\n")
+                      + f"{now_hkt:%Y-%m-%d %H:%M HKT}\n\n"
                       "Full analysis attached as PDF."
                   )
 
@@ -226,6 +218,8 @@ jobs:
             report_*.md
             news_*.md
             free_news_*.json
+            market_candidates.json
+            market_briefing.json
             run_*.log
             pdf_reports/*.pdf
           if-no-files-found: warn
@@ -320,7 +314,7 @@ jobs:
               body = bytearray()
               fields = {
                   "chat_id": chat,
-                  "caption": f"TradeAgent-HK Morning Report | {day}\nPrebuilt from the 05:00 HKT run; scheduled for 07:00 HKT delivery.\nMarket data reflects the report generation time."
+                  "caption": f"TradeAgent-HK 藍籌／科技股晨報 | {day}\nPrebuilt from the 05:00 HKT run; scheduled for 07:00 HKT delivery.\nNews reflects the report generation time."
               }
               for key, value in fields.items():
                   body.extend((f"--{boundary}\r\nContent-Disposition: form-data; name=\"{key}\"\r\n\r\n{value}\r\n").encode())

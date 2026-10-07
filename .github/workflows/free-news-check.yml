@@ -8,6 +8,11 @@ on:
       - 'hk_adapter.py'
       - 'linked_stock_analysis.py'
       - 'generate_pdf.py'
+      - 'hk_market_briefing.py'
+      - 'market_watchlist.json'
+      - 'scripts/run-report.sh'
+      - '.github/workflows/hk-daily.yml'
+      - 'tests/test_market_briefing.py'
       - 'tests/test_free_tech_news.py'
       - 'tests/test_news_pdf.py'
       - '.github/workflows/free-news-check.yml'
@@ -32,7 +37,8 @@ jobs:
           sudo apt-get install -y fonts-wqy-zenhei fonts-dejavu-core
       - name: Test news integration, existing gates and Chinese PDF
         run: |
-          python -m py_compile free_tech_news.py hk_adapter.py linked_stock_analysis.py generate_pdf.py
+          python -m py_compile free_tech_news.py hk_market_briefing.py hk_adapter.py linked_stock_analysis.py generate_pdf.py
+          bash -n scripts/run-report.sh
           python -m unittest discover -s tests -v
       - name: Check live free sources without API keys
         run: |
@@ -45,10 +51,23 @@ jobs:
               raise SystemExit('All free RSS sources are unavailable.')
           print(f"Collected {len(batch['articles'])} dated technology/AI candidates.")
           PY
+      - name: Check blue-chip and technology market sources without API keys
+        run: |
+          python hk_market_briefing.py --collect-only --output market_news_preview.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          batch = json.loads(Path('market_news_preview.json').read_text())
+          if not batch['candidates']:
+              raise SystemExit('No dated market news candidates available.')
+          print(f"Collected {len(batch['candidates'])} cross-stock market news candidates.")
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: free-tech-ai-news-check
-          path: free_news_preview.json
+          path: |
+            free_news_preview.json
+            market_news_preview.json
           if-no-files-found: warn
           retention-days: 3

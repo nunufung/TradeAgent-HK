@@ -101,13 +101,14 @@ class Article:
     source_type: str
     summary: str
     topics: tuple[str, ...]
+    publisher_url: str = ""
 
 
 def _field(node, name):
     return next((child.text or "" for child in node if child.tag.rsplit("}", 1)[-1] == name), "")
 
 
-def parse_feed(data: bytes, source: str, kind: str, *, now: datetime, start: datetime) -> list[Article]:
+def parse_feed(data: bytes, source: str, kind: str, *, now: datetime, start: datetime, technology_only: bool = True) -> list[Article]:
     if len(data) > 2_500_000 or re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I):
         raise ValueError("Oversized or unsafe XML feed")
     root = ET.fromstring(data)
@@ -119,6 +120,13 @@ def parse_feed(data: bytes, source: str, kind: str, *, now: datetime, start: dat
         if item_kind not in {"item", "entry"}:
             continue
         title = plain_text(_field(node, "title"), 200)
+        publisher = next((child for child in node if child.tag.rsplit("}", 1)[-1] == "source"), None)
+        publisher_name = plain_text(publisher.text or "", 80) if publisher is not None else ""
+        publisher_url = canonical_url(publisher.get("url", "")) if publisher is not None else ""
+        article_source = source
+        if kind == "aggregator" and publisher_name:
+            article_source = publisher_name + "（Google News）"
+            title = title.removesuffix(" - " + publisher_name)
         if item_kind == "entry":
             link = next((child.get("href", "") for child in node if child.tag.rsplit("}", 1)[-1] == "link" and child.get("rel", "alternate") == "alternate"), "")
             date = parse_date(_field(node, "published") or _field(node, "updated"))
@@ -130,12 +138,12 @@ def parse_feed(data: bytes, source: str, kind: str, *, now: datetime, start: dat
         link = canonical_url(link)
         summary = plain_text(summary, 450)
         topics = tuple(name for name, pattern in TOPICS.items() if re.search(pattern, title + " " + summary, re.I))
-        if title and link and date and start <= date <= now and topics:
-            articles.append(Article(title, link, date.isoformat(), source, kind, summary, topics))
+        if title and link and date and start <= date <= now and (topics or not technology_only):
+            articles.append(Article(title, link, date.isoformat(), article_source, kind, summary, topics, publisher_url))
     return articles
 
 
-def _download(source, *, now, start):
+def _download(source, *, now, start, technology_only=True):
     name, url, kind = source
     try:
         # certifi also fixes the missing CA bundle in some python.org Mac installs.
@@ -147,7 +155,7 @@ def _download(source, *, now, start):
         request = urllib.request.Request(url, headers={"User-Agent": "TradeAgent-HK/1.0 (RSS reader)", "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml"})
         with urllib.request.urlopen(request, timeout=15, context=context) as response:
             data = response.read(2_500_001)
-        articles = parse_feed(data, name, kind, now=now, start=start)
+        articles = parse_feed(data, name, kind, now=now, start=start, technology_only=technology_only)
         return articles, {"source": name, "status": "ok", "eligible_items": len(articles)}
     except Exception as exc:
         # No raw HTTP bodies, credentials or exception URLs in reports or logs.

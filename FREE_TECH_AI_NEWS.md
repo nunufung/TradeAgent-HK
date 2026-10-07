@@ -2,6 +2,8 @@
 
 現有四位 TradingAgents 分析員會收到最近七日的科技／AI 新聞候選。新聞分析員篩選最多五條重要消息，說明事件、潛在市場影響、港股關聯及不確定性，並列出來源、刊登日期和原文連結。
 
+以上適用於 Telegram 個別股票查詢和 Futu 期權流程。每日預設晨報及 10:00 更新已改為跨股票市場新聞，涵蓋 23 隻藍籌／科技重點股票；詳見 [港股市場晨報](HK_MARKET_BRIEFING.md)。
+
 ## 來源
 
 | 來源 | 類型 | 免費 RSS／Atom |
@@ -36,7 +38,7 @@
 
 免費新聞檢查工作流程只做來源讀取和程式／PDF測試，不使用交易、Telegram 或模型 secrets。
 
-需要即時檢查完整報告時，在 Actions → HK Daily Report → Run workflow，選擇 `main` 並填入 `700` 或其他港股代號；新一輪分析完成後沿用現有 Telegram PDF 發送。
+需要即時檢查報告時，在 Actions → HK Daily Report → Run workflow，選擇 `main`：`scope=market` 產生跨股票市場新聞；`scope=stock` 並填入港股代號則做個別股票分析。完成後沿用現有 Telegram PDF 發送。
 
 本地來源檢查：
 
