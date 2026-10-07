@@ -17,6 +17,7 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -169,6 +170,40 @@ def find_sidecar_log(report_path: str) -> str:
     return Path(chosen).read_text(encoding="utf-8", errors="replace")
 
 
+def verified_reference_price(sidecar: str, ticker: str, analysis_date: str) -> str:
+    """Use only the matching market snapshot tool's date-checked OHLCV close."""
+    try:
+        requested_day = datetime.fromisoformat(analysis_date).date()
+    except ValueError:
+        return "-"
+    prices = []
+    for block in re.findall(
+        r"(?:^|\n)Name: get_verified_market_snapshot\s*\n(.*?)(?=\n={3,}|\Z)",
+        sidecar, flags=re.S,
+    ):
+        identity = re.search(r"^## Verified market data snapshot for (\d{4}\.HK)\s*$", block, re.M)
+        requested = re.search(r"^- Requested analysis date: (\d{4}-\d{2}-\d{2})\s*$", block, re.M)
+        latest = re.search(r"^- Latest trading row used: (\d{4}-\d{2}-\d{2})\s*$", block, re.M)
+        if not identity or identity.group(1) != ticker or not requested or requested.group(1) != analysis_date or not latest:
+            continue
+        try:
+            latest_day = datetime.fromisoformat(latest.group(1)).date()
+        except ValueError:
+            continue
+        if latest_day > requested_day:
+            continue
+        row = re.search(r"^### Latest verified OHLCV row\s*\n(.*?)(?=^### |\Z)", block, re.M | re.S)
+        close = re.search(r"^\|\s*Close\s*\|\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*\|\s*$", row.group(1), re.M) if row else None
+        if close:
+            value = Decimal(close.group(1).replace(",", ""))
+            if value > 0:
+                prices.append((latest_day, value))
+    if not prices:
+        return "-"
+    _, value = max(prices, key=lambda item: item[0])
+    return f"HK${value:.2f}"
+
+
 def parse_report(path: str) -> ReportSummary:
     raw = Path(path).read_text(encoding="utf-8", errors="replace")
     text = raw.strip()
@@ -177,7 +212,7 @@ def parse_report(path: str) -> ReportSummary:
 
     ticker = first_match(
         [r"\b(\d{4}\.HK)\b", r"\b(\d{1,4})\s*->\s*(\d{4}\.HK)\b"],
-        source_text,
+        text,
         default="",
     )
     if not ticker:
@@ -189,7 +224,7 @@ def parse_report(path: str) -> ReportSummary:
     elif "->" in ticker:
         ticker = ticker.split("->")[-1].strip()
 
-    date = first_match([r"\b(20\d{2}-\d{2}-\d{2})\b"], source_text, default="-")
+    date = first_match([r"\b(20\d{2}-\d{2}-\d{2})\b"], text, default="-")
     action = first_match(
         [
             r"FINAL TRANSACTION PROPOSAL:\s*\*{0,2}(BUY|SELL|HOLD|WATCH|NO TRADE)\*{0,2}",
@@ -200,17 +235,7 @@ def parse_report(path: str) -> ReportSummary:
         default=first_match([r"評級[：:]\s*(Buy|Overweight|Hold|Underweight|Sell|REVIEW)\b"], text, default="REVIEW"),
     ).upper()
 
-    price = first_match(
-        [
-            r"(?:closed?|price)\s+(?:at\s+)?HK\$\s*([0-9]+(?:\.[0-9]+)?)",
-            r"(?:closed?|price)\s+(?:at\s+)?([0-9]+(?:\.[0-9]+)?)",
-            r"at\s+HK\$\s*([0-9]+(?:\.[0-9]+)?)",
-        ],
-        source_text,
-        default="-",
-    )
-    if price != "-":
-        price = f"HK${price}"
+    price = verified_reference_price(sidecar, ticker, date)
 
     confidence = first_match(
         [r"Confidence\s*:\s*\*{0,2}(high|medium|low)\*{0,2}"],
@@ -235,6 +260,7 @@ def parse_report(path: str) -> ReportSummary:
 
     decision = first_match(
         [
+            r"\*\*Executive Summary\*\*:\s*(.*?)(?=\n\s*\*\*[^*\n]+\*\*:|\Z)",
             r"\*\*Reasoning\*\*:\s*(.*?)(?=\n\s*FINAL TRANSACTION PROPOSAL|\Z)",
             r"Reasoning\s*:\s*(.*?)(?=\n\s*FINAL TRANSACTION PROPOSAL|\Z)",
         ],
@@ -257,7 +283,7 @@ def parse_report(path: str) -> ReportSummary:
     ]
     highlights: list[str] = []
     for needles, label in highlight_specs:
-        sentence = extract_sentence(source_text, needles)
+        sentence = extract_sentence(text, needles)
         if sentence:
             item = f"{label}: {sentence}"
             if item not in highlights:

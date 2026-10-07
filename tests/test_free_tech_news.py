@@ -107,6 +107,17 @@ class AnalystTests(unittest.TestCase):
         self.assertEqual(evidence["candidates"][0]["url"], "https://example.com/news")
         self.assertEqual(evidence["window"], ["2026-09-30", "2026-10-07"])
 
+    def test_news_packet_supplies_hong_kong_publication_time(self):
+        data=batch()
+        data['articles'][0]['published_at']='2026-10-06T17:00:00+00:00'
+        rows=news.select_articles(data,'700','2026-10-07','2026-10-07')
+        self.assertEqual(rows[0].get('published_at_hkt'),'2026-10-07 01:00 HKT')
+
+    def test_no_company_match_is_a_feed_coverage_gap_not_market_absence(self):
+        packet=news.news_packet(batch(),'2800.HK','2026-09-30','2026-10-07')
+        evidence=json.loads(packet.split('UNTRUSTED_RSS_DATA\n')[1].split('\nEND_UNTRUSTED_RSS_DATA')[0])
+        self.assertEqual(evidence.get('company_news_coverage'), {'scope':'this RSS batch','direct_candidates':0,'market_wide_news_status':'not_checked'})
+
     def test_news_tools_use_current_graph_config_and_fail_to_fallback(self):
         current = ContextVar("current_graph")
         config_module = types.ModuleType("tradingagents.dataflows.config")

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from contextlib import chdir
 
 from pypdf import PdfReader
 import generate_pdf as pdf
@@ -20,6 +21,42 @@ NEWS = """# 科技／AI 市場資訊（新聞分析員篩選）
 
 
 class NewsPDFTests(unittest.TestCase):
+    def test_verified_price_does_not_use_historical_insider_trade(self):
+        with tempfile.TemporaryDirectory() as directory, chdir(directory):
+            path = Path('report_0700.md')
+            path.write_text('# 0700.HK 2026-10-07\n評級：Sell\n', encoding='utf-8')
+            Path('run_700.log').write_text('Sale at price 64.24 per share.\nName: get_verified_market_snapshot\n\n## Verified market data snapshot for 0700.HK\n\n- Requested analysis date: 2026-10-07\n- Latest trading row used: 2026-10-07\n\n### Latest verified OHLCV row\n\n| Field | Value |\n|---|---:|\n| Close | 420.40 |\n================================== Ai Message\n', encoding='utf-8')
+            self.assertEqual(pdf.parse_report(str(path)).price, 'HK$420.40')
+
+    def test_no_verified_price_uses_no_unrelated_log_price(self):
+        with tempfile.TemporaryDirectory() as directory, chdir(directory):
+            path = Path('report_0700.md')
+            path.write_text('# 0700.HK 2026-10-07\n評級：Sell\n**Price Target**: 411\n', encoding='utf-8')
+            Path('run_700.log').write_text('Sale at price 64.24 per share.', encoding='utf-8')
+            self.assertEqual(pdf.parse_report(str(path)).price, '-')
+
+    def test_wrong_ticker_and_future_snapshots_cannot_supply_price(self):
+        with tempfile.TemporaryDirectory() as directory, chdir(directory):
+            path = Path('report_0700.md')
+            path.write_text('# 0700.HK 2026-10-07\n評級：Hold\n', encoding='utf-8')
+            Path('run_700.log').write_text('Name: get_verified_market_snapshot\n\n## Verified market data snapshot for 0005.HK\n- Requested analysis date: 2026-10-07\n- Latest trading row used: 2026-10-07\n\n### Latest verified OHLCV row\n| Field | Value |\n|---|---:|\n| Close | 64.24 |\n================================== Ai Message\nName: get_verified_market_snapshot\n\n## Verified market data snapshot for 0700.HK\n- Requested analysis date: 2026-10-07\n- Latest trading row used: 2026-10-08\n\n### Latest verified OHLCV row\n| Field | Value |\n|---|---:|\n| Close | 421.00 |\n================================== Ai Message\n', encoding='utf-8')
+            self.assertEqual(pdf.parse_report(str(path)).price, '-')
+
+    def test_decision_summary_starts_with_executive_summary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'report_0700.md'
+            path.write_text('# 0700.HK 2026-10-07\n評級：Sell\n**Executive Summary**: 應先核對行情與公司事件，再按已有持倉評估風險。\n\n**Investment Thesis**: '+('長篇分析內容。'*300)+'\n\n**Price Target**: 411\n', encoding='utf-8')
+            summary=pdf.parse_report(str(path)).decision
+            self.assertTrue(summary.startswith('應先核對行情'))
+            self.assertNotIn('長篇分析內容',summary)
+
+    def test_key_signals_do_not_quote_agent_planning_messages(self):
+        with tempfile.TemporaryDirectory() as directory, chdir(directory):
+            path=Path('report_0700.md')
+            path.write_text('# 0700.HK 2026-10-07\n評級：Hold\n需覆核股票風險及實際部位。',encoding='utf-8')
+            Path('run_700.log').write_text("I'll gather evidence across company news, global macro, macro indicators and prediction markets in parallel.",encoding='utf-8')
+            self.assertFalse(any("I'll gather" in item for item in pdf.parse_report(str(path)).highlights))
+
     def test_canonical_sidecar_and_five_tier_rating_are_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "report_700.md"
