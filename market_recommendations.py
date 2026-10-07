@@ -165,6 +165,8 @@ def write_recommendations(payload: dict, *, directory: Path = Path('.'), option_
     directory.mkdir(parents=True, exist_ok=True)
     (directory/'recommendations.json').write_text(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
     (directory/'recommendations.md').write_text(render_recommendations(result, market_audit=market_audit), encoding='utf-8')
+    from final_summary import render_final_summary
+    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now), encoding='utf-8')
     return result
 
 

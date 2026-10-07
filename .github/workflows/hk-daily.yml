@@ -106,7 +106,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hk-morning-${{ steps.morning.outputs.date }}
-          path: pdf_reports/*.pdf
+          path: |
+            pdf_reports/*.pdf
+            final_summary.txt
           if-no-files-found: error
           retention-days: 3
 
@@ -215,6 +217,10 @@ jobs:
           print("Telegram text fallback sent.")
           PY
 
+      - name: Send short final text summary to Telegram
+        if: always() && hashFiles('stock_signals.json') != '' && hashFiles('final_summary.txt') != '' && (github.event_name != 'schedule' || github.event.schedule != '0 21 * * *')
+        run: python final_summary.py --send
+
       - name: Store today's market research for the Mac option update
         if: success() && hashFiles('market_briefing.json', 'stock_signals.json') != '' && hashFiles('report_market.md') != ''
         uses: actions/upload-artifact@v4
@@ -247,6 +253,7 @@ jobs:
             market_shortlist.txt
             recommendations.md
             recommendations.json
+            final_summary.txt
             pdf_fonts/*
             run_*.log
             pdf_reports/*.pdf
@@ -351,4 +358,12 @@ jobs:
               body.extend(f"\r\n--{boundary}--\r\n".encode())
               post("sendDocument", bytes(body), f"multipart/form-data; boundary={boundary}")
           print("Morning PDF delivery completed.")
+          summaries = sorted(glob.glob("morning_pdf/**/final_summary.txt", recursive=True))
+          if len(summaries) != 1:
+              raise SystemExit("Today's final text summary is unavailable.")
+          summary = Path(summaries[0]).read_text(encoding="utf-8")
+          if f"研究截至：{day}" not in summary or len(summary.encode("utf-16-le")) // 2 > 3900:
+              raise SystemExit("Final text summary is stale or too long; refusing to send.")
+          post("sendMessage", json.dumps({"chat_id": chat, "text": summary, "disable_web_page_preview": True}).encode(), "application/json")
+          print("Morning final text summary sent to Telegram.")
           PY

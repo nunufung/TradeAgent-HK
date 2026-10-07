@@ -24,11 +24,4 @@ if files:
             raise SystemExit('Telegram PDF delivery failed; sensitive response omitted.')
     print('Four-analyst option PDF sent to Telegram.')
 else:
-    text = Path('recommendations.md').read_text()
-    # Keep the action and missing gates visible; full evidence stays in the artifact.
-    message = caption + '\n\n' + text[:3200] + '\n\n完整分析及守則見 GitHub Actions artifact。'
-    response = requests.post(f'https://api.telegram.org/bot{token}/sendMessage',
-                             json={'chat_id': chat, 'text': message[:3900], 'disable_web_page_preview': True}, timeout=30)
-    if response.status_code != 200 or not response.json().get('ok'):
-        raise SystemExit('Telegram text delivery failed; sensitive response omitted.')
-    print('Four-analyst recommendation text sent to Telegram (embedded PDF font unavailable).')
+    print('Option PDF unavailable; the separate final-summary step will send concise text.')

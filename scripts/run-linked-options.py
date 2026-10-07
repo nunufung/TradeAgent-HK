@@ -36,7 +36,7 @@ def run() -> None:
     raw = os.getenv('TICKERS_INPUT', '').strip()
     cache = Path('market_cache')
     # Previous self-hosted working directory must not supply a stale option quote.
-    for filename in ('option_screen.json', 'option_screen.md', 'recommendations.json', 'recommendations.md'):
+    for filename in ('option_screen.json', 'option_screen.md', 'recommendations.json', 'recommendations.md', 'final_summary.txt'):
         Path(filename).unlink(missing_ok=True)
     if not raw and usable_cache(cache, now):
         for name in FILES:

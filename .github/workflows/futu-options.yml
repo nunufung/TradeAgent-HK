@@ -104,6 +104,10 @@ jobs:
         if: success() && hashFiles('recommendations.md') != '' && hashFiles('recommendations.json') != ''
         run: python scripts/send-option-report.py
 
+      - name: Send short final text summary to Telegram
+        if: always() && hashFiles('stock_signals.json') != '' && hashFiles('final_summary.txt') != ''
+        run: python final_summary.py --send
+
       - name: Save report artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -114,6 +118,7 @@ jobs:
             option_screen.json
             recommendations.md
             recommendations.json
+            final_summary.txt
             option_pdf/*.pdf
             report_market.md
             news_market.md
