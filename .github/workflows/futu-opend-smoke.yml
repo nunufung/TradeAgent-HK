@@ -28,10 +28,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      - name: Use installed Mac Python in an isolated environment
+        env:
+          TAHK_MAC_PYTHON: ${{ vars.TAHK_MAC_PYTHON }}
+          TAHK_PYTHON_MIN_MINOR: '9'
+        run: bash scripts/setup-mac-python.sh
 
       - name: Install Futu quote client
         run: python -m pip install "futu-api>=9.3"

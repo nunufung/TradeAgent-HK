@@ -12,6 +12,14 @@ The option screen uses Futu OpenD on the same Mac as a GitHub Actions self-hoste
 
 The workflow runs `main.py`, which collects real OpenD option-chain and snapshot data, then passes those rows to `agents/screening_agent.py` through its `ScreeningAgent.screen(chains)` interface. It screens once for quote quality, queries account-specific short initial margin only for the highest-ranked quotes, then screens again with the complete rule set. The code only reads quotes and margin; it never unlocks trading or submits, changes, or cancels an order. If margin data, a fresh two-sided quote, or another required field is unavailable, that contract is excluded. No mock or fallback option prices are used.
 
+## Python on the self-hosted Mac
+
+The two Mac workflows use an already-installed Python interpreter and create an isolated virtual environment in the runner's temporary directory. They do not use `actions/setup-python` or install system Python with `sudo` during a job. The smoke test accepts Python 3.9 or newer; the linked TradingAgents option screen requires Python 3.11 or newer.
+
+The workflows first check `~/tradeagent-futu-test/bin/python`, then the standard Homebrew and python.org installation locations and the runner's PATH. If a suitable interpreter is not found, install Python 3.11 once interactively on the Mac (for example, `brew install python@3.11` if Homebrew is already installed). A custom absolute interpreter path can be supplied through the repository **variable** `TAHK_MAC_PYTHON`.
+
+After a workflow change, use **Run workflow** on the `main` branch. **Re-run jobs** on an older run continues to use that older commit's workflow.
+
 ## Screening gates
 
 - Short Put / Short Call only; absolute Delta at or below 0.10.
