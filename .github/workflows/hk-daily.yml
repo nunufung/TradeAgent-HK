@@ -82,14 +82,13 @@ jobs:
           if [ -z "$TICKER" ] || [ "$EVENT_NAME" = "schedule" ]; then
             echo "Scheduled run -> 700 + 2800"
 
-            python -u hk_adapter.py 700 | tee report_0700.md
-            python -u hk_adapter.py 2800 | tee report_2800.md
+            python -u hk_adapter.py 700 | tee run_0700.log
+            python -u hk_adapter.py 2800 | tee run_2800.log
           else
             [[ "$TICKER" =~ ^[0-9]{1,5}$ ]] && (( 10#$TICKER > 0 )) || { echo "Invalid stock code"; exit 1; }
             echo "Manual run -> $TICKER"
 
-            python -u hk_adapter.py "$TICKER" | tee "report_${TICKER}.md"
-            cat "report_${TICKER}.md"
+            python -u hk_adapter.py "$TICKER" | tee "run_${TICKER}.log"
           fi
 
       - name: Install embedded PDF fonts
@@ -225,6 +224,9 @@ jobs:
           name: hk-reports
           path: |
             report_*.md
+            news_*.md
+            free_news_*.json
+            run_*.log
             pdf_reports/*.pdf
           if-no-files-found: warn
        

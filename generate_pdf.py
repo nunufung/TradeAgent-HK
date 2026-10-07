@@ -66,6 +66,7 @@ class ReportSummary:
     highlights: list[str]
     warnings: list[str]
     raw_text: str
+    news_text: str = ""
 
 
 def register_fonts() -> tuple[str, str]:
@@ -196,7 +197,7 @@ def parse_report(path: str) -> ReportSummary:
             r"\bAction\s*:\s*(BUY|SELL|HOLD|WATCH|NO TRADE)\b",
         ],
         text,
-        default="REVIEW",
+        default=first_match([r"評級[：:]\s*(Buy|Overweight|Hold|Underweight|Sell|REVIEW)\b"], text, default="REVIEW"),
     ).upper()
 
     price = first_match(
@@ -265,6 +266,11 @@ def parse_report(path: str) -> ReportSummary:
     if not highlights:
         highlights = ["See the decision section below for the model's key rationale."]
 
+    code = Path(path).stem.removeprefix("report_")
+    code = str(int(code)).zfill(4) if code.isdigit() else code
+    news_path = Path(path).with_name(f"news_{code}.md")
+    news_text = news_path.read_text(encoding="utf-8") if news_path.is_file() else ""
+
     return ReportSummary(
         filename=Path(path).name,
         ticker=ticker,
@@ -277,14 +283,15 @@ def parse_report(path: str) -> ReportSummary:
         highlights=highlights,
         warnings=warnings,
         raw_text=clean_markdown(text),
+        news_text=news_text,
     )
 
 
 def action_color(action: str):
     action = action.upper()
-    if action == "BUY":
+    if action in {"BUY", "OVERWEIGHT"}:
         return GREEN
-    if action == "SELL":
+    if action in {"SELL", "UNDERWEIGHT"}:
         return RED
     if action in {"NO TRADE", "HOLD"}:
         return AMBER
@@ -460,6 +467,35 @@ def metric_card(label: str, value: str, styles):
     return t
 
 
+def news_flowables(text: str, styles) -> list:
+    """Keep news evidence and clickable source URLs in the PDF, without clipping it."""
+    # The general summary cleaner intentionally drops link targets; news must keep them.
+    text = re.sub(r"\[([^\]]+)\]\((https?://[^\s)]+)\)", r"\1 - \2", text)
+    result = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or re.fullmatch(r"[|:\s-]+", line):
+            continue
+        is_heading = bool(re.match(r"^#{1,6}\s", line))
+        line = clean_markdown(line)
+        # Render Markdown table rows as wrapped paragraphs, so long evidence cells
+        # cannot create an unsplittable row taller than the page.
+        if line.startswith("|"):
+            line = " | ".join(cell.strip() for cell in line.strip("|").split("|"))
+        pieces, previous = [], 0
+        for match in re.finditer(r"https?://[^\s<>|，。；：！？、\"']+", line):
+            url = match.group().rstrip(").,;，。；")
+            if match.start() > previous:
+                pieces.append(escape(line[previous:match.start()]))
+            pieces.append(f'<link href="{html.escape(url, quote=True)}" color="#2563EB">{escape(url)}</link>')
+            previous = match.start() + len(url)
+        if previous < len(line):
+            pieces.append(escape(line[previous:]))
+        style = styles["section"] if is_heading else styles["body"]
+        result.append(Paragraph("".join(pieces), style))
+    return result
+
+
 def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str = "Daily Market Intelligence") -> None:
     styles = build_styles()
     doc = BaseDocTemplate(
@@ -615,6 +651,11 @@ def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str =
         )
         story.append(note_table)
 
+        if r.news_text:
+            story.append(PageBreak())
+            story.append(Paragraph(escape(f"{r.ticker} | 科技／AI 市場資訊"), styles["section"]))
+            story.extend(news_flowables(r.news_text, styles))
+
 
     doc.build(story)
 
@@ -672,4 +713,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

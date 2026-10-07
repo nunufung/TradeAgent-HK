@@ -104,5 +104,7 @@ jobs:
             option_screen.md
             stock_analysis.md
             stock_signals.json
+            news_*.md
+            free_news_*.json
           if-no-files-found: warn
           retention-days: 14

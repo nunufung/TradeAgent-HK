@@ -7,10 +7,12 @@ import json
 import os
 import re
 import sys
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
+from free_tech_news import configure_free_news, attach_news_context, collect_news, write_news_audit
 
 HKT = ZoneInfo("Asia/Hong_Kong")
 ANALYSTS = ("market", "social", "news", "fundamentals")
@@ -59,22 +61,27 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path) -> dict
     trade_date = now.strftime("%Y-%m-%d")
     signals: dict[str, dict[str, Any]] = {}
     report_sections = ["# TradingAgents 正股分析與 Futu 期權方向\n", f"分析日期：{trade_date} HKT\n"]
+    news_batch = collect_news()
 
     for raw_ticker in tickers:
         underlying = _futu_code(raw_ticker)
         ticker = _yahoo_ticker(raw_ticker)
         report_sections.extend([f"\n## {underlying}（{ticker}）\n"])
-        config = DEFAULT_CONFIG.copy()
+        config = deepcopy(DEFAULT_CONFIG)
         config["llm_provider"] = "openai"
         config["deep_think_llm"] = "deepseek-reasoner"
         config["quick_think_llm"] = "deepseek-chat"
         config["backend_url"] = os.getenv("TRADINGAGENTS_LLM_BACKEND_URL", "https://api.deepseek.com")
         config["max_debate_rounds"] = 1
         config["max_risk_discuss_rounds"] = 1
+        config["output_language"] = "Traditional Chinese"
+        configure_free_news(config, batch=news_batch)
         graph = TradingAgentsGraph(selected_analysts=ANALYSTS, debug=False, config=config)
+        attach_news_context(graph, news_batch)
 
         try:
             state, rating = graph.propagate(ticker, trade_date)
+            write_news_audit(news_batch, ticker, state.get("news_report", ""))
             rating = str(rating).strip().capitalize()
             reports = {
                 key: _report_text(state.get(state_key))
@@ -113,9 +120,9 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path) -> dict
                 "analysts": {name: {"complete": False, "characters": 0} for name in ANALYSTS},
                 "analysis_complete": False,
                 "ticker": ticker,
-                "error": f"{type(exc).__name__}: {exc}",
+                "error": f"{type(exc).__name__}: sensitive error details omitted",
             }
-            report_sections.append(f"\n**TradingAgents 分析失敗：期權篩選封鎖**\n\n{type(exc).__name__}: {exc}\n")
+            report_sections.append(f"\n**TradingAgents 分析失敗：期權篩選封鎖**\n\n{type(exc).__name__}（詳細錯誤內容已隱藏）\n")
 
     payload = {"date": trade_date, "analyst_set": list(ANALYSTS), "signals": signals}
     signal_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
