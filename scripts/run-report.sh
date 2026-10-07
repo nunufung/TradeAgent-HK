@@ -7,7 +7,7 @@ if [[ "${EVENT_NAME:-}" == "schedule" || "${REPORT_SCOPE:-stock}" == "market" ]]
     python market_recommendations.py --select > market_shortlist.txt
     STOCKS=()
     while IFS= read -r stock; do STOCKS+=("$stock"); done < market_shortlist.txt
-    python -u linked_stock_analysis.py "${STOCKS[@]}" --signals stock_signals.json --report stock_analysis.md
+    python -u linked_stock_analysis.py "${STOCKS[@]}" --signals stock_signals.json --report stock_analysis.md --market-news market_candidates.json
     python market_recommendations.py
 else
     ticker="${TICKER:-700}"

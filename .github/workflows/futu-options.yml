@@ -100,7 +100,7 @@ jobs:
           python scripts/run-linked-options.py
 
       - name: Send recommendation PDF or text to Telegram
-        if: always() && hashFiles('recommendations.md', 'recommendations.json') != ''
+        if: success() && hashFiles('recommendations.md') != '' && hashFiles('recommendations.json') != ''
         run: python scripts/send-option-report.py
 
       - name: Save report artifact

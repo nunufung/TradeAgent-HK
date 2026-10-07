@@ -168,6 +168,8 @@ jobs:
           print("No PDF found. Falling back to text report.")
 
           report_files = sorted(glob.glob("report_*.md"))
+          if os.path.isfile("recommendations.md"):
+              report_files.insert(0, "recommendations.md")
 
           if not report_files:
               print("No report files available.")

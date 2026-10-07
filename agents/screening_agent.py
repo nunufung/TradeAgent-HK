@@ -35,7 +35,7 @@ class ScreeningAgent:
             spot, strike = float(opt["spot"]), float(opt["strike"])
             oi = int(opt.get("oi", opt.get("open_interest", 0)))
             volume = int(opt.get("vol", opt.get("volume", 0)))
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, OverflowError):
             return False
 
         expiry_days = self.r.get("expiry_days", [])

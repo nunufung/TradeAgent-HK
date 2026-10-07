@@ -46,7 +46,7 @@ def _report_text(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
-def analyze(tickers: list[str], *, signal_path: Path, report_path: Path) -> dict[str, Any]:
+def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_batch: dict | None = None) -> dict[str, Any]:
     """Run TradingAgents once per underlying and save structured signals + audit reports."""
     sys.path.insert(0, str(Path("tradingagents").resolve()))
     from tradingagents.default_config import DEFAULT_CONFIG
@@ -61,10 +61,11 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path) -> dict
     trade_date = now.strftime("%Y-%m-%d")
     signals: dict[str, dict[str, Any]] = {}
     report_sections = ["# TradingAgents 正股分析與 Futu 期權方向\n", f"分析日期：{trade_date} HKT\n"]
-    news_batch = collect_news()
+    news_batch = collect_news() if news_batch is None else news_batch
 
     for raw_ticker in tickers:
         underlying = _futu_code(raw_ticker)
+        print(f"Four-analyst research starting: {underlying}", flush=True)
         ticker = _yahoo_ticker(raw_ticker)
         report_sections.extend([f"\n## {underlying}（{ticker}）\n"])
         config = deepcopy(DEFAULT_CONFIG)
@@ -109,6 +110,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path) -> dict
                 "decision": _report_text(state.get("final_trade_decision")),
             }
             signals[underlying] = signal
+            print(f"Four-analyst research ready: {underlying}; rating={rating}; complete={complete}", flush=True)
             report_sections.append(f"\n**TradingAgents 最終評級：{rating}**\n\n")
             for name in ANALYSTS:
                 report_sections.append(f"### {name}\n\n{reports[name] or '分析報告缺失；方向閘門已封鎖。'}\n")
@@ -116,6 +118,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path) -> dict
                 f"\n期權連動：{', '.join(signal['allowed_option_types']) or '不篩選（中性／需覆核）'}\n"
             )
         except Exception as exc:  # A failed stock run must never open the options gate.
+            print(f"Four-analyst research unavailable: {underlying}; error={type(exc).__name__}; option direction blocked.", flush=True)
             signals[underlying] = {
                 "rating": "REVIEW",
                 "allowed_option_types": [],
@@ -137,15 +140,26 @@ def main() -> int:
     parser.add_argument("tickers", nargs="*", help="港股代號，例如 700 2800")
     parser.add_argument("--signals", default="stock_signals.json")
     parser.add_argument("--report", default="stock_analysis.md")
+    parser.add_argument("--market-news", help="Validated market_candidates.json RSS batch for the same briefing")
     args = parser.parse_args()
     if not args.tickers:
         from main import DEFAULT_WATCHLIST
         tickers = DEFAULT_WATCHLIST
     else:
         tickers = args.tickers
-    payload = analyze(tickers, signal_path=Path(args.signals), report_path=Path(args.report))
+    batch = None
+    if args.market_news:
+        batch = load_market_news(Path(args.market_news))
+    payload = analyze(tickers, signal_path=Path(args.signals), report_path=Path(args.report), news_batch=batch)
     print(f"TradingAgents analyzed {len(payload['signals'])} stock(s); signals saved to {args.signals}.")
     return 0
+
+
+def load_market_news(path: Path) -> dict:
+    """Use only the dated, publisher-validated candidates, not raw rejected RSS."""
+    batch = json.loads(path.read_text())
+    return {"fetched_at": batch['fetched_at'], "sources": batch['sources'],
+            "lookback_days": 2, "articles": batch['candidates']}
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ import sys
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from linked_stock_analysis import analyze, _futu_code
+from linked_stock_analysis import analyze, _futu_code, load_market_news
 from market_recommendations import select_shortlist, write_recommendations
 
 HKT = ZoneInfo('Asia/Hong_Kong')
@@ -50,7 +50,7 @@ def run() -> None:
         tickers = [_futu_code(code) for code in raw.split(',')] if raw else select_shortlist(market, now=now)
         if not tickers:
             raise ValueError('No stock shortlist is available')
-        payload = analyze(tickers, signal_path=Path('stock_signals.json'), report_path=Path('stock_analysis.md'))
+        payload = analyze(tickers, signal_path=Path('stock_signals.json'), report_path=Path('stock_analysis.md'), news_batch=load_market_news(Path('market_candidates.json')))
     subprocess.run([sys.executable, 'main.py', *tickers, '--stock-signals', 'stock_signals.json',
                     '--output', 'option_screen.md', '--json-output', 'option_screen.json'], check=False)
     # A failed scan emits a safe error audit, so the PDF can explicitly say WAIT.

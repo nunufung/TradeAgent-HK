@@ -93,3 +93,19 @@ class EntryWindowTests(unittest.TestCase):
         for field in ['bid', 'ask', 'strike', 'spot', 'lot_size']:
             for value in [float('nan'), float('inf')]:
                 self.assertEqual(agent.screen([candidate(**{field: value})]), [])
+
+class BroadNewsContextTests(unittest.TestCase):
+    def test_verified_bluechip_news_reaches_stock_analysts_without_tech_only_alias(self):
+        from free_tech_news import select_articles
+        from linked_stock_analysis import load_market_news
+        with tempfile.TemporaryDirectory() as directory:
+            p = Path(directory)/'market_candidates.json'
+            hsbc = {'title': '匯豐業務更新', 'summary': 'RSS 實際摘錄', 'direct_codes': ['0005'],
+                    'published_at': '2026-10-07T01:00:00+00:00', 'url': 'https://example.com/hsbc', 'source': 'RTHK', 'source_type': 'media'}
+            rejected = {**hsbc, 'title': '未核實來源'}
+            p.write_text(json.dumps({'fetched_at': NOW.isoformat(), 'sources': [], 'candidates': [hsbc], 'articles': [rejected]}))
+            batch = load_market_news(p)
+            self.assertEqual(batch['articles'], [hsbc])
+            selected = select_articles(batch, '0005.HK', '2026-10-07', '2026-10-07')
+            self.assertTrue(selected[0]['company_match'])
+            self.assertEqual(selected[0]['title'], '匯豐業務更新')

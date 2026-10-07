@@ -151,7 +151,7 @@ class WorkflowModeTests(unittest.TestCase):
     def test_scheduled_report_uses_market_news_even_with_700_input(self):
         calls = self.run_mode(EVENT_NAME='schedule', TICKER='700')
         self.assertEqual(calls[0], ['-u', 'hk_market_briefing.py'])
-        self.assertIn(['-u', 'linked_stock_analysis.py', 'HK.00005', 'HK.01024', 'HK.00388', '--signals', 'stock_signals.json', '--report', 'stock_analysis.md'], calls)
+        self.assertIn(['-u', 'linked_stock_analysis.py', 'HK.00005', 'HK.01024', 'HK.00388', '--signals', 'stock_signals.json', '--report', 'stock_analysis.md', '--market-news', 'market_candidates.json'], calls)
         self.assertEqual(calls[-1], ['market_recommendations.py'])
 
     def test_telegram_stock_request_keeps_four_analyst_stock_path(self):
