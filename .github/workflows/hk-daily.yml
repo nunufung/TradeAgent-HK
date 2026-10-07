@@ -1,9 +1,6 @@
 name: HK Daily Report
 
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/hk-daily.yml']
   schedule:
     - cron: '0 21 * * *'  # 05:00 HKT: prebuild, no Telegram send
     - cron: '0 23 * * *'  # 07:00 HKT: send the saved morning PDF
@@ -41,7 +38,7 @@ permissions:
 
 jobs:
   report:
-    if: github.event_name != 'push' && (github.event_name != 'schedule' || github.event.schedule != '0 23 * * *')
+    if: github.event_name != 'schedule' || github.event.schedule != '0 23 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 115
 
@@ -370,31 +367,3 @@ jobs:
           post("sendMessage", json.dumps({"chat_id": chat, "text": summary, "disable_web_page_preview": True}).encode(), "application/json")
           print("Morning final text summary sent to Telegram.")
           PY
-
-  summary_test:
-    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Send one final text summary from the completed four-analyst report' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download today's already completed four-analyst research
-        uses: actions/download-artifact@v4
-        with:
-          name: hk-reports
-          run-id: 37586839639
-          github-token: ${{ github.token }}
-          path: summary_input
-      - name: Generate and send one final text summary without a PDF
-        run: |
-          python final_summary.py --directory summary_input > final_summary.txt
-          python final_summary.py --directory summary_input --send
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: final-text-summary
-          path: final_summary.txt
-          if-no-files-found: warn
-          retention-days: 3
