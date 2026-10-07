@@ -105,6 +105,8 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path) -> dict
                 "analysts": analyst_status,
                 "analysis_complete": complete,
                 "ticker": ticker,
+                "reports": reports,
+                "decision": _report_text(state.get("final_trade_decision")),
             }
             signals[underlying] = signal
             report_sections.append(f"\n**TradingAgents 最終評級：{rating}**\n\n")
@@ -124,7 +126,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path) -> dict
             }
             report_sections.append(f"\n**TradingAgents 分析失敗：期權篩選封鎖**\n\n{type(exc).__name__}（詳細錯誤內容已隱藏）\n")
 
-    payload = {"date": trade_date, "analyst_set": list(ANALYSTS), "signals": signals}
+    payload = {"date": trade_date, "generated_at": datetime.now(HKT).isoformat(), "analyst_set": list(ANALYSTS), "signals": signals}
     signal_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     report_path.write_text("\n".join(report_sections), encoding="utf-8")
     return payload

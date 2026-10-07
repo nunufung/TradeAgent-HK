@@ -10,6 +10,13 @@ on:
       - 'generate_pdf.py'
       - 'hk_market_briefing.py'
       - 'market_watchlist.json'
+      - 'market_recommendations.py'
+      - 'main.py'
+      - 'agents/screening_agent.py'
+      - 'scripts/run-linked-options.py'
+      - 'scripts/send-option-report.py'
+      - 'tests/test_recommendations.py'
+      - 'tests/test_option_screen.py'
       - 'scripts/run-report.sh'
       - '.github/workflows/hk-daily.yml'
       - 'tests/test_market_briefing.py'
@@ -37,7 +44,7 @@ jobs:
           sudo apt-get install -y fonts-wqy-zenhei fonts-dejavu-core
       - name: Test news integration, existing gates and Chinese PDF
         run: |
-          python -m py_compile free_tech_news.py hk_market_briefing.py hk_adapter.py linked_stock_analysis.py generate_pdf.py
+          python -m py_compile free_tech_news.py hk_market_briefing.py hk_adapter.py linked_stock_analysis.py generate_pdf.py market_recommendations.py main.py scripts/run-linked-options.py scripts/send-option-report.py
           bash -n scripts/run-report.sh
           python -m unittest discover -s tests -v
       - name: Check live free sources without API keys

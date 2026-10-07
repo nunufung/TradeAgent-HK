@@ -8,6 +8,7 @@ import os
 import sys
 import time
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 from agents.screening_agent import ScreeningAgent
@@ -44,7 +45,8 @@ def _hkt_today() -> date:
 
 def _is_open_window(now: datetime | None = None) -> bool:
     now = now or datetime.now(HKT)
-    return now.weekday() < 5 and (now.hour, now.minute) >= (10, 0)
+    clock = (now.hour, now.minute)
+    return now.weekday() < 5 and ((10, 0) <= clock < (12, 0) or (13, 0) <= clock < (16, 0))
 
 
 def _market_code(raw: str) -> str:
@@ -189,6 +191,8 @@ def scan(
                         row["short_required_im"] = float(value)
                     except (TypeError, ValueError):
                         pass
+                if row['short_required_im'] is None:
+                    errors.append('實際初始保證金查詢未完成；不使用估算值。')
         candidates = screener.screen(
             prequalified,
             check_margin=True,
@@ -247,12 +251,12 @@ def render(
                 f"   IV {c['iv']:.1f}%｜Vol {c['volume']}｜OI {c['open_interest']}｜每張 Premium 約 HK${per_contract_premium:,.0f}\n"
                 f"   賣出初始保證金約 HK${c['short_required_im']:,.0f}｜Margin/Premium {ratio:.1f}x｜代碼 {c['option_code']}"
             )
-        lines.append("\n結論：以上為合規候選，並非自動下單或保證買賣指示。")
+        lines.append("\n結論：以上只通過行情及保證金數值條件；支持／阻力、相對 IV、事件日曆及帳戶資金尚未核實，完整守則未通過，等待覆核。")
     else:
         lines.append("⛔ 沒有合約通過正股方向及期權硬性篩選；今日不做。")
     if errors:
         lines.append("\n資料 / 連線提示：")
-        lines.extend(f"- {e}" for e in errors[:8])
+        lines.append(f"- {len(errors)} 項查詢未完成；敏感錯誤內容已隱藏。")
     return "\n".join(lines)
 
 
@@ -262,6 +266,7 @@ def main() -> int:
     parser.add_argument("--host", default=os.getenv("FUTU_OPEND_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.getenv("FUTU_OPEND_PORT", "11111")))
     parser.add_argument("--output", default="option_screen.md")
+    parser.add_argument("--json-output", default="option_screen.json")
     parser.add_argument(
         "--stock-signals",
         help="TradingAgents 正股評級 JSON；指定後每隻股票必須有有效評級才會篩期權",
@@ -275,6 +280,8 @@ def main() -> int:
             with open(args.stock_signals, encoding="utf-8") as f:
                 payload = json.load(f)
             stock_signals = payload.get("signals", {})
+            if payload.get("date") != datetime.now(HKT).date().isoformat():
+                raise ValueError("Stock analyst signals are not from today; option scan blocked.")
             missing = [ticker for ticker in watchlist if ticker not in stock_signals]
             if missing:
                 raise ValueError(f"正股分析缺少股票評級，期權流程封鎖：{', '.join(missing)}")
@@ -283,15 +290,17 @@ def main() -> int:
     except Exception as exc:
         report = (
             "📊 TradeAgent-HK｜Futu OpenD 期權篩選\n"
-            f"⛔ 連線/掃描失敗：{type(exc).__name__}: {exc}\n"
+            f"⛔ 連線/掃描失敗：{type(exc).__name__}（敏感錯誤內容已隱藏）\n"
             "本次沒有使用模擬報價，亦不會產生開倉候選。請確認本機 OpenD 已登入並可由此 Mac 連接。"
         )
         print(report, file=sys.stderr)
         with open(args.output, "w", encoding="utf-8") as f:
             f.write(report)
+        Path(args.json_output).write_text(json.dumps({"generated_at": datetime.now(HKT).isoformat(), "candidates": [], "errors": [type(exc).__name__]}, ensure_ascii=False), encoding="utf-8")
         return 1
     with open(args.output, "w", encoding="utf-8") as f:
         f.write(report)
+    Path(args.json_output).write_text(json.dumps({"generated_at": datetime.now(HKT).isoformat(), "watchlist": watchlist, "candidates": candidates, "errors": ["資料查詢未完成（敏感內容已隱藏）"] if errors else []}, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
     print(report)
     return 0
 

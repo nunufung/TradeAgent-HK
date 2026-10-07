@@ -70,6 +70,7 @@ class ReportSummary:
     raw_text: str
     news_text: str = ""
     market_metadata: dict | None = None
+    recommendation_text: str = ""
 
 
 def register_fonts() -> tuple[str, str]:
@@ -318,6 +319,8 @@ def parse_report(path: str) -> ReportSummary:
         raw_text=clean_markdown(text),
         news_text=news_text,
         market_metadata=market_metadata,
+        recommendation_text=(Path(path).with_name("recommendations.md").read_text(encoding="utf-8")
+                             if market_metadata is not None and Path(path).with_name("recommendations.md").is_file() else ""),
     )
 
 
@@ -627,6 +630,9 @@ def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str =
             ]], colWidths=[43.5 * mm] * 4)
             cards.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
             story += [cards, Spacer(1, 3 * mm), Paragraph(escape("市場新聞概覽"), styles["section"]), Paragraph(escape(r.decision), styles["body"])]
+            if r.recommendation_text:
+                story.extend(news_flowables(r.recommendation_text, styles, show_urls=False))
+                story.append(PageBreak())
             story.extend(news_flowables(r.news_text, styles, show_urls=False))
             continue
 

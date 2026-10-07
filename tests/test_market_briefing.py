@@ -141,21 +141,26 @@ class WorkflowModeTests(unittest.TestCase):
             root = Path(directory)
             recorder = root/'calls.json'
             python = root/'python'
-            python.write_text('#!/usr/bin/env python3\nimport json,os,sys\nfrom pathlib import Path\nPath(os.environ["CALL_FILE"]).write_text(json.dumps(sys.argv[1:]))\nprint("report command captured")\n')
+            python.write_text('#!/usr/bin/env python3\nimport json,os,sys\nfrom pathlib import Path\nwith Path(os.environ["CALL_FILE"]).open("a") as f: f.write(json.dumps(sys.argv[1:])+"\\n")\nprint("HK.00005\\nHK.01024\\nHK.00388" if "--select" in sys.argv else "report command captured")\n')
             python.chmod(0o755)
             env = {**os.environ, 'PATH': str(root)+os.pathsep+os.environ['PATH'], 'CALL_FILE': str(recorder), **environment}
             result = subprocess.run(['bash', str(ROOT/'scripts/run-report.sh')], cwd=root, env=env, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-            return json.loads(recorder.read_text())
+            return [json.loads(line) for line in recorder.read_text().splitlines()]
 
     def test_scheduled_report_uses_market_news_even_with_700_input(self):
-        self.assertEqual(self.run_mode(EVENT_NAME='schedule', TICKER='700'), ['-u', 'hk_market_briefing.py'])
+        calls = self.run_mode(EVENT_NAME='schedule', TICKER='700')
+        self.assertEqual(calls[0], ['-u', 'hk_market_briefing.py'])
+        self.assertIn(['-u', 'linked_stock_analysis.py', 'HK.00005', 'HK.01024', 'HK.00388', '--signals', 'stock_signals.json', '--report', 'stock_analysis.md'], calls)
+        self.assertEqual(calls[-1], ['market_recommendations.py'])
 
     def test_telegram_stock_request_keeps_four_analyst_stock_path(self):
-        self.assertEqual(self.run_mode(EVENT_NAME='workflow_dispatch', REPORT_SCOPE='stock', TICKER='9988'), ['-u', 'hk_adapter.py', '9988'])
+        self.assertEqual(self.run_mode(EVENT_NAME='workflow_dispatch', REPORT_SCOPE='stock', TICKER='9988'), [['-u', 'hk_adapter.py', '9988']])
 
     def test_explicit_market_request_runs_market_briefing(self):
-        self.assertEqual(self.run_mode(EVENT_NAME='workflow_dispatch', REPORT_SCOPE='market', TICKER='700'), ['-u', 'hk_market_briefing.py'])
+        calls = self.run_mode(EVENT_NAME='workflow_dispatch', REPORT_SCOPE='market', TICKER='700')
+        self.assertEqual(calls[0], ['-u', 'hk_market_briefing.py'])
+        self.assertTrue(any('linked_stock_analysis.py' in call for call in calls))
 
 
 if __name__ == '__main__':

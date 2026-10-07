@@ -40,6 +40,7 @@ jobs:
   report:
     if: github.event_name != 'schedule' || github.event.schedule != '0 23 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 115
 
     env:
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -220,6 +221,11 @@ jobs:
             free_news_*.json
             market_candidates.json
             market_briefing.json
+            stock_signals.json
+            stock_analysis.md
+            market_shortlist.txt
+            recommendations.md
+            recommendations.json
             run_*.log
             pdf_reports/*.pdf
           if-no-files-found: warn

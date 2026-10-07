@@ -46,7 +46,9 @@ class ScreeningAgent:
             return False
         if not math.isfinite(iv) or iv <= 0 or not self._fresh(opt.get("quote_time")):
             return False
-        if bid <= 0 or ask <= 0 or ask < bid or spot <= 0:
+        if not all(math.isfinite(value) for value in (bid, ask, spot, strike)):
+            return False
+        if bid <= 0 or ask <= 0 or ask < bid or spot <= 0 or strike <= 0:
             return False
         mid = (bid + ask) / 2
         if (ask - bid) / mid > float(self.r.get("max_spread_pct", 0.30)):
@@ -76,7 +78,7 @@ class ScreeningAgent:
                 margin = float(margin)
             except (TypeError, ValueError):
                 return False
-            if not math.isfinite(margin) or margin <= 0 or premium_per_contract <= 0:
+            if not math.isfinite(margin) or not math.isfinite(lot_size) or margin <= 0 or premium_per_contract <= 0:
                 return False
             if margin / premium_per_contract > float(self.r.get("max_margin_premium_multiple", 10)):
                 return False

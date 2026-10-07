@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: futu-option-screen
@@ -34,6 +35,7 @@ jobs:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      TAHK_CJK_FONT: ${{ vars.TAHK_CJK_FONT }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -52,48 +54,54 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -e ./tradingagents
 
-      - name: Run four-analyst stock screen and linked Futu option scan
+      - name: Locate today's completed cloud stock research
+        id: research
+        if: inputs.tickers == '' || github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const day = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(new Date());
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              ...context.repo, workflow_id: 'hk-daily.yml', branch: context.payload.repository.default_branch,
+              status: 'completed', per_page: 30
+            });
+            for (const run of data.workflow_runs.filter(r => r.conclusion === 'success')) {
+              const runDay = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit'
+              }).format(new Date(run.created_at));
+              if (runDay !== day) continue;
+              const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                ...context.repo, run_id: run.id, per_page: 100
+              });
+              if (artifacts.some(a => a.name === 'hk-reports' && !a.expired)) {
+                core.setOutput('run_id', String(run.id));
+                return;
+              }
+            }
+            core.info('No completed same-day cloud artifact: Mac will build fresh research.');
+
+      - name: Download cloud research
+        if: steps.research.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: hk-reports
+          run-id: ${{ steps.research.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: market_cache
+
+      - name: Run linked four-analyst recommendations and real Futu scan
         env:
           TICKERS_INPUT: ${{ inputs.tickers }}
         run: |
-          set -euo pipefail
-          if [ -n "${TICKERS_INPUT:-}" ]; then
-            TICKERS_ARGS=()
-            IFS=',' read -r -a RAW_TICKERS <<< "$TICKERS_INPUT"
-            for ticker in "${RAW_TICKERS[@]}"; do
-              TICKERS_ARGS+=("$ticker")
-            done
-            python linked_stock_analysis.py "${TICKERS_ARGS[@]}" --signals stock_signals.json --report stock_analysis.md
-            python main.py "${TICKERS_ARGS[@]}" --stock-signals stock_signals.json --output option_screen.md
-          else
-            python linked_stock_analysis.py --signals stock_signals.json --report stock_analysis.md
-            python main.py --stock-signals stock_signals.json --output option_screen.md
-          fi
+          rm -rf option_pdf
+          python scripts/run-linked-options.py
 
-      - name: Send screening report to Telegram
-        if: always() && hashFiles('option_screen.md') != ''
-        run: |
-          python - <<'PY'
-          import os
-          import requests
-          from pathlib import Path
-
-          token = os.getenv('TELEGRAM_BOT_TOKEN', '').strip()
-          chat = os.getenv('TELEGRAM_CHAT_ID', '').strip()
-          if not token or not chat:
-              raise SystemExit('Telegram bot secrets are not configured.')
-          message = Path('option_screen.md').read_text(encoding='utf-8')
-          if len(message) > 3900:
-              message = message[:3850] + '\n…（完整結果見 GitHub Actions artifact）'
-          response = requests.post(
-              f'https://api.telegram.org/bot{token}/sendMessage',
-              json={'chat_id': chat, 'text': message, 'disable_web_page_preview': True},
-              timeout=30,
-          )
-          if response.status_code != 200 or not response.json().get('ok'):
-              raise SystemExit('Telegram delivery failed; see the Actions log.')
-          print('Option-screen report sent to Telegram.')
-          PY
+      - name: Send recommendation PDF or text to Telegram
+        if: always() && hashFiles('recommendations.md', 'recommendations.json') != ''
+        run: python scripts/send-option-report.py
 
       - name: Save report artifact
         if: always()
@@ -102,6 +110,14 @@ jobs:
           name: futu-option-screen-${{ github.run_number }}
           path: |
             option_screen.md
+            option_screen.json
+            recommendations.md
+            recommendations.json
+            option_pdf/*.pdf
+            report_market.md
+            news_market.md
+            market_briefing.json
+            market_candidates.json
             stock_analysis.md
             stock_signals.json
             news_*.md
