@@ -215,6 +215,22 @@ jobs:
           print("Telegram text fallback sent.")
           PY
 
+      - name: Store today's market research for the Mac option update
+        if: success() && hashFiles('market_briefing.json', 'stock_signals.json') != '' && hashFiles('report_market.md') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: hk-market-research-${{ steps.morning.outputs.date }}
+          path: |
+            market_briefing.json
+            market_candidates.json
+            report_market.md
+            news_market.md
+            stock_signals.json
+            stock_analysis.md
+            pdf_fonts/*
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Upload report artifacts
         uses: actions/upload-artifact@v4
         if: always()

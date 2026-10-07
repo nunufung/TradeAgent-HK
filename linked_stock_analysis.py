@@ -46,6 +46,20 @@ def _report_text(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
+def signal_from_state(state: dict, rating: object, ticker: str) -> dict:
+    rating = str(rating).strip().capitalize()
+    if rating not in RATINGS:
+        rating = 'REVIEW'
+    reports = {name: _report_text(state.get(key)) for name, key in (
+        ('market', 'market_report'), ('social', 'sentiment_report'),
+        ('news', 'news_report'), ('fundamentals', 'fundamentals_report'))}
+    analyst_status = {name: {'complete': bool(reports[name]), 'characters': len(reports[name])} for name in ANALYSTS}
+    complete = all(item['complete'] for item in analyst_status.values())
+    return {'rating': rating, 'allowed_option_types': allowed_option_types(rating, complete),
+            'analysts': analyst_status, 'analysis_complete': complete, 'ticker': ticker,
+            'reports': reports, 'decision': _report_text(state.get('final_trade_decision'))}
+
+
 def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_batch: dict | None = None) -> dict[str, Any]:
     """Run TradingAgents once per underlying and save structured signals + audit reports."""
     sys.path.insert(0, str(Path("tradingagents").resolve()))
@@ -83,32 +97,8 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
         try:
             state, rating = graph.propagate(ticker, trade_date)
             write_news_audit(news_batch, ticker, state.get("news_report", ""))
-            rating = str(rating).strip().capitalize()
-            reports = {
-                key: _report_text(state.get(state_key))
-                for key, state_key in (
-                    ("market", "market_report"),
-                    ("social", "sentiment_report"),
-                    ("news", "news_report"),
-                    ("fundamentals", "fundamentals_report"),
-                )
-            }
-            analyst_status = {
-                name: {"complete": bool(reports[name]), "characters": len(reports[name])}
-                for name in ANALYSTS
-            }
-            complete = all(item["complete"] for item in analyst_status.values())
-            if rating not in RATINGS:
-                rating = "REVIEW"
-            signal = {
-                "rating": rating,
-                "allowed_option_types": allowed_option_types(rating, complete),
-                "analysts": analyst_status,
-                "analysis_complete": complete,
-                "ticker": ticker,
-                "reports": reports,
-                "decision": _report_text(state.get("final_trade_decision")),
-            }
+            signal = signal_from_state(state, rating, ticker)
+            rating, complete, reports = signal['rating'], signal['analysis_complete'], signal['reports']
             signals[underlying] = signal
             print(f"Four-analyst research ready: {underlying}; rating={rating}; complete={complete}", flush=True)
             report_sections.append(f"\n**TradingAgents 最終評級：{rating}**\n\n")

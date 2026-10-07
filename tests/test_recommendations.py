@@ -132,3 +132,31 @@ class LiveQuoteDecisionTests(unittest.TestCase):
         self.assertEqual(result['action'], '等待')
         self.assertIsNone(result['main_option'])
         self.assertIn('舊報價', ' '.join(result['reasons']))
+
+class SharedStockReportTests(unittest.TestCase):
+    def test_real_state_extraction_requires_all_four_reports(self):
+        from linked_stock_analysis import signal_from_state
+        state = {'market_report': '市場論證', 'sentiment_report': '情緒論證',
+                 'news_report': '新聞論證', 'fundamentals_report': '基本面論證',
+                 'final_trade_decision': '正股綜合論證'}
+        signal = signal_from_state(state, 'BUY', '0005.HK')
+        self.assertEqual(signal['allowed_option_types'], ['PUT'])
+        self.assertEqual(signal['reports']['fundamentals'], '基本面論證')
+        self.assertEqual(signal['decision'], '正股綜合論證')
+        state.pop('news_report')
+        self.assertEqual(signal_from_state(state, 'BUY', '0005.HK')['allowed_option_types'], [])
+
+    def test_single_stock_pdf_keeps_its_recommendation_section(self):
+        import generate_pdf as pdf
+        from pypdf import PdfReader
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'report_0005.md').write_text('# 0005.HK 2026-10-07\n\n評級：Buy\n\n研究論證。')
+            write_recommendations(signals(), directory=root, now=NOW)
+            report = pdf.parse_report(str(root/'report_0005.md'))
+            self.assertIsNone(report.market_metadata)
+            pdf.build_pdf([report], str(root/'report.pdf'))
+            text = '\n'.join(page.extract_text() for page in PdfReader(root/'report.pdf').pages)
+            self.assertIn('四分析員推薦與期權紀律', text)
+            self.assertIn('估值有支持', text)
+            self.assertIn('Short Put', text)

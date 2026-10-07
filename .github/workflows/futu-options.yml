@@ -62,6 +62,7 @@ jobs:
             const day = new Intl.DateTimeFormat('en-CA', {
               timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit'
             }).format(new Date());
+            const name = 'hk-market-research-' + day;
             const { data } = await github.rest.actions.listWorkflowRuns({
               ...context.repo, workflow_id: 'hk-daily.yml', branch: context.payload.repository.default_branch,
               status: 'completed', per_page: 30
@@ -74,8 +75,9 @@ jobs:
               const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
                 ...context.repo, run_id: run.id, per_page: 100
               });
-              if (artifacts.some(a => a.name === 'hk-reports' && !a.expired)) {
+              if (artifacts.some(a => a.name === name && !a.expired)) {
                 core.setOutput('run_id', String(run.id));
+                core.setOutput('artifact', name);
                 return;
               }
             }
@@ -86,7 +88,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          name: hk-reports
+          name: ${{ steps.research.outputs.artifact }}
           run-id: ${{ steps.research.outputs.run_id }}
           github-token: ${{ github.token }}
           path: market_cache

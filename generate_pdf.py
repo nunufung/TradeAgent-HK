@@ -320,7 +320,7 @@ def parse_report(path: str) -> ReportSummary:
         news_text=news_text,
         market_metadata=market_metadata,
         recommendation_text=(Path(path).with_name("recommendations.md").read_text(encoding="utf-8")
-                             if market_metadata is not None and Path(path).with_name("recommendations.md").is_file() else ""),
+                             if Path(path).with_name("recommendations.md").is_file() else ""),
     )
 
 
@@ -717,6 +717,10 @@ def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str =
             )
         )
         story.append(note_table)
+
+        if r.recommendation_text:
+            story.append(PageBreak())
+            story.extend(news_flowables(r.recommendation_text, styles, show_urls=False))
 
         if r.news_text:
             story.append(PageBreak())

@@ -4,6 +4,8 @@
 
 同一批 publisher／日期篩選後的市場新聞直接傳入四分析員的 RSS 工具及背景；拒絕的原始 RSS 不會加入。每隻研究股實際執行 TradingAgents 的 market、social、news、fundamentals 四位分析員及既有投資辯論／風控整合。stock_signals.json 保存同日評級、四份原文及綜合決策；stock_analysis.md 保存完整四份論證。PDF 顯示各分析員原文摘錄及綜合決策，長文可在 Actions artifact 查閱。模型評級為研究意見，模型文字中的價位仍須核對行情；四份報告齊備不代表已完成原始數據驗證。
 
+Telegram 指定單股的原有四分析員 PDF 亦加同一推薦／守則欄，並保存完整四份原文；不重跑第二套模型。
+
 方向連動：Buy/Overweight → 條件式 Short Put；Underweight/Sell → 條件式 Short Call；Hold/REVIEW、舊日期或分析缺失 → 不做。此處是賣期權策略，不能當作買入 Call/Put 指示。
 
 ## 時間與行情
@@ -11,11 +13,11 @@
 - 05:00 HKT：雲端建市場新聞及三隻股票四分析員研究；不連 Mac、不送 Telegram。
 - 07:00 HKT：送當日預建 PDF；開倉結論只能「等待」或「不做」。
 - 10:00 HKT：原有雲端更新仍保留，沒有 Mac 的即時合約資料時清楚寫等待 Futu。
-- 10:10 HKT 平日：原有 self-hosted macOS Futu 工作流，先嘗試取當日已完成的雲端研究 artifact，再從本機 OpenD 更新期權鏈及實際初始保證金。不成功則 Mac 建新的新聞及三隻股票研究。手動輸入 tickers 時，使用指定股票重新分析。更新結果以 PDF 送 Telegram；Mac 沒有可嵌入的中文字體時，改送清楚標示的文字並保留完整 artifact。
+- 10:10 HKT 平日：原有 self-hosted macOS Futu 工作流，先嘗試取當日已完成的雲端市場研究 artifact（避免誤取單股請求），再從本機 OpenD 更新期權鏈及實際初始保證金。不成功則 Mac 建新的新聞及三隻股票研究。手動輸入 tickers 時，使用指定股票重新分析。更新結果以 PDF 送 Telegram；Mac 沒有可嵌入的中文字體時，改送清楚標示的文字並保留完整 artifact。
 
 排程 cron 不變；GitHub Actions 可能排隊或延遲。四分析員增加模型用量及預建時間。Mac runner、OpenD 必須在線。
 
-雲端 report artifact 會附已驗證的 WQY 字體及授權文件，Mac 下載後嵌入同一字體。Mac PDF 優先使用 repository variable `TAHK_CJK_FONT` 指向本機 TrueType 中文字體；亦探測 `/Library/Fonts/Arial Unicode.ttf` 及 `/System/Library/Fonts/Supplemental/Arial Unicode.ttf`。找不到字體不產生缺字 PDF。
+雲端 獨立 `hk-market-research-YYYY-MM-DD` artifact 會附已驗證的 WQY 字體及授權文件，Mac 下載後嵌入同一字體。Mac PDF 優先使用 repository variable `TAHK_CJK_FONT` 指向本機 TrueType 中文字體；亦探測 `/Library/Fonts/Arial Unicode.ttf` 及 `/System/Library/Fonts/Supplemental/Arial Unicode.ttf`。找不到字體不產生缺字 PDF。
 
 ## 完整守則與推薦上限
 

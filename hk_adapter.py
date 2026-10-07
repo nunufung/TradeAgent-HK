@@ -1,6 +1,10 @@
 import sys
 sys.path.insert(0, "./tradingagents")
 import os
+import json
+from pathlib import Path
+from linked_stock_analysis import signal_from_state, _futu_code, ANALYSTS
+from market_recommendations import write_recommendations
 from datetime import datetime
 from copy import deepcopy
 from zoneinfo import ZoneInfo
@@ -41,6 +45,12 @@ def run_market_agent(hk_code: str):
     write_news_audit(news_batch, ticker, state.get("news_report", ""))
     print("\n" + "="*60 + "\nFINAL\n" + "="*60)
     print(decision)
+    payload = {"date": date_str, "generated_at": datetime.now(ZoneInfo("Asia/Hong_Kong")).isoformat(),
+               "analyst_set": list(ANALYSTS), "signals": {_futu_code(hk_code): signal_from_state(state, decision, ticker)}}
+    Path("stock_signals.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    Path("stock_analysis.md").write_text("\n\n".join(
+        f"## {name}\n\n{text}" for name, text in payload["signals"][_futu_code(hk_code)]["reports"].items()), encoding="utf-8")
+    write_recommendations(payload)
     final_report = state.get("final_trade_decision") or decision
     with open(f"report_{ticker.replace('.HK','')}.md","w", encoding="utf-8") as f:
         f.write(f"# {ticker} {date_str}\n\n評級：{decision}\n\n{final_report}")
