@@ -109,3 +109,26 @@ class BroadNewsContextTests(unittest.TestCase):
             selected = select_articles(batch, '0005.HK', '2026-10-07', '2026-10-07')
             self.assertTrue(selected[0]['company_match'])
             self.assertEqual(selected[0]['title'], '匯豐業務更新')
+
+class LiveQuoteDecisionTests(unittest.TestCase):
+    def test_two_numerically_qualified_quotes_produce_one_wait_candidate(self):
+        from unittest.mock import patch
+        from test_option_screen import candidate
+        quote_time = NOW.strftime('%Y-%m-%d %H:%M:%S')
+        rows = [candidate(underlying='HK.00005', option_code='HK.TEST1', expiry='2026-11-06', quote_time=quote_time),
+                candidate(underlying='HK.00005', option_code='HK.TEST2', expiry='2026-11-06', quote_time=quote_time)]
+        with patch('agents.screening_agent.datetime') as clock:
+            clock.strptime.side_effect = datetime.strptime
+            clock.now.return_value = NOW
+            result = build_recommendations(signals(), option_audit={'generated_at': NOW.isoformat(), 'candidates': rows, 'errors': []}, now=NOW)
+        self.assertEqual(result['action'], '等待')
+        self.assertEqual(result['main_option']['option_code'], 'HK.TEST1')
+        self.assertFalse(result['risk_review_complete'])
+        self.assertIn('完整守則', ' '.join(result['reasons']))
+
+    def test_stale_scan_cannot_supply_even_a_research_contract(self):
+        audit = {'generated_at': NOW.replace(hour=9).isoformat(), 'candidates': [], 'errors': []}
+        result = build_recommendations(signals(), option_audit=audit, now=NOW)
+        self.assertEqual(result['action'], '等待')
+        self.assertIsNone(result['main_option'])
+        self.assertIn('舊報價', ' '.join(result['reasons']))

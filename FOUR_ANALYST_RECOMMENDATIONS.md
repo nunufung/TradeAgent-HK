@@ -15,7 +15,7 @@
 
 排程 cron 不變；GitHub Actions 可能排隊或延遲。四分析員增加模型用量及預建時間。Mac runner、OpenD 必須在線。
 
-Mac PDF 優先使用 repository variable `TAHK_CJK_FONT` 指向本機 TrueType 中文字體；亦探測 `/Library/Fonts/Arial Unicode.ttf` 及 `/System/Library/Fonts/Supplemental/Arial Unicode.ttf`。找不到字體不產生缺字 PDF。
+雲端 report artifact 會附已驗證的 WQY 字體及授權文件，Mac 下載後嵌入同一字體。Mac PDF 優先使用 repository variable `TAHK_CJK_FONT` 指向本機 TrueType 中文字體；亦探測 `/Library/Fonts/Arial Unicode.ttf` 及 `/System/Library/Fonts/Supplemental/Arial Unicode.ttf`。找不到字體不產生缺字 PDF。
 
 ## 完整守則與推薦上限
 

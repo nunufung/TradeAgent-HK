@@ -88,6 +88,9 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y fonts-wqy-zenhei fonts-dejavu-core
+          mkdir -p pdf_fonts
+          cp /usr/share/fonts/truetype/wqy/wqy-zenhei.ttc pdf_fonts/
+          cp /usr/share/doc/fonts-wqy-zenhei/copyright pdf_fonts/LICENSE.txt
 
       - name: Generate PDF report
         if: success()
@@ -228,6 +231,7 @@ jobs:
             market_shortlist.txt
             recommendations.md
             recommendations.json
+            pdf_fonts/*
             run_*.log
             pdf_reports/*.pdf
           if-no-files-found: warn

@@ -59,7 +59,7 @@ def run() -> None:
     options = json.loads(Path('option_screen.json').read_text())
     market = json.loads(Path('market_briefing.json').read_text())
     write_recommendations(payload, option_audit=options, market_audit=market)
-    fonts = [os.getenv('TAHK_CJK_FONT', ''), '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+    fonts = [os.getenv('TAHK_CJK_FONT', ''), 'market_cache/pdf_fonts/wqy-zenhei.ttc', '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
              '/Library/Fonts/Arial Unicode.ttf', '/System/Library/Fonts/Supplemental/Arial Unicode.ttf']
     font = next((path for path in fonts if path and Path(path).is_file()), None)
     if not font:
