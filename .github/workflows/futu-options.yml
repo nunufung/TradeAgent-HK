@@ -1,9 +1,7 @@
 name: Futu HK Option Screen
 
 on:
-  schedule:
-    # 10:10 HKT, Monday to Friday. GitHub cron is UTC.
-    - cron: '10 2 * * 1-5'
+  # Run on demand; automatic daily delivery is handled by hk-daily.yml.
   workflow_dispatch:
     inputs:
       tickers:

@@ -2,9 +2,8 @@ name: HK Daily Report
 
 on:
   schedule:
-    - cron: '0 21 * * *'  # 05:00 HKT: prebuild, no Telegram send
-    - cron: '0 23 * * *'  # 07:00 HKT: send the saved morning PDF
-    - cron: '0 2 * * *'   # 10:00 HKT
+    - cron: '0 22 * * *'  # 06:00 HKT: prebuild, no Telegram send
+    - cron: '0 1 * * *'  # 09:00 HKT: send the saved morning PDF
 
   workflow_dispatch:
     inputs:
@@ -38,7 +37,7 @@ permissions:
 
 jobs:
   report:
-    if: github.event_name != 'schedule' || github.event.schedule != '0 23 * * *'
+    if: github.event_name != 'schedule' || github.event.schedule != '0 1 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 115
 
@@ -101,8 +100,8 @@ jobs:
           echo "Generated PDF files:"
           ls -lh pdf_reports || true
 
-      - name: Store the 05:00 PDF for 07:00 delivery
-        if: success() && github.event_name == 'schedule' && github.event.schedule == '0 21 * * *'
+      - name: Store the 06:00 PDF for 09:00 delivery
+        if: success() && github.event_name == 'schedule' && github.event.schedule == '0 22 * * *'
         uses: actions/upload-artifact@v4
         with:
           name: hk-morning-${{ steps.morning.outputs.date }}
@@ -113,7 +112,7 @@ jobs:
           retention-days: 3
 
       - name: Send report to Telegram
-        if: success() && (github.event_name != 'schedule' || github.event.schedule != '0 21 * * *')
+        if: success() && (github.event_name != 'schedule' || github.event.schedule != '0 22 * * *')
         continue-on-error: true
         run: |
           python - <<'PY'
@@ -218,7 +217,7 @@ jobs:
           PY
 
       - name: Send short final text summary to Telegram
-        if: always() && hashFiles('stock_signals.json') != '' && hashFiles('final_summary.txt') != '' && (github.event_name != 'schedule' || github.event.schedule != '0 21 * * *')
+        if: always() && hashFiles('stock_signals.json') != '' && hashFiles('final_summary.txt') != '' && (github.event_name != 'schedule' || github.event.schedule != '0 22 * * *')
         run: python final_summary.py --send
 
       - name: Store today's market research for the Mac option update
@@ -261,7 +260,7 @@ jobs:
        
 
   send_morning:
-    if: github.event_name == 'schedule' && github.event.schedule == '0 23 * * *'
+    if: github.event_name == 'schedule' && github.event.schedule == '0 1 * * *'
     runs-on: ubuntu-latest
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -340,7 +339,7 @@ jobs:
           if os.environ.get("PREVIOUS_STATUS") != "success" or not files:
               post("sendMessage", json.dumps({
                   "chat_id": chat,
-                  "text": f"TradeAgent-HK {day}: the 05:00 HKT morning PDF is not ready or could not be retrieved. Check GitHub Actions. No old report was sent."
+                  "text": f"TradeAgent-HK {day}: the 06:00 HKT morning PDF is not ready or could not be retrieved. Check GitHub Actions. No old report was sent."
               }).encode(), "application/json")
               raise SystemExit("Morning PDF unavailable.")
 
@@ -349,7 +348,7 @@ jobs:
               body = bytearray()
               fields = {
                   "chat_id": chat,
-                  "caption": f"TradeAgent-HK 藍籌／科技股晨報 | {day}\nPrebuilt from the 05:00 HKT run; scheduled for 07:00 HKT delivery.\nNews reflects the report generation time."
+                  "caption": f"TradeAgent-HK 藍籌／科技股晨報 | {day}\nPrebuilt from the 06:00 HKT run; scheduled for 09:00 HKT delivery.\nNews reflects the report generation time."
               }
               for key, value in fields.items():
                   body.extend((f"--{boundary}\r\nContent-Disposition: form-data; name=\"{key}\"\r\n\r\n{value}\r\n").encode())
