@@ -1,10 +1,6 @@
 name: HK Daily Report
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/hk-daily.yml'
   schedule:
     - cron: '0 22 * * *'  # 06:00 HKT: prebuild, no Telegram send
     - cron: '0 1 * * *'  # 09:00 HKT: send the saved morning PDF
@@ -41,7 +37,7 @@ permissions:
 
 jobs:
   report:
-    if: github.event_name != 'push' && (github.event_name != 'schedule' || github.event.schedule != '0 1 * * *')
+    if: github.event_name != 'schedule' || github.event.schedule != '0 1 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 115
 
@@ -369,84 +365,4 @@ jobs:
               raise SystemExit("Final text summary is stale or too long; refusing to send.")
           post("sendMessage", json.dumps({"chat_id": chat, "text": summary, "disable_web_page_preview": True}).encode(), "application/json")
           print("Morning final text summary sent to Telegram.")
-          PY
-
-  test_delivery:
-    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Test resend of completed report and text summary' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-    steps:
-      - name: Download today's completed morning report
-        uses: actions/download-artifact@v4
-        with:
-          name: hk-morning-2026-10-08
-          run-id: 37708653045
-          github-token: ${{ github.token }}
-          path: morning_pdf
-      - name: Send today's existing report and final summary for testing
-        if: always()
-        env:
-          PREVIOUS_STATUS: ${{ job.status }}
-        run: |
-          python - <<'PY'
-          import glob
-          import json
-          import os
-          import secrets
-          import urllib.request
-          from datetime import datetime
-          from pathlib import Path
-          from zoneinfo import ZoneInfo
-
-          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-          chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
-          if not token or not chat:
-              raise SystemExit("Telegram credentials are missing.")
-          day = datetime.now(ZoneInfo("Asia/Hong_Kong")).strftime("%Y-%m-%d")
-          files = sorted(glob.glob("morning_pdf/**/*.pdf", recursive=True))
-
-          def post(method, body, content_type):
-              try:
-                  request = urllib.request.Request(
-                      f"https://api.telegram.org/bot{token}/{method}",
-                      data=body, headers={"Content-Type": content_type}, method="POST")
-                  with urllib.request.urlopen(request, timeout=60) as response:
-                      result = json.loads(response.read())
-                  if not result.get("ok"):
-                      raise ValueError()
-              except Exception:
-                  raise SystemExit("Telegram delivery failed; sensitive details omitted.")
-
-          if os.environ.get("PREVIOUS_STATUS") != "success" or not files:
-              post("sendMessage", json.dumps({
-                  "chat_id": chat,
-                  "text": f"TradeAgent-HK {day}: the 06:00 HKT morning PDF is not ready or could not be retrieved. Check GitHub Actions. No old report was sent."
-              }).encode(), "application/json")
-              raise SystemExit("Morning PDF unavailable.")
-
-          for path in files:
-              boundary = "TradeAgentHK" + secrets.token_hex(16)
-              body = bytearray()
-              fields = {
-                  "chat_id": chat,
-                  "caption": f"TradeAgent-HK 測試重發｜藍籌／科技股晨報 | {day}\nTest resend of today's completed morning report. Regular delivery remains 09:00 HKT.\nNews reflects the report generation time."
-              }
-              for key, value in fields.items():
-                  body.extend((f"--{boundary}\r\nContent-Disposition: form-data; name=\"{key}\"\r\n\r\n{value}\r\n").encode())
-              body.extend((f"--{boundary}\r\nContent-Disposition: form-data; name=\"document\"; filename=\"{Path(path).name}\"\r\nContent-Type: application/pdf\r\n\r\n").encode())
-              body.extend(Path(path).read_bytes())
-              body.extend(f"\r\n--{boundary}--\r\n".encode())
-              post("sendDocument", bytes(body), f"multipart/form-data; boundary={boundary}")
-          print("Test PDF delivery completed.")
-          summaries = sorted(glob.glob("morning_pdf/**/final_summary.txt", recursive=True))
-          if len(summaries) != 1:
-              raise SystemExit("Today's final text summary is unavailable.")
-          summary = Path(summaries[0]).read_text(encoding="utf-8")
-          if f"研究截至：{day}" not in summary or len(summary.encode("utf-16-le")) // 2 > 3900:
-              raise SystemExit("Final text summary is stale or too long; refusing to send.")
-          post("sendMessage", json.dumps({"chat_id": chat, "text": summary, "disable_web_page_preview": True}).encode(), "application/json")
-          print("Test final text summary sent to Telegram.")
           PY
