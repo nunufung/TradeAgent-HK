@@ -1,5 +1,10 @@
 # TradeAgent-HK v4.4
 
+## Book-to-skill
+
+官方 book-to-skill 工具已加入；現有 Psychology of Money 風控 Skill 會載入每日及 Telegram 的四分析員流程。
+轉換方式、資料來源限制及載入紀錄見 [BOOK_TO_SKILL.md](BOOK_TO_SKILL.md)。
+
 香港市場專用智能交易Agent
 
 ### 一、核心評分系統

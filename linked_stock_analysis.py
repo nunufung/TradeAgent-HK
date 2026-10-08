@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 from free_tech_news import configure_free_news, attach_news_context, collect_news, write_news_audit
+from book_skill_context import attach_book_context, load_book_context
 
 HKT = ZoneInfo("Asia/Hong_Kong")
 ANALYSTS = ("market", "social", "news", "fundamentals")
@@ -62,7 +63,9 @@ def signal_from_state(state: dict, rating: object, ticker: str) -> dict:
 
 def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_batch: dict | None = None) -> dict[str, Any]:
     """Run TradingAgents once per underlying and save structured signals + audit reports."""
-    sys.path.insert(0, str(Path("tradingagents").resolve()))
+    _, book_skills = load_book_context()
+    # Preserve this project's main.py for recommendations after in-process analysis.
+    sys.path.append(str(Path(__file__).resolve().parent / 'tradingagents'))
     from tradingagents.default_config import DEFAULT_CONFIG
     from tradingagents.graph.trading_graph import TradingAgentsGraph
 
@@ -75,6 +78,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
     trade_date = now.strftime("%Y-%m-%d")
     signals: dict[str, dict[str, Any]] = {}
     report_sections = ["# TradingAgents 正股分析與 Futu 期權方向\n", f"分析日期：{trade_date} HKT\n"]
+    report_sections.append('已載入書籍風控 Skill：' + ', '.join(item['name'] for item in book_skills) + '；期權硬性守則優先。\n')
     news_batch = collect_news() if news_batch is None else news_batch
 
     for raw_ticker in tickers:
@@ -93,11 +97,13 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
         configure_free_news(config, batch=news_batch)
         graph = TradingAgentsGraph(selected_analysts=ANALYSTS, debug=False, config=config)
         attach_news_context(graph, news_batch)
+        applied_skills = attach_book_context(graph)
 
         try:
             state, rating = graph.propagate(ticker, trade_date)
             write_news_audit(news_batch, ticker, state.get("news_report", ""))
             signal = signal_from_state(state, rating, ticker)
+            signal['book_skills'] = applied_skills
             rating, complete, reports = signal['rating'], signal['analysis_complete'], signal['reports']
             signals[underlying] = signal
             print(f"Four-analyst research ready: {underlying}; rating={rating}; complete={complete}", flush=True)
@@ -119,7 +125,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
             }
             report_sections.append(f"\n**TradingAgents 分析失敗：期權篩選封鎖**\n\n{type(exc).__name__}（詳細錯誤內容已隱藏）\n")
 
-    payload = {"date": trade_date, "generated_at": datetime.now(HKT).isoformat(), "analyst_set": list(ANALYSTS), "signals": signals}
+    payload = {"date": trade_date, "generated_at": datetime.now(HKT).isoformat(), "analyst_set": list(ANALYSTS), "signals": signals, "book_skills": book_skills}
     signal_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     report_path.write_text("\n".join(report_sections), encoding="utf-8")
     return payload

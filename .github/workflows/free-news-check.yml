@@ -7,6 +7,12 @@ on:
       - 'free_tech_news.py'
       - 'hk_adapter.py'
       - 'linked_stock_analysis.py'
+      - 'book_skill_context.py'
+      - 'skills/**'
+      - 'scripts/extract-book.py'
+      - 'tests/test_book_skill_context.py'
+      - '.gitmodules'
+      - 'tools/book-to-skill'
       - 'generate_pdf.py'
       - 'hk_market_briefing.py'
       - 'market_watchlist.json'
@@ -37,6 +43,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -47,9 +55,11 @@ jobs:
           sudo apt-get install -y fonts-wqy-zenhei fonts-dejavu-core
       - name: Test news integration, existing gates and Chinese PDF
         run: |
-          python -m py_compile free_tech_news.py hk_market_briefing.py hk_adapter.py linked_stock_analysis.py generate_pdf.py market_recommendations.py main.py scripts/run-linked-options.py scripts/send-option-report.py final_summary.py
+          python -m py_compile free_tech_news.py hk_market_briefing.py hk_adapter.py linked_stock_analysis.py generate_pdf.py market_recommendations.py main.py scripts/run-linked-options.py scripts/send-option-report.py final_summary.py book_skill_context.py scripts/extract-book.py
           bash -n scripts/run-report.sh
           python -m unittest discover -s tests -v
+          python tools/book-to-skill/tools/validate_skill.py skills/psychology-of-money/SKILL.md
+          python tools/book-to-skill/tools/scan_generated_skill.py skills/psychology-of-money
       - name: Check live free sources without API keys
         run: |
           python free_tech_news.py --output free_news_preview.json

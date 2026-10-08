@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, "./tradingagents")
+sys.path.append("./tradingagents")
 import os
 import json
 from pathlib import Path
@@ -9,6 +9,7 @@ from datetime import datetime
 from copy import deepcopy
 from zoneinfo import ZoneInfo
 from free_tech_news import configure_free_news, attach_news_context, write_news_audit
+from book_skill_context import attach_book_context
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
 
@@ -41,19 +42,23 @@ def run_market_agent(hk_code: str):
     news_batch = configure_free_news(config)
     ta = TradingAgentsGraph(selected_analysts=selected_analysts, debug=True, config=config)
     attach_news_context(ta, news_batch)
+    book_skills = attach_book_context(ta)
     state, decision = ta.propagate(ticker, date_str)
     write_news_audit(news_batch, ticker, state.get("news_report", ""))
     print("\n" + "="*60 + "\nFINAL\n" + "="*60)
     print(decision)
     payload = {"date": date_str, "generated_at": datetime.now(ZoneInfo("Asia/Hong_Kong")).isoformat(),
-               "analyst_set": list(ANALYSTS), "signals": {_futu_code(hk_code): signal_from_state(state, decision, ticker)}}
+               "analyst_set": list(ANALYSTS), "book_skills": book_skills,
+               "signals": {_futu_code(hk_code): signal_from_state(state, decision, ticker)}}
+    payload['signals'][_futu_code(hk_code)]['book_skills'] = book_skills
     Path("stock_signals.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    Path("stock_analysis.md").write_text("\n\n".join(
+    skill_note = '已載入書籍風控 Skill：' + ', '.join(item['name'] for item in book_skills) + '；期權硬性守則優先。\n\n'
+    Path("stock_analysis.md").write_text(skill_note + "\n\n".join(
         f"## {name}\n\n{text}" for name, text in payload["signals"][_futu_code(hk_code)]["reports"].items()), encoding="utf-8")
     write_recommendations(payload)
     final_report = state.get("final_trade_decision") or decision
     with open(f"report_{ticker.replace('.HK','')}.md","w", encoding="utf-8") as f:
-        f.write(f"# {ticker} {date_str}\n\n評級：{decision}\n\n{final_report}")
+        f.write(f"# {ticker} {date_str}\n\n{skill_note}評級：{decision}\n\n{final_report}")
 
 if __name__ == "__main__":
     sys.excepthook = lambda exc_type, *_: print(f"Analysis failed ({exc_type.__name__}); sensitive error details omitted.")

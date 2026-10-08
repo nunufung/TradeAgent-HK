@@ -1,3 +1,6 @@
 [submodule "tradingagents"]
 	path = tradingagents
 	url = https://github.com/TauricResearch/TradingAgents.git
+[submodule "tools/book-to-skill"]
+	path = tools/book-to-skill
+	url = https://github.com/virgiliojr94/book-to-skill.git

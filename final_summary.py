@@ -59,6 +59,8 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
         return f"{int(code.split('.')[1]):04d} {names.get(code, '')}".strip()
 
     lines = ['TradeAgent-HK｜最終總結', f'研究截至：{stamp}｜四分析員及風控整合，屬研究意見。', '']
+    if any(stock.get('book_skills') for stock in payload.get('signals', {}).values()):
+        lines.append('書籍風控：已加入 Psychology of Money 原則；期權硬性守則優先。')
     if bullish:
         lines.append('正股：優先研究 ' + '、'.join(label(row) for row in chosen) + '。')
     elif eligible:

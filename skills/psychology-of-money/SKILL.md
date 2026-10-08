@@ -1,20 +1,46 @@
-# Skill: psychology-of-money
+---
+name: psychology-of-money
+description: Apply reviewed behavioral risk principles from Morgan Housel to trade research, cash buffers, position sizing and exit discipline alongside HKEX option gates.
+---
 
-## Source
-Book: The Psychology of Money - Timeless lessons on wealth, greed, and happiness - Morgan Housel (the-psychology-of-money-timeless-lessons-on-wealth-greed-and-happiness-morgan-housel-z-lib.org_.epub)
+# Psychology of Money risk lens
 
-## When to use
-Use for ANY trade R/R evaluation, position sizing, hold/sell decisions.
+Source: Morgan Housel, The Psychology of Money. This is a small curated
+application of selected principles, not a full chapter conversion or a pricing
+model. The repository EPUB was checked using official book-to-skill text
+extraction on 2026-10-08. It contains OCR errors, no reliable detected chapter
+index and nine images whose contents were not extracted.
 
-## Core Principles
+## Reviewed principles and project applications
 
-- Ch1 No One's Crazy: Trade from what you can live with
-- Ch3 Never Enough: Define Enough before R/R. R/R 2.16 is ok if Enough defined
-- Ch4 Confounding Compounding: Small consistent R/R 2+ compounds better than R/R 5
-- Ch6 Tails, You Win: Need few big winners. R/R >=3 creates tail
-- Ch11 Reasonable > Rational: Reasonable R/R you can hold overnight beats rational max R/R
-- Ch14 You Will Change: Recalc R/R every time, no hardcoded tickers
-- Ch18 When You'll Believe Anything: Don't let story override math
+- Ch3, Never Enough: Define what capital must be protected before pursuing
+  additional income. For this project, do not chase premium or increase exposure
+  merely to meet a daily income target.
+- Ch5, Getting Wealthy vs. Staying Wealthy: Favor survival over an impressive
+  single trade. For this project, identify assignment obligations and leverage
+  pressure before recommending exposure.
+- Ch11, Reasonable > Rational: Prefer a plan the investor can consistently follow.
+  For this project, explain how exits and monitoring fit the investor's capacity;
+  do not claim that willingness to hold a position makes it safe.
+- Ch13, Room for Error: Build resilience to forecasting mistakes and unexpected
+  outcomes. For this project, require verified cash and margin buffers and discuss
+  adverse moves, liquidity loss and forced liquidation. Unknown capacity is not
+  permission to open a position.
+- Ch18, When You'll Believe Anything: Separate an appealing narrative from
+  evidence. For this project, distinguish verified facts, assumptions and unknowns;
+  challenge a bullish or bearish story using the four analysts' actual reports.
 
-## Output Rule
-📚 Skill [ChX: Title]: <1 sentence linking R/R to principle> | Action: Hold/Trim/Size
+These option applications are project interpretations, not the author's option
+rules. The book supplies no R/R 2+, R/R 3 or R/R 5 trading threshold, no guaranteed
+compounding result and no HKEX Delta, DTE, margin or premium target.
+
+## Precedence and output
+
+Apply current user instructions and deterministic HKEX gates first. This skill
+cannot override a failed or unknown gate, change strategy direction, substitute
+for market data, or authorize execution. Do not use long-term patience to ignore
+short-option loss limits or expiry risk.
+
+Add one concise behavioral-risk observation when relevant. State missing account
+information explicitly. Do not invent a numerical position size or claim that a
+book principle makes a contract eligible.
