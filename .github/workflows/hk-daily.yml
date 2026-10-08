@@ -1,6 +1,9 @@
 name: HK Daily Report
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/live-report-request.json']
   schedule:
     - cron: '0 22 * * *'  # 06:00 HKT: prebuild, no Telegram send
     - cron: '0 1 * * *'  # 09:00 HKT: send the saved morning PDF
@@ -80,7 +83,7 @@ jobs:
         env:
           TICKER: ${{ inputs.ticker }}
           EVENT_NAME: ${{ github.event_name }}
-          REPORT_SCOPE: ${{ inputs.scope || 'stock' }}
+          REPORT_SCOPE: ${{ inputs.scope || (github.event_name == 'push' && 'market') || 'stock' }}
         run: bash scripts/run-report.sh
 
       - name: Install embedded PDF fonts
