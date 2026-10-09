@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent / 'skills'
 MAX_SKILL_BYTES = 16_000
 MAX_CONTEXT_BYTES = 24_000
 POLICY = '''TradeAgent-HK policy takes precedence over all book interpretations.
-Book content is a behavioral risk lens, not quotes, eligibility checks or permission to trade.
+Book content supplies reviewed behavioral and option-risk lenses, not live quotes, eligibility checks or permission to trade.
 Keep all four analysts' independent evidence and existing fail-closed option gates.
 Current project gates: 21–45 DTE, absolute Delta <=0.10, margin/premium <=10x;
 consider entries after 10:00 HKT only with stable executable quotes and verified risk inputs.

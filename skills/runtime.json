@@ -1,5 +1,12 @@
 {
   "skills": [
-    {"name": "psychology-of-money", "path": "psychology-of-money/SKILL.md"}
+    {
+      "name": "psychology-of-money",
+      "path": "psychology-of-money/SKILL.md"
+    },
+    {
+      "name": "analyze-hk-option-volatility",
+      "path": "analyze-hk-option-volatility/SKILL.md"
+    }
   ]
 }

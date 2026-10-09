@@ -1,0 +1,4 @@
+interface:
+  display_name: "HK Option Volatility Analysis"
+  short_description: "Natenberg-based HK stock and option risk analysis"
+  default_prompt: "Use $analyze-hk-option-volatility to assess HK stocks and options for a concise daily report."

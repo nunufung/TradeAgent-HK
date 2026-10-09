@@ -16,6 +16,10 @@ class BookSkillTests(unittest.TestCase):
         text = graph.resolve_instrument_context('0700.HK', 'stock', '2026-10-08')
         self.assertIn('HK identity and dated RSS evidence', text)
         self.assertIn('Room for Error', text)
+        self.assertIn('HK stock and option volatility analysis', text)
+        self.assertIn('High IV alone is not a sell signal', text)
+        self.assertEqual({item['name'] for item in audit},
+                         {'psychology-of-money', 'analyze-hk-option-volatility'})
         self.assertIn('policy takes precedence', text)
         self.assertIn('Unknown account cash', text)
         self.assertNotIn('R/R >=3 creates tail', text)
@@ -73,6 +77,7 @@ class BookSkillTests(unittest.TestCase):
             self.assertEqual(signal['allowed_option_types'], ['PUT'])
             self.assertEqual(signal['book_skills'], payload['book_skills'])
             self.assertIn('psychology-of-money', (root/'report.md').read_text())
+            self.assertIn('analyze-hk-option-volatility', (root/'report.md').read_text())
             import importlib.util
             self.assertEqual(Path(importlib.util.find_spec('main').origin).parent,
                              Path(linked.__file__).resolve().parent)
