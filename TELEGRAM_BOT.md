@@ -1,6 +1,6 @@
 # Telegram stock PDF requests
 
-The `Telegram Stock PDF Request` GitHub Actions workflow checks the configured Telegram chat every five minutes. GitHub may delay scheduled runs during periods of high Actions load, so replies are not guaranteed to be immediate.
+Automatic five-minute polling is disabled under the daily-only Token policy. The `Telegram Stock PDF Request` workflow now runs only when explicitly dispatched in GitHub Actions. Sending a stock number to Telegram does not automatically start paid research. A manual dispatch can process the pending request; it is an extra API expense outside the automatic morning budget. See [DAILY_TOKEN_POLICY.md](DAILY_TOKEN_POLICY.md).
 
 Send either of these messages to the same Telegram chat that receives the PDF reports:
 
@@ -18,3 +18,4 @@ Use `/help` for the supported format. The workflow runs the existing TradingAgen
 For a private bot chat, the sender must be the account represented by `TELEGRAM_CHAT_ID`. For a group chat, also set `TELEGRAM_ALLOWED_USER_IDS` to a comma-separated list of numeric Telegram user IDs allowed to trigger paid analysis. Group slash commands such as `/stock 700` work with Telegram's default privacy mode; bare stock numbers may require the bot's group privacy setting to allow ordinary messages.
 
 This workflow uses Telegram long polling (`getUpdates`). If another webhook is already configured for this bot token, Telegram rejects polling with HTTP 409. The workflow will report that condition; it will not remove an existing webhook automatically.
+

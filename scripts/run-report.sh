@@ -4,7 +4,7 @@ set -euo pipefail
 if [[ "${EVENT_NAME:-}" == "schedule" || "${REPORT_SCOPE:-stock}" == "market" ]]; then
     echo "Market briefing: Hong Kong blue chips, technology stocks and AI news"
     python -u hk_market_briefing.py | tee run_market.log
-    python market_recommendations.py --select > market_shortlist.txt
+    python market_recommendations.py --select --limit "${TAHK_SHORTLIST_LIMIT:-3}" > market_shortlist.txt
     STOCKS=()
     while IFS= read -r stock; do STOCKS+=("$stock"); done < market_shortlist.txt
     python -u linked_stock_analysis.py "${STOCKS[@]}" --signals stock_signals.json --report stock_analysis.md --market-news market_candidates.json

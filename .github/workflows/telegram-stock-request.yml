@@ -1,14 +1,6 @@
 name: Telegram Stock PDF Request
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/telegram-stock-request.yml'
-      - 'telegram_stock_bot.py'
-  schedule:
-    # GitHub Actions minimum schedule interval is five minutes.
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -20,6 +12,8 @@ concurrency:
 
 jobs:
   request:
+    # Extra stock research now requires an explicit manual invocation.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

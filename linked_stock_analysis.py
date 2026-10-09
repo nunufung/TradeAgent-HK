@@ -95,9 +95,15 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
         config["max_risk_discuss_rounds"] = 1
         config["output_language"] = "Traditional Chinese"
         configure_free_news(config, batch=news_batch)
+        if os.environ.get('TAHK_BUDGETED_DAILY') == '1':
+            from daily_budget import apply_daily_profile
+            apply_daily_profile(config, os.environ['TRADINGAGENTS_LLM_BACKEND_URL'])
         graph = TradingAgentsGraph(selected_analysts=ANALYSTS, debug=False, config=config)
         attach_news_context(graph, news_batch)
         applied_skills = attach_book_context(graph)
+        if os.environ.get('TAHK_BUDGETED_DAILY') == '1':
+            from daily_budget import attach_daily_context
+            attach_daily_context(graph)
 
         try:
             state, rating = graph.propagate(ticker, trade_date)

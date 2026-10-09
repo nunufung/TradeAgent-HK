@@ -1,233 +1,118 @@
 name: HK Daily Report
 
 on:
-  push:
-    branches: [main]
-    paths: ['.github/live-report-request.json']
   schedule:
-    - cron: '0 22 * * *'  # 06:00 HKT: prebuild, no Telegram send
-    - cron: '0 1 * * *'  # 09:00 HKT: send the saved morning PDF
-
+    - cron: '0 22 * * *'  # 06:00 HKT: budgeted research
+    - cron: '15 0 * * *'  # 08:15 HKT: one concise message
+    - cron: '35 0 * * *'  # 08:35 HKT: backup if delivery has not been claimed
   workflow_dispatch:
-    inputs:
-      scope:
-        description: 'Market news briefing or an individual stock analysis'
-        required: true
-        default: 'stock'
-        type: choice
-        options:
-          - stock
-          - market
-      ticker:
-        description: 'Hong Kong stock number, e.g. 700 / 2800 / 981 / 9988'
-        required: true
-        default: '700'
-        type: string
-
-      request_source:
-        description: 'Request source'
-        required: false
-        default: 'github'
-        type: string
-
-concurrency:
-  group: hk-daily-${{ github.event.schedule || 'on-demand' }}
-  cancel-in-progress: false
 
 permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: hk-daily-${{ github.event.schedule == '0 22 * * *' && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
+  cancel-in-progress: false
+
 jobs:
   report:
-    if: github.event_name != 'schedule' || github.event.schedule != '0 1 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 22 * * *'
     runs-on: ubuntu-latest
-    timeout-minutes: 115
-
+    timeout-minutes: 70
     env:
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-      OPENAI_API_BASE: https://api.deepseek.com/v1
       PYTHONPATH: ${{ github.workspace }}/tradingagents:${{ github.workspace }}
-
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-
     steps:
-      - name: Record morning report date
+      - name: Inspect today's saved research and budget
         id: morning
-        run: echo "date=$(TZ=Asia/Hong_Kong date +%F)" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/github-script@v7
         with:
-          submodules : recursive
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+          script: |
+            const day = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Hong_Kong', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date());
+            core.setOutput('date', day);
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
+            const current = artifacts.filter(a => !a.expired && a.name.startsWith('hk-morning-' + day + '-')).sort((a,b) => b.id-a.id);
+            const claimed = artifacts.some(a => !a.expired && a.name === 'hk-daily-research-claim-' + day);
+            core.setOutput('skip', current.length || claimed ? 'true' : 'false');
+            const ledger = artifacts.filter(a => !a.expired && a.name.startsWith('hk-token-budget-' + day + '-')).sort((a,b) => b.id-a.id)[0];
+            if (ledger) {
+              core.setOutput('ledger_name', ledger.name);
+              core.setOutput('ledger_run', String(ledger.workflow_run.id));
+            }
+      - uses: actions/checkout@v4
+        if: steps.morning.outputs.skip != 'true'
         with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          
-          # Install TradeAgent-HK dependencies
-          pip install -r requirements.txt
-
-          # Install TauricResearch TradingAgents
-          pip install ./tradingagents
-
-      - name: Run report (dynamic)
-        env:
-          TICKER: ${{ inputs.ticker }}
-          EVENT_NAME: ${{ github.event_name }}
-          REPORT_SCOPE: ${{ inputs.scope || (github.event_name == 'push' && 'market') || 'stock' }}
-        run: bash scripts/run-report.sh
-
-      - name: Install embedded PDF fonts
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y fonts-wqy-zenhei fonts-dejavu-core
-          mkdir -p pdf_fonts
-          cp /usr/share/fonts/truetype/wqy/wqy-zenhei.ttc pdf_fonts/
-          cp /usr/share/doc/fonts-wqy-zenhei/copyright pdf_fonts/LICENSE.txt
-
-      - name: Generate PDF report
-        if: success()
-        continue-on-error: true
-        run: |
-          mkdir -p pdf_reports
-          python generate_pdf.py --output-dir pdf_reports
-          echo "Generated PDF files:"
-          ls -lh pdf_reports || true
-
-      - name: Store the 06:00 PDF for 09:00 delivery
-        if: success() && github.event_name == 'schedule' && github.event.schedule == '0 22 * * *'
+          submodules: recursive
+      - name: Restore today's already charged API calls
+        if: steps.morning.outputs.skip != 'true' && steps.morning.outputs.ledger_name != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.morning.outputs.ledger_name }}
+          run-id: ${{ steps.morning.outputs.ledger_run }}
+          github-token: ${{ github.token }}
+          path: .
+      - name: Reserve the day's only paid research session
+        if: steps.morning.outputs.skip != 'true'
+        run: echo '${{ github.run_id }}:${{ github.run_attempt }}' > research_claim.txt
+      - name: Persist the research claim before any paid API calls
+        if: steps.morning.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: hk-morning-${{ steps.morning.outputs.date }}
-          path: |
-            pdf_reports/*.pdf
-            final_summary.txt
+          name: hk-daily-research-claim-${{ steps.morning.outputs.date }}
+          path: research_claim.txt
           if-no-files-found: error
-          retention-days: 3
-
-      - name: Send report to Telegram
-        if: success() && (github.event_name != 'schedule' || github.event.schedule != '0 22 * * *')
-        continue-on-error: true
+          retention-days: 7
+      - uses: actions/setup-python@v5
+        if: steps.morning.outputs.skip != 'true'
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        if: steps.morning.outputs.skip != 'true'
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install ./tradingagents
+      - name: Run bounded daily research
+        if: steps.morning.outputs.skip != 'true'
+        run: python daily_runner.py
+      - name: Prepare a safe concise fallback if research failed
+        if: always() && steps.morning.outputs.skip != 'true'
         run: |
           python - <<'PY'
-          import glob
-          import os
-          import requests
+          from pathlib import Path
           from datetime import datetime
-          from zoneinfo import ZoneInfo
-
-          import sys
-          sys.excepthook = lambda *_: print('Telegram delivery failed; sensitive details omitted.')
-
-          token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-          chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
-
-          if not token or not chat_id:
-              print("Telegram secrets are not configured. Skipping Telegram.")
-              raise SystemExit(0)
-
-          now_hkt = datetime.now(ZoneInfo("Asia/Hong_Kong"))
-
-          pdf_files = sorted(glob.glob("pdf_reports/*.pdf"))
-
-          # Preferred: send the PDF report
-          if pdf_files:
-              for pdf_path in pdf_files:
-                  caption = (
-                      ("📊 TradeAgent-HK 藍籌／科技股市場報告\n" if os.path.isfile("report_market.md") else "📊 TradeAgent-HK Daily Report\n")
-                      + f"{now_hkt:%Y-%m-%d %H:%M HKT}\n\n"
-                      "Full analysis attached as PDF."
-                  )
-
-                  with open(pdf_path, "rb") as pdf:
-                      response = requests.post(
-                          f"https://api.telegram.org/bot{token}/sendDocument",
-                          data={
-                              "chat_id": chat_id,
-                              "caption": caption,
-                          },
-                          files={
-                              "document": (
-                                  os.path.basename(pdf_path),
-                                  pdf,
-                                  "application/pdf",
-                              )
-                          },
-                          timeout=60,
-                      )
-
-                  if response.status_code != 200:
-                      raise SystemExit('Telegram delivery failed; sensitive response omitted.')
-                  print(f"Telegram PDF sent: {pdf_path}")
-
-              raise SystemExit(0)
-
-          # Fallback: if PDF generation failed, send the old text report
-          print("No PDF found. Falling back to text report.")
-
-          report_files = sorted(glob.glob("report_*.md"))
-          if os.path.isfile("recommendations.md"):
-              report_files.insert(0, "recommendations.md")
-
-          if not report_files:
-              print("No report files available.")
-              raise SystemExit(0)
-
-          parts = []
-
-          for path in report_files:
-              with open(path, "r", encoding="utf-8") as f:
-                  text = f.read().strip()
-
-              if text:
-                  parts.append(text)
-
-          if not parts:
-              print("Report files were empty.")
-              raise SystemExit(0)
-
-          message = (
-              "📊 TradeAgent-HK Report\n"
-              f"{now_hkt:%Y-%m-%d %H:%M HKT}\n\n"
-              + "\n\n".join(parts)
-          )
-
-          # Telegram text message safety limit
-          message = message[:3800]
-
-          response = requests.post(
-              f"https://api.telegram.org/bot{token}/sendMessage",
-              json={
-                  "chat_id": chat_id,
-                  "text": message,
-                  "disable_web_page_preview": True,
-              },
-              timeout=30,
-          )
-
-          if response.status_code != 200:
-              raise SystemExit('Telegram delivery failed; sensitive response omitted.')
-          print("Telegram text fallback sent.")
+          from daily_budget import Budget, HKT
+          from daily_delivery import fallback_summary
+          Budget(Path('daily_token_usage.json'), datetime.now(HKT).date().isoformat())
+          if not Path('final_summary.txt').is_file():
+              Path('final_summary.txt').write_text(fallback_summary())
           PY
-
-      - name: Send short final text summary to Telegram
-        if: always() && hashFiles('stock_signals.json') != '' && hashFiles('final_summary.txt') != '' && (github.event_name != 'schedule' || github.event.schedule != '0 22 * * *')
-        run: python final_summary.py --send
-
-      - name: Store today's market research for the Mac option update
-        if: success() && hashFiles('market_briefing.json', 'stock_signals.json') != '' && hashFiles('report_market.md') != ''
+      - name: Save the daily API ledger before other artifacts
+        if: always() && steps.morning.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hk-token-budget-${{ steps.morning.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: daily_token_usage.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Save one concise morning report
+        if: always() && steps.morning.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hk-morning-${{ steps.morning.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            final_summary.txt
+            daily_research_status.txt
+          if-no-files-found: error
+          retention-days: 3
+      - name: Save market research for the Mac option update
+        if: success() && steps.morning.outputs.skip != 'true' && hashFiles('market_briefing.json', 'stock_signals.json') != '' && hashFiles('report_market.md') != ''
         uses: actions/upload-artifact@v4
         with:
           name: hk-market-research-${{ steps.morning.outputs.date }}
+          overwrite: true
           path: |
             market_briefing.json
             market_candidates.json
@@ -235,15 +120,12 @@ jobs:
             news_market.md
             stock_signals.json
             stock_analysis.md
-            pdf_fonts/*
-          if-no-files-found: error
           retention-days: 3
-
-      - name: Upload report artifacts
+      - name: Save research audit without sending another report
+        if: always() && steps.morning.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: hk-reports
+          name: hk-reports-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             report_*.md
             news_*.md
@@ -252,120 +134,87 @@ jobs:
             market_briefing.json
             stock_signals.json
             stock_analysis.md
-            market_shortlist.txt
-            recommendations.md
-            recommendations.json
+            recommendations.*
             final_summary.txt
-            pdf_fonts/*
+            daily_token_usage.json
             run_*.log
-            pdf_reports/*.pdf
           if-no-files-found: warn
-       
 
   send_morning:
-    if: github.event_name == 'schedule' && github.event.schedule == '0 1 * * *'
+    if: github.event_name == 'schedule' && github.event.schedule != '0 22 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
     steps:
-      - name: Locate today's completed morning PDF
+      - uses: actions/checkout@v4
+      - name: Check deadline, daily delivery claim and current report
         id: locate
         uses: actions/github-script@v7
         with:
           script: |
-            const day = new Intl.DateTimeFormat('en-CA', {
-              timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit'
-            }).format(new Date());
-            const name = 'hk-morning-' + day;
-            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
-              ...context.repo, name, per_page: 100
-            });
-            const candidates = artifacts.filter(a => a.name === name && !a.expired)
-              .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
-            for (const artifact of candidates) {
-              const { data: run } = await github.rest.actions.getWorkflowRun({
-                ...context.repo, run_id: artifact.workflow_run.id
-              });
-              if (run.path === '.github/workflows/hk-daily.yml' &&
-                  run.event === 'schedule' && run.head_branch === context.payload.repository.default_branch &&
-                  run.conclusion === 'success') {
-                core.setOutput('name', name);
-                core.setOutput('run_id', String(run.id));
-                return;
-              }
+            const now = new Date();
+            const day = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Hong_Kong', year:'numeric', month:'2-digit', day:'2-digit'}).format(now);
+            const clock = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Hong_Kong', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).format(now);
+            const claim = 'hk-daily-delivery-claim-' + day;
+            core.setOutput('date',day);
+            core.setOutput('claim',claim);
+            if (clock >= '08:59' || !process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+              core.setOutput('skip','true');
+              core.warning('Too late for morning delivery, or delivery credentials missing.');
+              return;
             }
-            core.setFailed('No completed morning PDF for today. An old report will not be sent.');
-
-      - name: Download today's morning PDF
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
+            if (artifacts.some(a => a.name === claim && !a.expired)) {
+              core.setOutput('skip','true');
+              return;
+            }
+            core.setOutput('skip','false');
+            const report = artifacts.filter(a => !a.expired && a.name.startsWith('hk-morning-' + day + '-')).sort((a,b) => b.id-a.id)[0];
+            if (report) {
+              core.setOutput('name', report.name);
+              core.setOutput('run_id', String(report.workflow_run.id));
+            }
+      - name: Download today's concise report
+        if: steps.locate.outputs.skip == 'false' && steps.locate.outputs.name != ''
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: ${{ steps.locate.outputs.name }}
           run-id: ${{ steps.locate.outputs.run_id }}
           github-token: ${{ github.token }}
-          path: morning_pdf
-
-      - name: Send saved morning PDF to Telegram
-        if: always()
-        env:
-          PREVIOUS_STATUS: ${{ job.status }}
+          path: morning_report
+      - name: Prepare durable delivery claim
+        if: steps.locate.outputs.skip == 'false'
         run: |
           python - <<'PY'
-          import glob
-          import json
-          import os
-          import secrets
-          import urllib.request
-          from datetime import datetime
+          from datetime import datetime, time
           from pathlib import Path
-          from zoneinfo import ZoneInfo
-
-          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-          chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
-          if not token or not chat:
-              raise SystemExit("Telegram credentials are missing.")
-          day = datetime.now(ZoneInfo("Asia/Hong_Kong")).strftime("%Y-%m-%d")
-          files = sorted(glob.glob("morning_pdf/**/*.pdf", recursive=True))
-
-          def post(method, body, content_type):
-              try:
-                  request = urllib.request.Request(
-                      f"https://api.telegram.org/bot{token}/{method}",
-                      data=body, headers={"Content-Type": content_type}, method="POST")
-                  with urllib.request.urlopen(request, timeout=60) as response:
-                      result = json.loads(response.read())
-                  if not result.get("ok"):
-                      raise ValueError()
-              except Exception:
-                  raise SystemExit("Telegram delivery failed; sensitive details omitted.")
-
-          if os.environ.get("PREVIOUS_STATUS") != "success" or not files:
-              post("sendMessage", json.dumps({
-                  "chat_id": chat,
-                  "text": f"TradeAgent-HK {day}: the 06:00 HKT morning PDF is not ready or could not be retrieved. Check GitHub Actions. No old report was sent."
-              }).encode(), "application/json")
-              raise SystemExit("Morning PDF unavailable.")
-
-          for path in files:
-              boundary = "TradeAgentHK" + secrets.token_hex(16)
-              body = bytearray()
-              fields = {
-                  "chat_id": chat,
-                  "caption": f"TradeAgent-HK 藍籌／科技股晨報 | {day}\nPrebuilt from the 06:00 HKT run; scheduled for 09:00 HKT delivery.\nNews reflects the report generation time."
-              }
-              for key, value in fields.items():
-                  body.extend((f"--{boundary}\r\nContent-Disposition: form-data; name=\"{key}\"\r\n\r\n{value}\r\n").encode())
-              body.extend((f"--{boundary}\r\nContent-Disposition: form-data; name=\"document\"; filename=\"{Path(path).name}\"\r\nContent-Type: application/pdf\r\n\r\n").encode())
-              body.extend(Path(path).read_bytes())
-              body.extend(f"\r\n--{boundary}--\r\n".encode())
-              post("sendDocument", bytes(body), f"multipart/form-data; boundary={boundary}")
-          print("Morning PDF delivery completed.")
-          summaries = sorted(glob.glob("morning_pdf/**/final_summary.txt", recursive=True))
-          if len(summaries) != 1:
-              raise SystemExit("Today's final text summary is unavailable.")
-          summary = Path(summaries[0]).read_text(encoding="utf-8")
-          if f"研究截至：{day}" not in summary or len(summary.encode("utf-16-le")) // 2 > 3900:
-              raise SystemExit("Final text summary is stale or too long; refusing to send.")
-          post("sendMessage", json.dumps({"chat_id": chat, "text": summary, "disable_web_page_preview": True}).encode(), "application/json")
-          print("Morning final text summary sent to Telegram.")
+          from daily_delivery import HKT
+          now = datetime.now(HKT)
+          if now.time() >= time(8, 59):
+              raise SystemExit('Delivery deadline reached.')
+          Path('delivery_claim.txt').write_text(now.isoformat())
           PY
+      - name: Claim the day's single send attempt before contacting Telegram
+        if: steps.locate.outputs.skip == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.locate.outputs.claim }}
+          path: delivery_claim.txt
+          if-no-files-found: error
+          retention-days: 7
+      - name: Send one current-day concise message
+        if: steps.locate.outputs.skip == 'false'
+        env:
+          DAILY_DELIVERY_CLAIMED: 'true'
+        run: python daily_delivery.py
+      - name: Save confirmed delivery receipt
+        if: success() && steps.locate.outputs.skip == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hk-daily-delivery-receipt-${{ steps.locate.outputs.date }}
+          path: delivery_receipt.json
+          if-no-files-found: error
+          retention-days: 30

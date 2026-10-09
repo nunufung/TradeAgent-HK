@@ -228,13 +228,14 @@ def write_recommendations(payload: dict, *, directory: Path = Path('.'), option_
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--select', action='store_true')
+    parser.add_argument('--limit', type=int, choices=(1, 2, 3), default=3)
     parser.add_argument('--market', default='market_briefing.json')
     parser.add_argument('--signals', default='stock_signals.json')
     parser.add_argument('--options', default='option_screen.json')
     args = parser.parse_args()
     market = json.loads(Path(args.market).read_text()) if Path(args.market).is_file() else {}
     if args.select:
-        codes = select_shortlist(market)
+        codes = select_shortlist(market, limit=args.limit)
         if not codes:
             raise SystemExit('No valid market shortlist; refusing a fixed ticker fallback.')
         print('\n'.join(codes))

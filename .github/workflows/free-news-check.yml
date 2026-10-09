@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
     paths:
+      - 'daily_budget.py'
+      - 'daily_delivery.py'
+      - 'daily_runner.py'
+      - 'tests/test_daily_budget.py'
+      - 'tests/test_daily_transport.py'
       - 'free_tech_news.py'
       - 'hk_adapter.py'
       - 'linked_stock_analysis.py'
@@ -55,7 +60,7 @@ jobs:
           sudo apt-get install -y fonts-wqy-zenhei fonts-dejavu-core
       - name: Test news integration, existing gates and Chinese PDF
         run: |
-          python -m py_compile free_tech_news.py hk_market_briefing.py hk_adapter.py linked_stock_analysis.py generate_pdf.py market_recommendations.py main.py scripts/run-linked-options.py scripts/send-option-report.py final_summary.py book_skill_context.py scripts/extract-book.py
+          python -m py_compile daily_budget.py daily_delivery.py daily_runner.py free_tech_news.py hk_market_briefing.py hk_adapter.py linked_stock_analysis.py generate_pdf.py market_recommendations.py main.py scripts/run-linked-options.py scripts/send-option-report.py final_summary.py book_skill_context.py scripts/extract-book.py
           bash -n scripts/run-report.sh
           python -m unittest discover -s tests -v
           python tools/book-to-skill/tools/validate_skill.py skills/psychology-of-money/SKILL.md
@@ -91,3 +96,4 @@ jobs:
             market_news_preview.json
           if-no-files-found: warn
           retention-days: 3
+

@@ -167,12 +167,23 @@ def analyse_news(candidates: list[dict], watchlist: list[dict]) -> tuple[dict, s
         '回傳json：{"selected":[{"id":"M1","indirect_codes":[],"impact":"可能影響板塊風險偏好。",'
         '"uncertainty":"須核對後續公告及完整報道。"}]}。沒有重要故事就傳空selected。'
     )
-    payload = {'model': 'deepseek-chat', 'temperature': 0, 'max_tokens': 4096,
+    daily = os.environ.get('TAHK_BUDGETED_DAILY') == '1'
+    if daily:
+        # Send only the evidence needed to choose stories; preserve source IDs.
+        candidates = [{k: c[k] for k in ('id', 'title', 'summary', 'direct_codes', 'published_at') if k in c}
+                      for c in candidates[:24]]
+        for candidate in candidates:
+            if 'summary' in candidate:
+                candidate['summary'] = plain_text(candidate['summary'], 450)
+        system = system.replace('最多十則', '最多四則').replace('impact及uncertainty用簡短繁體中文', 'impact及uncertainty各用不超過二十字繁體中文')
+        watchlist = [{k: w[k] for k in ('code', 'name', 'sector') if k in w} for w in watchlist]
+    payload = {'model': 'deepseek-chat', 'temperature': 0, 'max_tokens': 800 if daily else 4096,
                'response_format': {'type': 'json_object'}, 'messages': [
                    {'role': 'system', 'content': system},
                    {'role': 'user', 'content': json.dumps({'watchlist': watchlist, 'untrusted_rss_candidates': candidates}, ensure_ascii=False)}]}
     try:
-        request = urllib.request.Request('https://api.deepseek.com/chat/completions',
+        endpoint = (os.environ['TRADINGAGENTS_LLM_BACKEND_URL'].rstrip('/') + '/chat/completions') if daily else 'https://api.deepseek.com/chat/completions'
+        request = urllib.request.Request(endpoint,
                                          data=json.dumps(payload).encode(), method='POST',
                                          headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key})
         with urllib.request.urlopen(request, timeout=90) as response:
