@@ -30,7 +30,7 @@ class FinalSummaryTests(unittest.TestCase):
         self.assertIn('0005 匯豐控股', text)
         self.assertIn('優先研究', text)
         self.assertIn('Short Put', text)
-        self.assertEqual(text.count('最終決定：'), 1)
+        self.assertEqual(sum(line.startswith('期權：') for line in text.splitlines()), 1)
         self.assertIn('等待', text)
         self.assertLess(len(text), 1000)
 
@@ -76,7 +76,8 @@ class FinalSummaryTests(unittest.TestCase):
         from market_recommendations import write_recommendations
         with tempfile.TemporaryDirectory() as directory:
             write_recommendations(signals(), directory=Path(directory), now=NOW)
-            self.assertIn('最終決定：', (Path(directory)/'final_summary.txt').read_text())
+            self.assertIn('每日決策摘要', (Path(directory)/'final_summary.txt').read_text())
+            self.assertIn('期權：等待', (Path(directory)/'final_summary.txt').read_text())
 
     def test_transport_posts_one_text_message_and_hides_sensitive_errors(self):
         class Response:
@@ -93,3 +94,4 @@ class FinalSummaryTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'sensitive details omitted') as error:
                 summary.send_text('等待', token='TEST_VALUE', chat='TEST_CHAT')
             self.assertNotIn('private', str(error.exception))
+

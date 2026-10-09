@@ -404,6 +404,7 @@ def build_styles():
         "section": ParagraphStyle(
             "Section",
             parent=styles["Heading2"],
+            keepWithNext=True,
             fontName=FONT_BOLD,
             fontSize=11,
             leading=14,
@@ -546,7 +547,7 @@ def news_flowables(text: str, styles, *, show_urls: bool = True) -> list:
 
 def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str = "Daily Market Intelligence") -> None:
     if reports and all(report.market_metadata is not None for report in reports):
-        report_mode = "HK Blue-chip & Tech Market Briefing"
+        report_mode = "HK Equity & Options Research Brief"
     styles = build_styles()
     doc = BaseDocTemplate(
         output_path,
@@ -629,12 +630,18 @@ def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str =
                 metric_card("RSS sources read", metadata.get("source_coverage", "-"), styles),
             ]], colWidths=[43.5 * mm] * 4)
             cards.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
-            story += [cards, Spacer(1, 3 * mm), Paragraph(escape("市場新聞概覽"), styles["section"]), Paragraph(escape(r.decision), styles["body"])]
+            story += [cards, Spacer(1, 3 * mm)]
             if r.recommendation_text:
                 story.extend(news_flowables(r.recommendation_text, styles, show_urls=False))
                 story.append(PageBreak())
+            story += [Paragraph(escape("市場新聞概覽"), styles["section"]), Paragraph(escape(r.decision), styles["body"])]
             story.extend(news_flowables(r.news_text, styles, show_urls=False))
             continue
+
+        if r.recommendation_text:
+            story.extend(news_flowables(r.recommendation_text, styles, show_urls=False))
+            story.append(PageBreak())
+            story.append(Paragraph("附錄｜正股研究資料", styles["section"]))
 
         badge = Table([[Paragraph(escape(r.action), styles["badge"])]], colWidths=[35 * mm], rowHeights=[11 * mm])
         badge.setStyle(
@@ -650,7 +657,7 @@ def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str =
         title_row = Table(
             [
                 [
-                    Paragraph(f"<b>{escape(r.ticker)}</b><br/><font size='8' color='#667085'>{escape(r.filename)}</font>", styles["section"]),
+                    Paragraph(f"<b>{escape(r.ticker)}</b>", styles["section"]),
                     badge,
                 ]
             ],
@@ -718,10 +725,6 @@ def build_pdf(reports: list[ReportSummary], output_path: str, report_mode: str =
         )
         story.append(note_table)
 
-        if r.recommendation_text:
-            story.append(PageBreak())
-            story.extend(news_flowables(r.recommendation_text, styles, show_urls=False))
-
         if r.news_text:
             story.append(PageBreak())
             story.append(Paragraph(escape(f"{r.ticker} | 科技／AI 市場資訊"), styles["section"]))
@@ -784,3 +787,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

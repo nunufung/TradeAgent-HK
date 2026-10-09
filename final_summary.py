@@ -58,7 +58,10 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
         code = row['underlying']
         return f"{int(code.split('.')[1]):04d} {names.get(code, '')}".strip()
 
-    lines = ['TradeAgent-HK｜最終總結', f'研究截至：{stamp}｜四分析員及風控整合，屬研究意見。', '']
+    lines = ['TradeAgent-HK｜每日決策摘要', f'研究截至：{stamp}｜四分析員及風控整合，屬研究意見。', '']
+    extra = '（交易時段外）' if result['action'] == '等待' and not _in_entry_window(now) else ''
+    lines.append(f"期權：{result['action']}{extra}，目前不開新倉。")
+    lines.append('')
     if any(stock.get('book_skills') for stock in payload.get('signals', {}).values()):
         lines.append('書籍風控：已加入 Psychology of Money 原則；期權硬性守則優先。')
     if bullish:
@@ -72,11 +75,8 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
     if any(row['allowed_option_types'] == ['PUT'] for row in chosen):
         lines.append('條件式期權方向：偏多股票研究 Short Put（賣 Put）。')
     if any(row['allowed_option_types'] == ['CALL'] for row in chosen):
-        lines.append('條件式方向：Short Call（賣 Call）；先核實持股覆蓋／風控，不直接推介裸賣。')
+        lines.append('期權研究方向：Short Call；正股減持評級不構成開倉指令，須核實持股覆蓋及合約風控。')
     lines.append('')
-    action = result['action']
-    extra = '（交易時段外）' if action == '等待' and not _in_entry_window(now) else ''
-    lines.append(f'期權：{action}{extra}，目前不開新倉。')
     opt = result['main_option']
     if opt:
         strategy = 'Short Put' if opt['option_type'] == 'PUT' else 'Short Call'
@@ -90,8 +90,6 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
             '尚欠即時 Futu 報價及完整風控查核。' if option_audit is None else result['reasons'][0][:75])
         lines.append('主推合約：暫無。' + reason)
     lines.append('守則：21–45 DTE、|Delta|≤0.10、Margin/Premium≤10x；如開倉，盈利達原 Premium 50–70% 止盈，虧損>原 Premium 100%須平倉／減倉／合規 Roll。')
-    stock_final = ('優先研究 ' + '、'.join(label(row) for row in chosen)) if bullish else '以觀望為主，不新增多頭'
-    lines.append(f'最終決定：{stock_final}；期權{action}，不開新倉。')
     return '\n'.join(lines) + '\n'
 
 
@@ -135,3 +133,4 @@ if __name__ == '__main__':
     import sys
     sys.excepthook = lambda exc_type, *_: print(f'Final summary failed ({exc_type.__name__}); sensitive details omitted.')
     main()
+
