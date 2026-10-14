@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 70
     env:
+      TAHK_FINCEPT_ENABLED: '1'
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       PYTHONPATH: ${{ github.workspace }}/tradingagents:${{ github.workspace }}
@@ -135,6 +136,7 @@ jobs:
             stock_signals.json
             stock_analysis.md
             recommendations.*
+            fincept_analytics.json
             final_summary.txt
             daily_token_usage.json
             run_*.log

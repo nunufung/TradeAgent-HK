@@ -24,6 +24,7 @@ jobs:
     runs-on: [self-hosted, macOS]
     timeout-minutes: 120
     env:
+      TAHK_FINCEPT_ENABLED: '1'
       FUTU_OPEND_HOST: 127.0.0.1
       FUTU_OPEND_PORT: 11111
       FUTU_SECURITY_FIRM: FUTUSECURITIES
@@ -124,6 +125,7 @@ jobs:
             market_candidates.json
             stock_analysis.md
             stock_signals.json
+            fincept_analytics.json
             news_*.md
             free_news_*.json
           if-no-files-found: warn

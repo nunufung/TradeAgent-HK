@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 import time
@@ -74,6 +75,7 @@ def scan(
     port: int,
     require_margin: bool = True,
     stock_signals: dict[str, dict[str, Any]] | None = None,
+    analytics_observations: list[dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[str]]:
     """Connect to local OpenD and return real, rule-qualified candidates."""
     try:
@@ -153,6 +155,7 @@ def scan(
                 "ask": _number(snap, "ask_price"),
                 "delta": _number(snap, "option_delta", float("nan")),
                 "iv": _number(snap, "option_implied_volatility", float("nan")),
+                "iv_unit": "percent",  # Explicit Futu convention; never guess from magnitude.
                 "volume": int(_number(snap, "volume")),
                 "open_interest": int(_number(snap, "option_open_interest")),
                 "quote_time": str(snap.get("update_time", "")),
@@ -163,6 +166,10 @@ def scan(
 
         # First pass follows the original Data -> ScreeningAgent design without
         # margin data; then query account margin only for its top 50 candidates.
+        if analytics_observations is not None:
+            # Research observations retain both sides/strikes. They are never
+            # submitted as eligible candidates or used to bypass any entry gate.
+            analytics_observations.extend(dict(row) for row in quote_candidates)
         allowed_types_by_underlying = (
             {ticker: set(signal.get("allowed_option_types", [])) for ticker, signal in stock_signals.items()}
             if stock_signals is not None
@@ -272,6 +279,7 @@ def main() -> int:
         help="TradingAgents 正股評級 JSON；指定後每隻股票必須有有效評級才會篩期權",
     )
     args = parser.parse_args()
+    observations: list[dict[str, Any]] = []
 
     try:
         watchlist = [_market_code(x) for x in args.tickers] if args.tickers else DEFAULT_WATCHLIST
@@ -285,7 +293,8 @@ def main() -> int:
             missing = [ticker for ticker in watchlist if ticker not in stock_signals]
             if missing:
                 raise ValueError(f"正股分析缺少股票評級，期權流程封鎖：{', '.join(missing)}")
-        candidates, errors = scan(watchlist, args.host, args.port, stock_signals=stock_signals)
+        candidates, errors = scan(watchlist, args.host, args.port, stock_signals=stock_signals,
+                                  analytics_observations=observations)
         report = render(candidates, errors, watchlist, stock_signals=stock_signals)
     except Exception as exc:
         report = (
@@ -300,7 +309,14 @@ def main() -> int:
         return 1
     with open(args.output, "w", encoding="utf-8") as f:
         f.write(report)
-    Path(args.json_output).write_text(json.dumps({"generated_at": datetime.now(HKT).isoformat(), "watchlist": watchlist, "candidates": candidates, "errors": ["資料查詢未完成（敏感內容已隱藏）"] if errors else []}, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
+    # Quote failures may contain NaN sentinels. Omit incomplete research rows;
+    # the existing candidate gate has already rejected them independently.
+    observation_keys = ('underlying', 'option_code', 'option_type', 'expiry', 'dte',
+                        'spot', 'strike', 'bid', 'ask', 'iv', 'iv_unit', 'lot_size', 'quote_time')
+    observations = [{key: row[key] for key in observation_keys} for row in observations if all(
+        isinstance(row.get(key), (int, float)) and math.isfinite(row[key])
+        for key in ('spot', 'strike', 'bid', 'ask', 'iv', 'lot_size'))]
+    Path(args.json_output).write_text(json.dumps({"generated_at": datetime.now(HKT).isoformat(), "watchlist": watchlist, "candidates": candidates, "observations": observations, "errors": ["資料查詢未完成（敏感內容已隱藏）"] if errors else []}, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
     print(report)
     return 0
 

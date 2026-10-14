@@ -1,0 +1,21 @@
+{
+  "ticker": "0700.HK",
+  "source": "ILLUSTRATIVE FIXTURE ONLY — invented prices, not market evidence",
+  "options": [
+    {
+      "option_code": "HK.EXAMPLEP",
+      "option_type": "PUT",
+      "expiry": "2026-11-13",
+      "spot": 100.0,
+      "strike": 90.0,
+      "bid": 2.0,
+      "ask": 2.2,
+      "lot_size": 500,
+      "quote_time": "2026-10-14T10:30:00+08:00",
+      "iv": 30.0,
+      "iv_unit": "percent",
+      "risk_free_rate": 0.03,
+      "dividend_yield": 0.02
+    }
+  ]
+}
