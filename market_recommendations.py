@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, time
 import json
+import os
 import re
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -115,7 +116,8 @@ def build_recommendations(payload: dict, *, option_audit: dict | None = None,
                        'evidence': {name: _excerpt(signal.get('reports', {}).get(name)) for name in ANALYSTS},
                        'decision': _excerpt(signal.get('decision'), 1000),
                        'research_summary': {name: research_summary(signal.get('reports', {}).get(name)) for name in ANALYSTS},
-                       'decision_summary': research_summary(signal.get('decision'), 220)})
+                       'decision_summary': research_summary(signal.get('decision'), 220),
+                       'fincept': signal.get('fincept', {}) if same_day else {}})
     directional = [row for row in stocks if row['allowed_option_types']]
     reasons, main_option = [], None
     if not directional:
@@ -198,6 +200,20 @@ def render_recommendations(result: dict, *, market_audit: dict | None = None) ->
         for name in ANALYSTS:
             lines.append(f"- {LABELS[name]}：{summaries.get(name, research_summary(stock.get('evidence', {}).get(name)))}")
         lines.append(f"期權研究方向：{stock['strategy']}。仍須獨立核實合約條件及帳戶風控，不能由正股評級直接推導開倉。")
+        if stock.get('fincept', {}).get('status') in {'available', 'unavailable'}:
+            from fincept_bridge import technical_summary
+            lines.append(technical_summary(stock['fincept'], now=datetime.fromisoformat(result['generated_at'])))
+    fincept = result.get('fincept_option', {})
+    if any(row.get('input_index') == 0 and row.get('status') == 'available' and row.get('payoff', {}).get('curve') for row in fincept.get('options', [])):
+        lines += ['## 量化期權風險補充',
+                  '已保存單張候選的到期損益情景於 fincept_analytics.json；屬假設賣出一張合約，未扣費用，不代表實際持倉。',
+                  '有限價格網格不是最大虧損；裸 Short Call 潛在虧損無上限。模型 Greeks 與券商 Greeks 分開記錄，缺少利率或股息率時不估算。']
+        smiles = [row for row in fincept.get('volatility_by_expiry', []) if row.get('status') == 'available']
+        if smiles:
+            row = smiles[0]
+            lines.append(f"同到期日 {row['expiry']}：Put IV − Call IV 差距 {row['put_minus_call_skew']:.1%}；採約 5% 價外鄰近行使價，並非 Delta 配對或盈利預測。")
+    elif fincept:
+        lines.append('量化期權補充未完成：行情、單位、依賴或計算存在缺口，未產生可用到期損益情景。')
     lines += ['## 執行計劃',
               '入場條件：香港交易日 10:00 後報價穩定；DTE 優先 21–45 日；|Delta| ≤ 0.10、買賣差價比例 ≤ 30%、未平倉合約 ≥ 100、成交量 ≥ 1、保證金／權利金 ≤ 10x，報價不超過 30 分鐘。全部數值條件通過後，仍須完成事件及帳戶風控覆核。',
               '取消條件：關鍵資料缺失、買賣差價過闊、保證金效率不合格、技術結構失效，或事件及資金風控未通過時，不新增倉位。',
@@ -214,10 +230,45 @@ def render_recommendations(result: dict, *, market_audit: dict | None = None) ->
     return '\n\n'.join(lines) + '\n'
 
 
+def option_analytics_snapshot(primary: dict, audit: dict) -> dict:
+    """Bound the same-security/expiry observations without relaxing eligibility."""
+    rows = [primary]
+    observations = audit.get('observations', [])
+    if not isinstance(observations, list):
+        observations = []
+    choices = [row for row in observations if isinstance(row, dict)
+               and row.get('underlying') == primary['underlying']
+               and row.get('expiry') == primary['expiry']
+               and isinstance(row.get('strike'), (int, float)) and row['strike'] > 0]
+    seen = {primary.get('option_code')}
+    for side in ('PUT', 'CALL'):
+        for multiple in (.95, 1., 1.05):
+            candidates = [row for row in choices if row.get('option_type') == side]
+            if not candidates:
+                continue
+            row = min(candidates, key=lambda row: abs(row['strike'] - float(primary['spot']) * multiple))
+            if row.get('option_code') not in seen:
+                rows.append(row)
+                seen.add(row.get('option_code'))
+    return {'ticker': primary['underlying'], 'options': rows,
+            'source': 'Existing broker observations for the candidate underlying and expiry'}
+
+
 def write_recommendations(payload: dict, *, directory: Path = Path('.'), option_audit: dict | None = None,
                           market_audit: dict | None = None, now: datetime | None = None) -> dict:
     result = build_recommendations(payload, option_audit=option_audit, now=now)
     directory.mkdir(parents=True, exist_ok=True)
+    analytics = {'stocks': {row['underlying']: row['fincept'] for row in result['stocks'] if row.get('fincept')},
+                 'main_option': None, 'research_only': True, 'generated_at': result['generated_at']}
+    if result['main_option'] and os.getenv('TAHK_FINCEPT_ENABLED', '0') == '1':
+        from fincept_bridge import analyze_snapshot
+        analytics['main_option'] = analyze_snapshot(
+            option_analytics_snapshot(result['main_option'], option_audit or {}), now=now)
+        result['fincept_option'] = analytics['main_option']
+    if analytics['stocks'] or analytics['main_option']:
+        (directory/'fincept_analytics.json').write_text(json.dumps(analytics, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+    else:
+        (directory/'fincept_analytics.json').unlink(missing_ok=True)
     (directory/'recommendations.json').write_text(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
     (directory/'recommendations.md').write_text(render_recommendations(result, market_audit=market_audit), encoding='utf-8')
     from final_summary import render_final_summary

@@ -1,0 +1,67 @@
+{
+  "repository": "https://github.com/Fincept-Corporation/FinceptTerminal",
+  "version": "v4.5.1",
+  "commit": "0aa46db2a06b8d8d9f91f07090aa214ac02db5c2",
+  "files": [
+    {
+      "path": "LICENSE",
+      "upstream_path": "LICENSE",
+      "git_blob_sha": "2755a3752aa20340e05c201f10cfcbf111df0598"
+    },
+    {
+      "path": "docs/COMMERCIAL_LICENSE.md",
+      "upstream_path": "docs/COMMERCIAL_LICENSE.md",
+      "git_blob_sha": "1788635a738f8e06ba61e3052d0a9c99ba4be6da"
+    },
+    {
+      "path": "derivatives_pricing.py",
+      "upstream_path": "fincept-qt/scripts/derivatives_pricing.py",
+      "git_blob_sha": "3c80bb644bac482b4259591c7e880adfb731e79f"
+    },
+    {
+      "path": "compute_technicals.py",
+      "upstream_path": "fincept-qt/scripts/compute_technicals.py",
+      "git_blob_sha": "6e82f8eea7315ab5224027a07e348d935b348a03"
+    },
+    {
+      "path": "Analytics/options/iv_smile.py",
+      "upstream_path": "fincept-qt/scripts/Analytics/options/iv_smile.py",
+      "git_blob_sha": "fc07c38601638a5be7217f80f2d4ea4c620399fc"
+    },
+    {
+      "path": "Analytics/options/strategy_chart.py",
+      "upstream_path": "fincept-qt/scripts/Analytics/options/strategy_chart.py",
+      "git_blob_sha": "e59aded0329ae8521190705f6b1d8549bcd35e8a"
+    },
+    {
+      "path": "technicals/__init__.py",
+      "upstream_path": "fincept-qt/scripts/technicals/__init__.py",
+      "git_blob_sha": "c4a4272f9bba9d60eb58d0c6547bc6aa36cab2eb"
+    },
+    {
+      "path": "technicals/momentum_indicators.py",
+      "upstream_path": "fincept-qt/scripts/technicals/momentum_indicators.py",
+      "git_blob_sha": "6af1b869f7b7f1f94fca829d8ce704a78a81bef6"
+    },
+    {
+      "path": "technicals/volume_indicators.py",
+      "upstream_path": "fincept-qt/scripts/technicals/volume_indicators.py",
+      "git_blob_sha": "e499f4ce7da4d5d2495a106c4690745949455db4"
+    },
+    {
+      "path": "technicals/volatility_indicators.py",
+      "upstream_path": "fincept-qt/scripts/technicals/volatility_indicators.py",
+      "git_blob_sha": "d991f5448be1e16675f511993896b3f8edea1059"
+    },
+    {
+      "path": "technicals/trend_indicators.py",
+      "upstream_path": "fincept-qt/scripts/technicals/trend_indicators.py",
+      "git_blob_sha": "053f7414a20b5f75ddc4434a0581b89b50d01e6e"
+    },
+    {
+      "path": "technicals/others_indicators.py",
+      "upstream_path": "fincept-qt/scripts/technicals/others_indicators.py",
+      "git_blob_sha": "2e023dca0462304e8bbcfdd3421552d1102f4be0"
+    }
+  ]
+}

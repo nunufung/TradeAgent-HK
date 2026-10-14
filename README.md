@@ -23,6 +23,10 @@ Take-profit handling starts at 50–70% of original premium captured. Losses gre
 
 The reviewed Psychology of Money risk skill is loaded into four-analyst research. Project option rules take precedence. Conversion, provenance and runtime audit details are in [BOOK_TO_SKILL.md](BOOK_TO_SKILL.md).
 
+## Fincept quantitative research
+
+Selected, version-pinned FinceptTerminal analytics enrich the existing four analysts with daily technical indicators and historical realized volatility. The Mac option workflow reuses observed chain quotes for quoted-IV skew and hypothetical expiry payoffs. Model Greeks and stress repricing require explicit rate, dividend and IV-unit inputs; missing inputs remain unavailable. No additional AI agents, paid model calls or order routing are added. See [FINCEPT_INTEGRATION.md](FINCEPT_INTEGRATION.md) for operation, manual JSON, upstream licensing and model limits.
+
 ## Validation
 
 Run `python -m unittest discover -s tests`. Chinese PDF tests need an available CJK font (set `TAHK_CJK_FONT` when needed). Local tests do not prove live API savings or confirmed Telegram delivery; check the next production run's token ledger and delivery receipt.
