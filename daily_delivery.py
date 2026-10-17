@@ -39,7 +39,7 @@ def main():
         if now.time() >= time(8):
             raise
         text = validate_summary(fallback_summary(now),now=now)
-    token, chat = os.environ['TELEGRAM_BOT_TOKEN'], os.environ['TELEGRAM_CHAT_ID']
+    token, chat = os.environ['TELEGRAM_BOT_TOKEN'].strip(), os.environ['TELEGRAM_CHAT_ID'].strip()
     if datetime.now(HKT).time() >= time(7, 59, 30):
         raise RuntimeError('Insufficient time for delivery before 08:00 HKT.')
     request = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage',

@@ -128,6 +128,14 @@ class DailyTransportTests(unittest.TestCase):
                 self.assertEqual(send.call_count,1)
                 self.assertFalse(Path('delivery_receipt.json').exists())
 
+    def test_delivery_strips_surrounding_credential_whitespace(self):
+        with temporary_cwd(), patch('daily_delivery.datetime', Frozen), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED':'true','TELEGRAM_BOT_TOKEN':' test\n','TELEGRAM_CHAT_ID':' test\n'}):
+            with patch('daily_delivery.urllib.request.urlopen',return_value=Response({'ok':True,'result':{'message_id':124}})) as send:
+                daily_delivery.main()
+                request = send.call_args.args[0]
+                self.assertEqual(json.loads(request.data)['chat_id'], 'test')
+                self.assertEqual(request.full_url, 'https://api.telegram.org/bottest/sendMessage')
+
     def test_timeout_kills_research_and_writes_current_waiting_report(self):
         process = Mock(pid=123)
         process.wait.side_effect = [subprocess.TimeoutExpired('bash',2700), 0]
