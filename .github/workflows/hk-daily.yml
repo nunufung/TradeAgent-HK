@@ -1,10 +1,6 @@
 name: HK Daily Report
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/hk-daily.yml'
   schedule:
     - cron: '17 20 * * *'  # 04:17 HKT: budgeted research; finish by 06:30
     - cron: '47 22 * * *'  # 06:47 HKT: one concise message
@@ -223,35 +219,3 @@ jobs:
           path: delivery_receipt.json
           if-no-files-found: error
           retention-days: 30
-
-  telegram_probe:
-    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Diagnose Telegram connection without exposing credentials' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-    steps:
-      - name: Check Telegram bot and chat access safely without sending
-        run: |
-          python - <<'PY'
-          import json, os, urllib.request, urllib.error
-          for method in ('getMe', 'getChat'):
-              token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
-              chat = os.environ.get('TELEGRAM_CHAT_ID', '')
-              if not token.strip() or not chat.strip():
-                  print('Telegram credential presence:', bool(token.strip()), bool(chat.strip()))
-                  break
-              print('Credential surrounding whitespace:', token != token.strip(), chat != chat.strip())
-              payload = {} if method == 'getMe' else {'chat_id':chat.strip()}
-              try:
-                  req = urllib.request.Request(f'https://api.telegram.org/bot{token.strip()}/{method}', data=json.dumps(payload).encode(), headers={'Content-Type':'application/json'}, method='POST')
-                  with urllib.request.urlopen(req, timeout=20) as response:
-                      result=json.loads(response.read())
-                  print(method, 'confirmed:', result.get('ok') is True)
-              except urllib.error.HTTPError as error:
-                  print(method, 'HTTP rejection:', error.code)
-              except Exception as error:
-                  print(method, 'error type:', type(error).__name__)
-          
-          PY
