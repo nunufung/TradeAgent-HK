@@ -1,6 +1,10 @@
 name: HK Daily Report
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hk-daily.yml'
   schedule:
     - cron: '17 20 * * *'  # 04:17 HKT: budgeted research; finish by 06:30
     - cron: '47 22 * * *'  # 06:47 HKT: one concise message
@@ -219,3 +223,50 @@ jobs:
           path: delivery_receipt.json
           if-no-files-found: error
           retention-days: 30
+
+  recovery_send:
+    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Recover missing 2026-10-17 daily status once' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: hk-morning-2026-10-17-38985111959-1
+          run-id: 38985111959
+          github-token: ${{ github.token }}
+          path: recovery_report
+      - name: Send the missing current-day research status safely
+        run: |
+          python - <<'PY'
+          from datetime import datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+          import json, os, sys, urllib.request
+          sys.excepthook = lambda *_: print('Recovery delivery failed; sensitive details omitted.')
+          now = datetime.now(ZoneInfo('Asia/Hong_Kong'))
+          if now.strftime('%Y-%m-%d') != '2026-10-17':
+              raise SystemExit('Recovery date has expired.')
+          paths = list(Path('recovery_report').rglob('final_summary.txt'))
+          if len(paths) != 1:
+              raise SystemExit('Current-day report missing.')
+          report = paths[0].read_text(encoding='utf-8')
+          if '研究截至：2026-10-17' not in report or len(report) > 1200:
+              raise SystemExit('Invalid report; no stale content sent.')
+          text = 'TradeAgent-HK｜補發狀態通知\n今日研究排程延遲至08:10，已過研究截止時間，未完成正式分析。以下為資料不足摘要，並非完整四分析員報告。\n\n' + report
+          token, chat = os.environ['TELEGRAM_BOT_TOKEN'], os.environ['TELEGRAM_CHAT_ID']
+          request = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage',data=json.dumps({'chat_id':chat,'text':text,'disable_web_page_preview':True}).encode(),headers={'Content-Type':'application/json'},method='POST')
+          with urllib.request.urlopen(request,timeout=20) as response:
+              result = json.loads(response.read())
+          if result.get('ok') is not True:
+              raise RuntimeError('Telegram did not confirm delivery.')
+          Path('recovery_receipt.json').write_text(json.dumps({'date':now.date().isoformat(),'sent_at':datetime.now(ZoneInfo('Asia/Hong_Kong')).isoformat(),'message_id':result['result']['message_id']}))
+          print('Recovery status confirmed sent to Telegram.')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hk-recovery-receipt-2026-10-17
+          path: recovery_receipt.json
+          retention-days: 7
