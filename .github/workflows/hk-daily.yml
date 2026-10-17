@@ -2,9 +2,10 @@ name: HK Daily Report
 
 on:
   schedule:
-    - cron: '0 22 * * *'  # 06:00 HKT: budgeted research
-    - cron: '15 0 * * *'  # 08:15 HKT: one concise message
-    - cron: '35 0 * * *'  # 08:35 HKT: backup if delivery has not been claimed
+    - cron: '17 20 * * *'  # 04:17 HKT: budgeted research; finish by 06:30
+    - cron: '47 22 * * *'  # 06:47 HKT: one concise message
+    - cron: '17 23 * * *'  # 07:17 HKT: backup if delivery has not been claimed
+    - cron: '37 23 * * *' # 07:37 HKT: final backup, no duplicate sends
   workflow_dispatch:
 
 permissions:
@@ -12,12 +13,12 @@ permissions:
   actions: read
 
 concurrency:
-  group: hk-daily-${{ github.event.schedule == '0 22 * * *' && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
+  group: hk-daily-${{ github.event.schedule == '17 20 * * *' && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
   cancel-in-progress: false
 
 jobs:
   report:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 22 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 20 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 70
     env:
@@ -141,7 +142,7 @@ jobs:
           if-no-files-found: warn
 
   send_morning:
-    if: github.event_name == 'schedule' && github.event.schedule != '0 22 * * *'
+    if: github.event_name == 'schedule' && github.event.schedule != '17 20 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -160,7 +161,7 @@ jobs:
             const claim = 'hk-daily-delivery-claim-' + day;
             core.setOutput('date',day);
             core.setOutput('claim',claim);
-            if (clock >= '08:59' || !process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+            if (clock >= '07:59' || !process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
               core.setOutput('skip','true');
               core.warning('Too late for morning delivery, or delivery credentials missing.');
               return;
@@ -193,7 +194,7 @@ jobs:
           from pathlib import Path
           from daily_delivery import HKT
           now = datetime.now(HKT)
-          if now.time() >= time(8, 59):
+          if now.time() >= time(7, 59):
               raise SystemExit('Delivery deadline reached.')
           Path('delivery_claim.txt').write_text(now.isoformat())
           PY

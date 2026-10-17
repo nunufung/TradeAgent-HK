@@ -80,13 +80,29 @@ class DailyTransportTests(unittest.TestCase):
 
     def test_gateway_late_calls_never_reach_deepseek(self):
         clock = Mock()
-        clock.now.return_value = NOW.replace(hour=8)
+        clock.now.return_value = NOW.replace(hour=6,minute=30)
         with temporary_cwd() as root, patch('daily_budget.datetime', clock):
             budget = Budget(root/'usage.json', NOW.date().isoformat())
             with patch('daily_budget.urllib.request.urlopen') as upstream, gateway(budget) as url:
                 self.assertEqual(self.post(url, {'model':'deepseek-chat','messages':[]})[0],422)
                 upstream.assert_not_called()
             self.assertEqual(budget.snapshot()['calls'],0)
+
+    def test_delivery_rejects_8am_and_does_not_contact_telegram(self):
+        clock = Mock()
+        clock.now.return_value = NOW.replace(hour=8, minute=0)
+        with temporary_cwd(), patch('daily_delivery.datetime', clock), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED':'true','TELEGRAM_BOT_TOKEN':'test','TELEGRAM_CHAT_ID':'test'}), patch('daily_delivery.urllib.request.urlopen', return_value=Response({'ok':True,'result':{'message_id':999}})) as send:
+            with self.assertRaises(ValueError):
+                daily_delivery.main()
+            send.assert_not_called()
+
+    def test_delivery_leaves_30_seconds_for_telegram_before_8am(self):
+        clock = Mock()
+        clock.now.return_value = NOW.replace(hour=7, minute=59, second=30)
+        with temporary_cwd(), patch('daily_delivery.datetime', clock), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED':'true','TELEGRAM_BOT_TOKEN':'test','TELEGRAM_CHAT_ID':'test'}), patch('daily_delivery.urllib.request.urlopen', return_value=Response({'ok':True,'result':{'message_id':999}})) as send:
+            with self.assertRaises(RuntimeError):
+                daily_delivery.main()
+            send.assert_not_called()
 
     def test_delivery_sends_one_fallback_without_relabeling_old_research(self):
         with temporary_cwd() as root, patch('daily_delivery.datetime', Frozen), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED':'true','TELEGRAM_BOT_TOKEN':'test','TELEGRAM_CHAT_ID':'test'}):
@@ -103,7 +119,7 @@ class DailyTransportTests(unittest.TestCase):
             self.assertEqual(json.loads((root/'delivery_receipt.json').read_text())['message_id'],123)
 
     def test_missing_claim_and_ambiguous_send_never_retry(self):
-        with temporary_cwd(), patch('daily_delivery.datetime', Frozen), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED':'false'},clear=True), patch('daily_delivery.urllib.request.urlopen') as send:
+        with temporary_cwd(), patch('daily_delivery.datetime', Frozen), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED':'false'},clear=True), patch('daily_delivery.urllib.request.urlopen', return_value=Response({'ok':True,'result':{'message_id':999}})) as send:
             with self.assertRaises(RuntimeError): daily_delivery.main()
             send.assert_not_called()
         with temporary_cwd(), patch('daily_delivery.datetime', Frozen), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED':'true','TELEGRAM_BOT_TOKEN':'test','TELEGRAM_CHAT_ID':'test'}):

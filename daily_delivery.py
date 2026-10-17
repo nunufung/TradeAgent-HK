@@ -1,4 +1,4 @@
-"""One concise, current-day Telegram message, strictly before 09:00 HKT."""
+"""One concise, current-day Telegram message, strictly before 08:00 HKT."""
 from datetime import datetime, time
 import json
 import os
@@ -19,8 +19,8 @@ def fallback_summary(now=None):
 
 def validate_summary(text, *, now=None):
     now = (now or datetime.now(HKT)).astimezone(HKT)
-    if now.time() >= time(9):
-        raise ValueError('09:00 HKT deadline passed; no late morning report.')
+    if now.time() >= time(8):
+        raise ValueError('08:00 HKT deadline passed; no late morning report.')
     if f'研究截至：{now:%Y-%m-%d}' not in text or len(text) > 1200:
         raise ValueError('Report is stale or exceeds the concise report limit.')
     return text.strip()
@@ -36,12 +36,12 @@ def main():
     try:
         text = validate_summary(text,now=now)
     except ValueError:
-        if now.time() >= time(9):
+        if now.time() >= time(8):
             raise
         text = validate_summary(fallback_summary(now),now=now)
     token, chat = os.environ['TELEGRAM_BOT_TOKEN'], os.environ['TELEGRAM_CHAT_ID']
-    if datetime.now(HKT).time() >= time(8, 59, 30):
-        raise RuntimeError('Insufficient time for delivery before 09:00 HKT.')
+    if datetime.now(HKT).time() >= time(7, 59, 30):
+        raise RuntimeError('Insufficient time for delivery before 08:00 HKT.')
     request = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage',
         data=json.dumps({'chat_id':chat,'text':text,'disable_web_page_preview':True}).encode(),
         headers={'Content-Type':'application/json'},method='POST')

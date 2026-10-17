@@ -46,9 +46,9 @@ class DailyBudgetTests(unittest.TestCase):
 
     def test_delivery_is_concise_and_refuses_old_or_late_report(self):
         from daily_delivery import validate_summary
-        now=datetime(2026,10,10,8,15,tzinfo=ZoneInfo('Asia/Hong_Kong'))
+        now=datetime(2026,10,10,7,15,tzinfo=ZoneInfo('Asia/Hong_Kong'))
         self.assertEqual(validate_summary('研究截至：2026-10-10 06:30 HKT\n期權：等待',now=now),'研究截至：2026-10-10 06:30 HKT\n期權：等待')
-        for text,clock in [('研究截至：2026-10-09',now),('x'*1500,now),('研究截至：2026-10-10',now.replace(hour=9))]:
+        for text,clock in [('研究截至：2026-10-09',now),('x'*1500,now),('研究截至：2026-10-10',now.replace(hour=8,minute=0))]:
             with self.assertRaises(ValueError):validate_summary(text,now=clock)
 
     def test_daily_profile_preserves_actual_four_analysts_and_limits_generation(self):
