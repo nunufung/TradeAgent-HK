@@ -72,6 +72,11 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
         lines.append('正股：未有同日四分析員完整研究，暫不推薦。')
     for stock in chosen:
         lines.append(f"• {label(stock)}（{stock['rating']}）：{_reason(stock)}")
+        if stock.get('fincept', {}).get('status') in {'available', 'unavailable'}:
+            from fincept_bridge import technical_summary
+            note = technical_summary(stock['fincept'], now=now)
+            if len('\n'.join(lines)) + len(note) < 650:
+                lines.append(note)
     if any(row['allowed_option_types'] == ['PUT'] for row in chosen):
         lines.append('條件式期權方向：偏多股票研究 Short Put（賣 Put）。')
     if any(row['allowed_option_types'] == ['CALL'] for row in chosen):

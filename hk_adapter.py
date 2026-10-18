@@ -10,6 +10,7 @@ from copy import deepcopy
 from zoneinfo import ZoneInfo
 from free_tech_news import configure_free_news, attach_news_context, write_news_audit
 from book_skill_context import attach_book_context
+from fincept_bridge import attach_fincept_context
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
 
@@ -43,6 +44,7 @@ def run_market_agent(hk_code: str):
     ta = TradingAgentsGraph(selected_analysts=selected_analysts, debug=True, config=config)
     attach_news_context(ta, news_batch)
     book_skills = attach_book_context(ta)
+    fincept = attach_fincept_context(ta, ticker, date_str)
     state, decision = ta.propagate(ticker, date_str)
     write_news_audit(news_batch, ticker, state.get("news_report", ""))
     print("\n" + "="*60 + "\nFINAL\n" + "="*60)
@@ -51,6 +53,7 @@ def run_market_agent(hk_code: str):
                "analyst_set": list(ANALYSTS), "book_skills": book_skills,
                "signals": {_futu_code(hk_code): signal_from_state(state, decision, ticker)}}
     payload['signals'][_futu_code(hk_code)]['book_skills'] = book_skills
+    payload['signals'][_futu_code(hk_code)]['fincept'] = fincept
     Path("stock_signals.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     skill_note = '已載入書籍風控 Skill：' + ', '.join(item['name'] for item in book_skills) + '；期權硬性守則優先。\n\n'
     Path("stock_analysis.md").write_text(skill_note + "\n\n".join(

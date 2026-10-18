@@ -14,6 +14,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 from free_tech_news import configure_free_news, attach_news_context, collect_news, write_news_audit
 from book_skill_context import attach_book_context, load_book_context
+from fincept_bridge import attach_fincept_context, technical_summary
 
 HKT = ZoneInfo("Asia/Hong_Kong")
 ANALYSTS = ("market", "social", "news", "fundamentals")
@@ -101,6 +102,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
         graph = TradingAgentsGraph(selected_analysts=ANALYSTS, debug=False, config=config)
         attach_news_context(graph, news_batch)
         applied_skills = attach_book_context(graph)
+        fincept = attach_fincept_context(graph, ticker, trade_date)
         if os.environ.get('TAHK_BUDGETED_DAILY') == '1':
             from daily_budget import attach_daily_context
             attach_daily_context(graph)
@@ -110,10 +112,13 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
             write_news_audit(news_batch, ticker, state.get("news_report", ""))
             signal = signal_from_state(state, rating, ticker)
             signal['book_skills'] = applied_skills
+            signal['fincept'] = fincept
             rating, complete, reports = signal['rating'], signal['analysis_complete'], signal['reports']
             signals[underlying] = signal
             print(f"Four-analyst research ready: {underlying}; rating={rating}; complete={complete}", flush=True)
             report_sections.append(f"\n**TradingAgents 最終評級：{rating}**\n\n")
+            if fincept.get('status') != 'disabled':
+                report_sections.append(technical_summary(fincept) + '\n')
             for name in ANALYSTS:
                 report_sections.append(f"### {name}\n\n{reports[name] or '分析報告缺失；方向閘門已封鎖。'}\n")
             report_sections.append(

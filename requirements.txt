@@ -5,3 +5,5 @@ pandas
 beautifulsoup4
 reportlab>=4.0
 futu-api>=9.3
+ta==0.11.0
+scipy>=1.11,<2
