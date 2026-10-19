@@ -1,0 +1,4 @@
+interface:
+  display_name: "HK Trading Research Workflows"
+  short_description: "Six evidence-based HK trading research workflows"
+  default_prompt: "Use $analyze-hk-trading-workflows to review my HK stock and option watchlist with the relevant research workflows."
