@@ -217,11 +217,17 @@ def render_recommendations(result: dict, *, market_audit: dict | None = None) ->
 def write_recommendations(payload: dict, *, directory: Path = Path('.'), option_audit: dict | None = None,
                           market_audit: dict | None = None, now: datetime | None = None) -> dict:
     result = build_recommendations(payload, option_audit=option_audit, now=now)
+    from trading_workflows import load_inputs, build_workflows, render_workflows
+    inputs, input_status = load_inputs()
+    workflows = build_workflows(payload, result, inputs=inputs, input_status=input_status, now=now)
+    result['trading_workflows'] = workflows
     directory.mkdir(parents=True, exist_ok=True)
+    (directory/'trading_workflows.json').write_text(json.dumps(workflows, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+    (directory/'trading_workflows.md').write_text(render_workflows(workflows), encoding='utf-8')
     (directory/'recommendations.json').write_text(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
-    (directory/'recommendations.md').write_text(render_recommendations(result, market_audit=market_audit), encoding='utf-8')
+    (directory/'recommendations.md').write_text(render_recommendations(result, market_audit=market_audit) + '\n' + render_workflows(workflows), encoding='utf-8')
     from final_summary import render_final_summary
-    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now), encoding='utf-8')
+    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now, workflow_audit=workflows), encoding='utf-8')
     return result
 
 
@@ -250,4 +256,5 @@ if __name__ == '__main__':
     import sys
     sys.excepthook = lambda exc_type, *_: print(f'Recommendations unavailable ({exc_type.__name__}); sensitive details omitted.')
     main()
+
 

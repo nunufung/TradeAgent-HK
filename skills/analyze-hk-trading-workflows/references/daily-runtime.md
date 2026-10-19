@@ -1,0 +1,9 @@
+Daily six-workflow policy (adapted from analyze-hk-trading-workflows):
+Reuse the four independent analysts and existing tools; no extra model calls.
+1. Ideas: rank supported research candidates using technical AND fundamental evidence; entry/target/stop/reward-risk only with dated price evidence. Do not fill a quota. At most one primary option; stock view is not option eligibility.
+2. Market analyst: daily/weekly support/resistance, trend, moving averages and momentum; disclose windows, partial weekly bars, missing OHLCV and invalidation. BUY/WAIT/SELL refers to the stock, not executable options.
+3. News analyst: dated sources, short/long-term effects, observed price response versus inferred priced-in factors, scenarios and invalidation. Numeric move ranges need an explicit method and horizon.
+4. Backtest: only compute from supplied historical simulation trades and marked-to-market equity with methodology and costs; no invented win rate or stock-only validation of options. Missing inputs mean N/A. The daily deterministic postprocessor summarizes supplied runs; it does not run a new historical simulation.
+5. Portfolio: use only a current complete holdings snapshot; distinguish net/gross exposure and common-factor risk. A market -20% scenario needs explicit underlying and option repricing assumptions; never infer a loss from ticker alone. Personal inputs stay in local deterministic processing, not model context.
+6. Journal: use up to 20 closed, dated trades and documented rule violations. Repeated errors need trade evidence; biases are hypotheses and missed opportunities need contemporaneous signals. Three measurable rules may be provisional if records are missing.
+Current project gates and account/event checks override all research suggestions. Missing evidence implies WAIT. Keep existing analyst length limits; address your own domain only. No orders, no claims of guaranteed profit, no changes to daily timing or token budget.

@@ -52,6 +52,8 @@ class BookSkillTests(unittest.TestCase):
                 context = self.resolve_instrument_context(ticker, 'stock', date)
                 self_test.assertIn('Room for Error', context)
                 self_test.assertIn('Dated news context', context)
+                self_test.assertIn('Daily six-workflow policy', context)
+                self_test.assertIn('Journal:', context)
                 return {key: 'Actual test analyst report' for key in
                         ('market_report', 'sentiment_report', 'news_report', 'fundamentals_report')}, 'Buy'
 
@@ -74,6 +76,7 @@ class BookSkillTests(unittest.TestCase):
             payload = linked.analyze(['700'], signal_path=root/'signals.json', report_path=root/'report.md', news_batch={})
             signal = payload['signals']['HK.00700']
             self.assertTrue(signal['analysis_complete'])
+            self.assertEqual(signal['workflow_skill']['name'], 'analyze-hk-trading-workflows')
             self.assertEqual(signal['allowed_option_types'], ['PUT'])
             self.assertEqual(signal['book_skills'], payload['book_skills'])
             self.assertIn('psychology-of-money', (root/'report.md').read_text())
@@ -93,3 +96,4 @@ class BookSkillTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

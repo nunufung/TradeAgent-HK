@@ -34,7 +34,8 @@ def _reason(stock: dict) -> str:
 
 
 def render_final_summary(payload: dict, *, market_audit: dict | None = None,
-                         option_audit: dict | None = None, now: datetime | None = None) -> str:
+                         option_audit: dict | None = None, now: datetime | None = None,
+                         workflow_audit: dict | None = None) -> str:
     from market_recommendations import build_recommendations, _in_entry_window
     now = (now or datetime.now(HKT)).astimezone(HKT)
     result = build_recommendations(payload, option_audit=option_audit, now=now)
@@ -90,6 +91,21 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
             '尚欠即時 Futu 報價及完整風控查核。' if option_audit is None else result['reasons'][0][:75])
         lines.append('主推合約：暫無。' + reason)
     lines.append('守則：21–45 DTE、|Delta|≤0.10、Margin/Premium≤10x；如開倉，盈利達原 Premium 50–70% 止盈，虧損>原 Premium 100%須平倉／減倉／合規 Roll。')
+    if workflow_audit is not None:
+        from trading_workflows import brief_lines
+        workflow_lines = brief_lines(workflow_audit)
+        combined = '\n'.join(lines + [''] + workflow_lines) + '\n'
+        if len(combined) <= 1200:
+            return combined
+        # Keep the action, contract identifier, gates and all six modules within
+        # the delivery limit. Full evidence remains in recommendations.md.
+        compact = [lines[0], lines[1], f"期權：{result['action']}；目前不開新倉。"]
+        if opt:
+            compact.append(f"主候選（待核）：{str(opt['option_code'])[:40]}｜{opt['strike']}｜{opt['expiry']}｜{opt['dte']} DTE")
+        else:
+            compact.append('主推合約：暫無；等待報價及完整風控。')
+        compact += workflow_lines + [lines[-1]]
+        return '\n'.join(compact) + '\n'
     return '\n'.join(lines) + '\n'
 
 
@@ -121,7 +137,11 @@ def main() -> None:
     payload = json.loads((root/'stock_signals.json').read_text())
     market = json.loads((root/'market_briefing.json').read_text()) if (root/'market_briefing.json').is_file() else None
     options = json.loads((root/'option_screen.json').read_text()) if (root/'option_screen.json').is_file() else None
-    text = render_final_summary(payload, market_audit=market, option_audit=options)
+    from trading_workflows import load_inputs, build_workflows
+    from market_recommendations import build_recommendations
+    inputs, status = load_inputs()
+    workflows = build_workflows(payload, build_recommendations(payload, option_audit=options), inputs=inputs, input_status=status)
+    text = render_final_summary(payload, market_audit=market, option_audit=options, workflow_audit=workflows)
     if args.send:
         send_text(text)
         print('Final text summary sent to Telegram.')
@@ -133,4 +153,5 @@ if __name__ == '__main__':
     import sys
     sys.excepthook = lambda exc_type, *_: print(f'Final summary failed ({exc_type.__name__}); sensitive details omitted.')
     main()
+
 

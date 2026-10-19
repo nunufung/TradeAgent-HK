@@ -15,7 +15,10 @@ def fallback_summary(now=None):
             '本次研究未能在預算或時限內完成，未形成可靠股票及期權推薦。\n'
             '執行原則：10:00 後才評估開倉；DTE 優先 21–45 日，|Delta|≤0.10，保證金／權利金≤10x。\n'
             '持倉管理：盈利達原收權利金 50–70% 優先止盈；虧損超過原收權利金 100% 必須處理。\n'
-            '資料狀態：缺失資料未以舊報告或模型推測補足。\n')
+            '資料狀態：缺失資料未以舊報告或模型推測補足。\n'
+            '交易點子：研究未完成。\n技術分析：研究未完成。\n新聞策略：研究未完成。\n'
+            '策略回測：N/A，未完成資料覆核。\n組合風險：N/A，未完成持倉覆核。\n'
+            '交易日誌：N/A，未完成交易記錄覆核。\n')
 
 def validate_summary(text, *, now=None):
     now = (now or datetime.now(HKT)).astimezone(HKT)
@@ -56,3 +59,4 @@ if __name__=='__main__':
     import sys
     sys.excepthook=lambda *_:print('Daily delivery stopped; sensitive details omitted.')
     main()
+

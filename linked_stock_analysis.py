@@ -14,6 +14,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 from free_tech_news import configure_free_news, attach_news_context, collect_news, write_news_audit
 from book_skill_context import attach_book_context, load_book_context
+from trading_workflows import attach_workflow_context
 
 HKT = ZoneInfo("Asia/Hong_Kong")
 ANALYSTS = ("market", "social", "news", "fundamentals")
@@ -101,6 +102,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
         graph = TradingAgentsGraph(selected_analysts=ANALYSTS, debug=False, config=config)
         attach_news_context(graph, news_batch)
         applied_skills = attach_book_context(graph)
+        workflow_skill = attach_workflow_context(graph)
         if os.environ.get('TAHK_BUDGETED_DAILY') == '1':
             from daily_budget import attach_daily_context
             attach_daily_context(graph)
@@ -110,6 +112,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
             write_news_audit(news_batch, ticker, state.get("news_report", ""))
             signal = signal_from_state(state, rating, ticker)
             signal['book_skills'] = applied_skills
+            signal['workflow_skill'] = workflow_skill
             rating, complete, reports = signal['rating'], signal['analysis_complete'], signal['reports']
             signals[underlying] = signal
             print(f"Four-analyst research ready: {underlying}; rating={rating}; complete={complete}", flush=True)
@@ -166,3 +169,4 @@ def load_market_news(path: Path) -> dict:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

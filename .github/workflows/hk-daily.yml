@@ -77,6 +77,8 @@ jobs:
           python -m pip install ./tradingagents
       - name: Run bounded daily research
         if: steps.morning.outputs.skip != 'true'
+        env:
+          TAHK_RESEARCH_INPUT_JSON: ${{ secrets.TAHK_RESEARCH_INPUT_JSON }}
         run: python daily_runner.py
       - name: Prepare a safe concise fallback if research failed
         if: always() && steps.morning.outputs.skip != 'true'
@@ -136,6 +138,8 @@ jobs:
             stock_signals.json
             stock_analysis.md
             recommendations.*
+            trading_workflows.json
+            trading_workflows.md
             final_summary.txt
             daily_token_usage.json
             run_*.log
@@ -219,3 +223,4 @@ jobs:
           path: delivery_receipt.json
           if-no-files-found: error
           retention-days: 30
+

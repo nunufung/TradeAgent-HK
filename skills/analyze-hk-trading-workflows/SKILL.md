@@ -15,7 +15,7 @@ Use only the requested modules. For a broad review, prioritize current holdings 
 - For new short-option candidates apply 21–45 DTE, absolute Delta <=0.10 and initial margin/premium <=10. Require stable two-sided quotes after 10:00 HKT, adequate liquidity, event checks, account buffer and assignment capacity. Unknown or failed inputs imply WAIT/no eligible trade. Do not weaken gates to satisfy an idea count.
 - Prioritize close/reduce/qualifying roll below 21 DTE. At 50–70% premium captured prioritize taking profit; losses exceeding 100% of initial premium require handling. Recheck all new-leg gates for a roll; report the realized loss separately.
 - Verify contract multiplier, exercise terms, cash currency and signed position quantity. Do not assume one option contract equals 100 shares. Never treat low Delta, high IV or stop orders as a guarantee of limited loss.
-- Respect the existing report length, token budget and delivery schedule. A premarket report is conditional research; refresh quotes at the permitted entry time. This skill does not install a scheduler or automatically change the Python runtime.
+- Respect the existing report length, token budget and delivery schedule. A premarket report is conditional research; refresh quotes at the permitted entry time. The daily Python pipeline uses the bounded routing instructions in references/daily-runtime.md and deterministic trading_workflows.py aggregation. It adds no model calls and preserves scheduling and budget limits.
 
 ## 1. Trading ideas / 交易點子產生器
 
@@ -63,3 +63,4 @@ Use concise Traditional Chinese/Cantonese unless asked otherwise:
 4. Principal risk, invalidation and next verification step.
 
 For option decisions specify underlying, strategy, strike, expiry/DTE, executable premium basis, spread, Delta, margin/premium, maximum loss or unbounded exposure, profit/exit conditions and eligibility status. Use N/A for unavailable fields and withhold unconditional entry.
+
