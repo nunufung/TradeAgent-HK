@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graphify"
+  short_description: "Build and query source-backed project knowledge graphs"
+  default_prompt: "Use $graphify to map TradeAgent-HK modules, Skills, and reporting channels into a queryable knowledge graph."
