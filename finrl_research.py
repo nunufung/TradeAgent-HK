@@ -50,8 +50,12 @@ def prepare_panel(raw: pd.DataFrame) -> pd.DataFrame:
     values = frame[columns[2:]].to_numpy(dtype=float)
     if not np.isfinite(values).all() or (values[:, :4] <= 0).any() or (values[:, 4] < 0).any():
         raise ValueError('Finite positive prices and nonnegative volume required')
-    if ((frame.high < frame[['open', 'close', 'low']].max(axis=1)) |
-            (frame.low > frame[['open', 'close', 'high']].min(axis=1))).any():
+    # Corporate-action adjustment can create a few ULPs of roundoff between
+    # otherwise equal prices. Accept relative numerical noise, not bad bars;
+    # preserve every supplied price rather than rounding or repairing it.
+    tolerance = frame[['open', 'high', 'low', 'close']].abs().max(axis=1).clip(lower=1) * 1e-12
+    if ((frame.high + tolerance < frame[['open', 'close', 'low']].max(axis=1)) |
+            (frame.low - tolerance > frame[['open', 'close', 'high']].min(axis=1))).any():
         raise ValueError('Inconsistent OHLC prices')
     count = frame.tic.nunique()
     if len(frame) != frame.date.nunique() * count:
