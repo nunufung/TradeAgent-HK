@@ -7,6 +7,31 @@ on:
     - cron: '17 23 * * *'  # 07:17 HKT: backup if delivery has not been claimed
     - cron: '37 23 * * *' # 07:37 HKT: final backup, no duplicate sends
   workflow_dispatch:
+    inputs:
+      ticker:
+        description: 'HK stock code (blank = daily research)'
+        type: string
+        default: ''
+      request_source:
+        description: 'Caller label; compatible with the existing Telegram bridge'
+        type: string
+        default: manual
+      scope:
+        description: 'Compatibility input; a supplied ticker always runs stock research'
+        type: string
+        default: stock
+      recover_daily:
+        description: 'Explicitly send today’s saved report now, including after 08:00'
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      ticker:
+        type: string
+        default: ''
+      recover_daily:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -17,8 +42,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  requested_stock:
+    if: inputs.ticker != ''
+    uses: ./.github/workflows/telegram-stock-request.yml
+    with:
+      ticker: ${{ inputs.ticker }}
+    secrets: inherit
+
   report:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 20 * * *'
+    if: inputs.ticker == '' && !inputs.recover_daily && (github.event_name == 'workflow_dispatch' || github.event.schedule == '17 20 * * *')
     runs-on: ubuntu-latest
     timeout-minutes: 70
     env:
@@ -149,12 +181,17 @@ jobs:
           if-no-files-found: warn
 
   send_morning:
-    if: github.event_name == 'schedule' && github.event.schedule != '17 20 * * *'
+    needs: report
+    if: always() && inputs.ticker == '' && (github.event_name == 'schedule' || inputs.recover_daily)
+    concurrency:
+      group: hk-daily-telegram-delivery
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      DAILY_MANUAL_RECOVERY: ${{ inputs.recover_daily && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - name: Check deadline, daily delivery claim and current report
@@ -168,14 +205,21 @@ jobs:
             const claim = 'hk-daily-delivery-claim-' + day;
             core.setOutput('date',day);
             core.setOutput('claim',claim);
-            if (clock >= '07:59' || !process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+            if (!process.env.TELEGRAM_BOT_TOKEN?.trim() || !process.env.TELEGRAM_CHAT_ID?.trim()) {
               core.setOutput('skip','true');
-              core.warning('Too late for morning delivery, or delivery credentials missing.');
+              core.setFailed('Telegram delivery credentials are missing. No report sent.');
               return;
             }
             const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
             if (artifacts.some(a => a.name === claim && !a.expired)) {
               core.setOutput('skip','true');
+              const confirmed = artifacts.some(a => !a.expired && a.name === 'hk-daily-delivery-receipt-' + day);
+              if (!confirmed) core.setFailed('A previous send attempt has no confirmed receipt; inspect it before retrying.');
+              return;
+            }
+            if (clock >= '07:59' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
+              core.setOutput('skip','true');
+              core.setFailed('Missed 08:00 HKT delivery deadline. No Telegram report sent. Use recover_daily for an explicit catch-up.');
               return;
             }
             core.setOutput('skip','false');
@@ -198,10 +242,11 @@ jobs:
         run: |
           python - <<'PY'
           from datetime import datetime, time
+          import os
           from pathlib import Path
           from daily_delivery import HKT
           now = datetime.now(HKT)
-          if now.time() >= time(7, 59):
+          if os.getenv('DAILY_MANUAL_RECOVERY') != 'true' and now.time() >= time(7, 59):
               raise SystemExit('Delivery deadline reached.')
           Path('delivery_claim.txt').write_text(now.isoformat())
           PY

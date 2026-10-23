@@ -4,12 +4,13 @@ Hong Kong equity and options research using four independent TradingAgents analy
 
 ## Daily operation
 
-- Prepare at 06:00 Hong Kong time using the DeepSeek API; the automatic run uses `deepseek-chat` for both model tiers.
+- Prepare at 04:17 Hong Kong time using the DeepSeek API; the automatic run uses `deepseek-chat` for both model tiers.
 - Research up to two dynamically selected stocks, retaining technical, sentiment, news and fundamental analysts, investment debate and risk review.
-- Deliver one professional, concise Telegram text report at 08:15 HKT. The 08:35 schedule is a backup only if no send attempt has been claimed. No daily PDF or second summary is sent.
+- Attempt one concise Telegram text report immediately after scheduled research finishes, with independent 06:47, 07:17 and 07:37 HKT backup runs. A durable claim and confirmed receipt prevent repeat sends.
 - Each date permits one paid morning session: at most 48 calls, a 100,000-token accounting budget and 800 output tokens per call. Record DeepSeek-reported input/output/cache-hit usage in the Actions ledger.
-- Stop research by 08:00 and refuse late morning delivery. GitHub schedules can be delayed or dropped, so this setup cannot guarantee arrival before 09:00 every day.
-- Automatic Telegram stock-request polling is disabled. Manual stock/option workflows remain available as explicitly requested extra work outside the daily budget.
+- Stop automatic research by 06:30 and refuse automatic delivery after the 08:00 deadline. Missed sends fail visibly. GitHub schedules can be delayed or dropped, so this cannot guarantee arrival before 08:00.
+- Explicit Telegram stock requests are supported through the existing bridge: `hk-daily.yml` accepts `ticker`, `request_source` and `scope`, and routes a supplied ticker to the stock PDF workflow. Automatic polling remains disabled.
+- For a missed daily message, explicitly run `HK Daily Report` with `recover_daily=true` and no ticker. This sends today's saved report (or a transparent incomplete-research notice), labelled as a manual catch-up, with a confirmed receipt. It does not restart paid morning research.
 
 Read [DAILY_TOKEN_POLICY.md](DAILY_TOKEN_POLICY.md) for reservation accounting, deadline checks, deduplication and failure behavior. Read [REPORT_FORMAT.md](REPORT_FORMAT.md) for the decision-first reporting format. Detailed research remains in Actions artifacts; same-day cloud research remains available to the Mac Futu option workflow.
 

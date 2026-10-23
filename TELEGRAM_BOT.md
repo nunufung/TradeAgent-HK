@@ -1,6 +1,6 @@
 # Telegram stock PDF requests
 
-Automatic five-minute polling is disabled under the daily-only Token policy. The `Telegram Stock PDF Request` workflow now runs only when explicitly dispatched in GitHub Actions. Sending a stock number to Telegram does not automatically start paid research. A manual dispatch can process the pending request; it is an extra API expense outside the automatic morning budget. See [DAILY_TOKEN_POLICY.md](DAILY_TOKEN_POLICY.md).
+Automatic five-minute polling is disabled under the daily-only Token policy. The `Telegram Stock PDF Request` workflow now runs only when explicitly dispatched in GitHub Actions. The existing Telegram bridge may explicitly dispatch `hk-daily.yml` with `ticker` and `request_source=telegram`; these inputs are accepted and routed directly to the PDF workflow without polling. A manual dispatch with a blank ticker can process a pending request; it is an extra API expense outside the automatic morning budget. See [DAILY_TOKEN_POLICY.md](DAILY_TOKEN_POLICY.md).
 
 Send either of these messages to the same Telegram chat that receives the PDF reports:
 
@@ -19,3 +19,5 @@ For a private bot chat, the sender must be the account represented by `TELEGRAM_
 
 This workflow uses Telegram long polling (`getUpdates`). If another webhook is already configured for this bot token, Telegram rejects polling with HTTP 409. The workflow will report that condition; it will not remove an existing webhook automatically.
 
+
+Direct workflow dispatch also accepts `ticker=1810` (or `01810`). It validates the ticker before analysis and saves `stock_delivery_receipt.json` only after Telegram confirms the PDF. It never acknowledges unrelated Telegram updates on the direct path.

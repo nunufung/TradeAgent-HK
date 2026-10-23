@@ -2,6 +2,16 @@ name: Telegram Stock PDF Request
 
 on:
   workflow_dispatch:
+    inputs:
+      ticker:
+        description: 'Explicit HK stock code; blank processes a pending Telegram request'
+        type: string
+        default: ''
+  workflow_call:
+    inputs:
+      ticker:
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -13,7 +23,7 @@ concurrency:
 jobs:
   request:
     # Extra stock research now requires an explicit manual invocation.
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -34,7 +44,9 @@ jobs:
 
       - name: Check Telegram for an authorized ticker
         id: poll
-        run: python telegram_stock_bot.py poll
+        env:
+          DIRECT_TICKER: ${{ inputs.ticker }}
+        run: python telegram_stock_bot.py prepare
 
       - name: Reply to help or invalid ticker
         if: steps.poll.outputs.kind == 'help' || steps.poll.outputs.kind == 'invalid'
@@ -108,3 +120,17 @@ jobs:
           REQUEST_UPDATE_ID: ${{ steps.poll.outputs.update_id }}
         run: python telegram_stock_bot.py ack
 
+      - name: Save stock delivery receipt and research audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-stock-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            stock_delivery_receipt.json
+            final_summary.txt
+            stock_analysis.md
+            stock_signals.json
+            report_*.md
+            pdf_reports/*.pdf
+          if-no-files-found: warn
+          retention-days: 7

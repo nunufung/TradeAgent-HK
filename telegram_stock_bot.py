@@ -144,6 +144,17 @@ def poll() -> int:
     return 0
 
 
+def prepare() -> int:
+    """Handle a validated dispatched ticker without consuming Telegram updates."""
+    value = os.getenv('DIRECT_TICKER', '').strip()
+    if not value:
+        return poll()
+    if not re.fullmatch(r'[0-9]{1,5}', value) or int(value) == 0:
+        raise ValueError('Dispatch ticker must be a positive 1–5 digit HK code')
+    _write_outputs({'kind': 'stock', 'ticker': str(int(value)), 'update_id': ''})
+    return 0
+
+
 def reply() -> int:
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     kind = os.getenv("REQUEST_KIND", "")
@@ -167,7 +178,9 @@ def send_pdf() -> int:
     if not pdfs:
         raise RuntimeError("No PDF report was generated")
     caption = f"TradeAgent-HK｜{ticker} 分析報告\nPDF 由 TradingAgents v0.6.0 產生。"
-    _api("sendDocument", {"chat_id": chat_id, "caption": caption}, file_field=("document", pdfs[0]))
+    result = _api("sendDocument", {"chat_id": chat_id, "caption": caption}, file_field=("document", pdfs[0]))
+    Path('stock_delivery_receipt.json').write_text(json.dumps({'ticker': ticker, 'message_id': result['result']['message_id']}))
+    print('Stock PDF delivery confirmed; receipt saved.')
     return 0
 
 
@@ -190,9 +203,9 @@ def notify_failure() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Poll Telegram and return a stock analysis PDF")
-    parser.add_argument("action", choices=("poll", "reply", "send-pdf", "ack", "notify-failure"))
+    parser.add_argument("action", choices=("prepare", "poll", "reply", "send-pdf", "ack", "notify-failure"))
     action = parser.parse_args().action
-    return {"poll": poll, "reply": reply, "send-pdf": send_pdf, "ack": ack, "notify-failure": notify_failure}[action]()
+    return {"prepare": prepare, "poll": poll, "reply": reply, "send-pdf": send_pdf, "ack": ack, "notify-failure": notify_failure}[action]()
 
 
 if __name__ == "__main__":

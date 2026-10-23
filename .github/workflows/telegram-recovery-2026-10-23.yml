@@ -1,0 +1,30 @@
+name: Telegram recovery 2026-10-23
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/telegram-recovery-2026-10-23.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  authorize_today:
+    if: github.event.head_commit.message == 'Recover missed Telegram reports for 2026-10-23'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate stock request and recovery transport
+        run: python -m unittest discover -s tests -p 'test_telegram*.py'
+      - name: Limit this explicit retry to the requested Hong Kong date
+        run: test "$(TZ=Asia/Hong_Kong date +%F)" = '2026-10-23'
+  recover_daily:
+    needs: authorize_today
+    uses: ./.github/workflows/hk-daily.yml
+    with:
+      recover_daily: true
+    secrets: inherit
+  retry_1810:
+    needs: authorize_today
+    uses: ./.github/workflows/hk-daily.yml
+    with:
+      ticker: '1810'
+    secrets: inherit
