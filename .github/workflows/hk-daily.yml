@@ -45,7 +45,10 @@ jobs:
       - uses: actions/checkout@v4
         if: steps.morning.outputs.skip != 'true'
         with:
-          submodules: recursive
+          submodules: false
+      - name: Initialize report dependencies only (FinRL trains separately)
+        if: steps.morning.outputs.skip != 'true'
+        run: git submodule update --init --recursive tradingagents tools/book-to-skill
       - name: Restore today's already charged API calls
         if: steps.morning.outputs.skip != 'true' && steps.morning.outputs.ledger_name != ''
         uses: actions/download-artifact@v4
@@ -223,4 +226,5 @@ jobs:
           path: delivery_receipt.json
           if-no-files-found: error
           retention-days: 30
+
 

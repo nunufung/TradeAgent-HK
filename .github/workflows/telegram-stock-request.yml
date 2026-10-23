@@ -28,7 +28,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+      - name: Initialize report dependencies only (FinRL trains separately)
+        run: git submodule update --init --recursive tradingagents tools/book-to-skill
 
       - name: Check Telegram for an authorized ticker
         id: poll
@@ -105,3 +107,4 @@ jobs:
         env:
           REQUEST_UPDATE_ID: ${{ steps.poll.outputs.update_id }}
         run: python telegram_stock_bot.py ack
+

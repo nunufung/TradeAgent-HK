@@ -49,7 +49,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+      - name: Initialize report dependencies only (FinRL trains separately)
+        run: git submodule update --init --recursive tradingagents tools/book-to-skill
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -96,4 +98,5 @@ jobs:
             market_news_preview.json
           if-no-files-found: warn
           retention-days: 3
+
 

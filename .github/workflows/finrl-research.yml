@@ -1,0 +1,84 @@
+name: FinRL Research
+
+on:
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: 'HK stock symbols, comma separated (historical stock simulations only)'
+        default: '0700,1810,9988'
+        required: true
+        type: string
+      start:
+        description: 'Historical start date'
+        default: '2020-01-01'
+        required: true
+        type: string
+      timesteps:
+        description: 'Training steps per model (32–500000)'
+        default: '10000'
+        required: true
+        type: string
+  pull_request:
+    paths: ['finrl_research.py', 'integrations/finrl-lock.json', 'external/finrl', 'requirements-finrl.txt', 'tests/test_finrl_research.py', 'trading_workflows.py', '.github/workflows/finrl-research.yml']
+  push:
+    branches: [main, 'codex/finrl-research*']
+    paths: ['finrl_research.py', 'integrations/finrl-lock.json', 'external/finrl', 'requirements-finrl.txt', 'tests/test_finrl_research.py', 'trading_workflows.py', '.github/workflows/finrl-research.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finrl-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize only the pinned FinRL research dependency
+        run: git submodule update --init external/finrl
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-finrl.txt
+      - name: Install the separate CPU research environment
+        run: |
+          python -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-finrl.txt
+      - name: Validate data, chronology, real training and report handoff
+        run: python -m unittest discover -s tests -p test_finrl_research.py -v
+
+  historical-research:
+    if: github.event_name == 'workflow_dispatch'
+    needs: integration-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: git submodule update --init external/finrl
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-finrl.txt
+      - name: Install optional research dependencies
+        run: |
+          python -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-finrl.txt
+      - name: Train on history and evaluate untouched test period
+        env:
+          RESEARCH_TICKERS: ${{ inputs.tickers }}
+          RESEARCH_START: ${{ inputs.start }}
+          RESEARCH_STEPS: ${{ inputs.timesteps }}
+        run: |
+          python finrl_research.py --tickers "$RESEARCH_TICKERS" --start "$RESEARCH_START" --timesteps "$RESEARCH_STEPS" --output finrl-output
+      - name: Save research report, metrics, equity and local model files
+        uses: actions/upload-artifact@v4
+        with:
+          name: finrl-research-${{ github.run_id }}
+          path: finrl-output/
+          if-no-files-found: error
+          retention-days: 30
