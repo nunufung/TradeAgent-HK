@@ -3,5 +3,6 @@
   "commit": "c0018c25de864157dc8470f0047b0d10ec721715",
   "license": "MIT",
   "environment_path": "finrl/meta/env_stock_trading/env_stocktrading.py",
-  "environment_sha256": "aeb53f1efd9320fdd0d6ed114d91e3a56d9867f1bf022a5afa16e74152bd1ca8"
+  "environment_git_blob": "41502b4fed4a296801a67a2d0968423dbf453948",
+  "environment_sha256": "d2d7539cbcc0b386e698bfccffac4eb218e2100efb40a7eb2662f24c891dc520"
 }

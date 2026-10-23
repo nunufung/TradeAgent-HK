@@ -77,6 +77,21 @@ class DataTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'submodule'):
                 research.load_finrl_environment(Path(d))
 
+    def test_source_matches_upstream_git_blob_and_tampering_is_rejected(self):
+        path = research.FINRL_ROOT / research.ENV_PATH
+        if not path.is_file():
+            self.skipTest('Pinned FinRL checkout required')
+        import hashlib
+        raw = path.read_bytes()
+        blob = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+        self.assertEqual(blob, research.LOCK['environment_git_blob'])
+        with tempfile.TemporaryDirectory() as d:
+            changed = Path(d) / research.ENV_PATH
+            changed.parent.mkdir(parents=True)
+            changed.write_bytes(raw + b'\n')
+            with self.assertRaisesRegex(RuntimeError, 'differs'):
+                research.load_finrl_environment(Path(d))
+
 
 class RuntimeTests(unittest.TestCase):
     def test_training_ends_at_last_real_transition_without_duplicate_reward(self):
