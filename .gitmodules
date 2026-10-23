@@ -4,3 +4,7 @@
 [submodule "tools/book-to-skill"]
 	path = tools/book-to-skill
 	url = https://github.com/virgiliojr94/book-to-skill.git
+[submodule "external/finrl"]
+	path = external/finrl
+	url = https://github.com/AI4Finance-Foundation/FinRL.git
+

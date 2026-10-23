@@ -38,7 +38,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+      - name: Initialize report dependencies only (FinRL trains separately)
+        run: git submodule update --init --recursive tradingagents tools/book-to-skill
 
       - name: Use installed Mac Python in an isolated environment
         env:
@@ -128,3 +130,4 @@ jobs:
             free_news_*.json
           if-no-files-found: warn
           retention-days: 14
+

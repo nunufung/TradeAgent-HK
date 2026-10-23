@@ -23,6 +23,11 @@ Take-profit handling starts at 50–70% of original premium captured. Losses gre
 
 The reviewed Psychology of Money risk skill is loaded into four-analyst research. Project option rules take precedence. Conversion, provenance and runtime audit details are in [BOOK_TO_SKILL.md](BOOK_TO_SKILL.md).
 
+## FinRL strategy research
+
+The optional [FinRL integration](FINRL_INTEGRATION.md) adds HK stock reinforcement-learning training and held-out backtesting, with A2C/PPO and optional DDPG/SAC/TD3, cost assumptions and benchmark comparisons. Run it through **Actions → FinRL Research → Run workflow** or the local CLI. Saved results can feed the daily strategy-backtest section through the existing explicit research-input setting. Training runs separately; outputs are historical stock simulations and cannot authorize option entries.
+
 ## Validation
 
 Run `python -m unittest discover -s tests`. Chinese PDF tests need an available CJK font (set `TAHK_CJK_FONT` when needed). Local tests do not prove live API savings or confirmed Telegram delivery; check the next production run's token ledger and delivery receipt.
+

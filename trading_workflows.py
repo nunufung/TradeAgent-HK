@@ -185,6 +185,37 @@ def journal(data, now):
     return (f"最近{len(trades)}筆；已記錄違規{sum(counts.values())}次；三項紀律：準時退出、控倉、先訂計劃（無違規證據者屬暫定）。", metrics)
 
 
+def finrl_backtest(data, now):
+    """Summarize an explicitly supplied historical run; never authorizes options."""
+    if (not isinstance(data, dict) or data.get('schema_version') != 1
+            or data.get('status') != 'research_only' or data.get('instrument_type') != 'stock'
+            or data.get('execution_eligible') is not False or data.get('allowed_option_types') != []):
+        raise ValueError('Research-only FinRL stock result required')
+    timestamp(data['generated_at'], now)
+    if not data.get('data_source') or not data.get('upstream', {}).get('commit'):
+        raise ValueError('FinRL provenance required')
+    periods = data['periods']
+    from datetime import date
+    for label in ('train', 'validation', 'test'):
+        first, last = map(date.fromisoformat, (periods[label]['start'], periods[label]['end']))
+        if first > last or last > now.date():
+            raise ValueError('Invalid historical period')
+    if not (periods['train']['end'] < periods['validation']['start']
+            and periods['validation']['end'] < periods['test']['start']):
+        raise ValueError('Overlapping train, validation and test periods')
+    if not 0 < number(data['per_side_cost_fraction']) < .1:
+        raise ValueError('Cost assumption required')
+    metrics = {}
+    for label in ('selected_policy', 'equal_weight_buy_hold', 'cash'):
+        row = data['test'][label]
+        ret, dd = number(row['net_return']), number(row['max_drawdown'])
+        if ret <= -1 or not 0 <= dd <= 1:
+            raise ValueError('Invalid performance values')
+        metrics[label] = {'net_return':ret, 'max_drawdown':dd}
+    return (f"FinRL正股歷史模擬：測試回報{metrics['selected_policy']['net_return']:.1%}；"
+            f"回撤{metrics['selected_policy']['max_drawdown']:.1%}；非期權回測或入場訊號。", metrics)
+
+
 def build_workflows(payload, recommendations, *, inputs=None, input_status='missing', now=None):
     now = (now or datetime.now(HKT)).astimezone(HKT)
     inputs = inputs or {}
@@ -211,6 +242,8 @@ def build_workflows(payload, recommendations, *, inputs=None, input_status='miss
         (LABELS[3], 'backtest', backtest, '缺歷史回測成交、淨值及方法；勝率/PF/回撤/均報N/A。'),
         (LABELS[4], 'portfolio', portfolio, '缺當日完整持倉及資金；集中度與跌市20%損益N/A。'),
         (LABELS[5], 'journal', journal, '缺最近20筆完整交易；錯誤、偏誤及個人化規則待核。')):
+        if key == 'backtest' and key not in inputs and 'finrl' in inputs:
+            key, fn = 'finrl', finrl_backtest
         module = {'name': name, 'status': 'blocked', 'summary': missing}
         if input_status == 'invalid':
             module['summary'] = '私人輸入格式無效；' + missing
@@ -247,3 +280,4 @@ def render_workflows(audit):
         for rule in module.get('metrics', {}).get('rules', []):
             lines.append(('暫定規則：' if rule['provisional'] else '記錄支持規則：') + rule['action'] + '；' + rule['metric'])
     return '\n\n'.join(lines) + '\n'
+

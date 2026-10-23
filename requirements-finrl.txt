@@ -1,0 +1,9 @@
+# Optional research environment. Keep separate from daily-report requirements.
+# Install torch with the CPU index first on Linux; see FINRL_INTEGRATION.md.
+numpy==1.26.4
+pandas>=2.2,<3
+matplotlib>=3.8,<4
+gymnasium==1.0.0
+stable-baselines3==2.4.1
+torch==2.5.1
+yfinance>=0.2.66,<0.3
