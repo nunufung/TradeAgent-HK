@@ -38,7 +38,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: hk-daily-${{ github.event.schedule == '17 20 * * *' && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
+  group: hk-daily-${{ inputs.ticker != '' && 'stock' || inputs.recover_daily && 'recovery' || github.event.schedule == '17 20 * * *' && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
   cancel-in-progress: false
 
 jobs:
