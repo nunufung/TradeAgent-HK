@@ -49,6 +49,15 @@ class DataTests(unittest.TestCase):
             with self.subTest(first=bad.iloc[0].to_dict()):
                 with self.assertRaises(ValueError): research.prepare_panel(bad)
 
+    def test_adjustment_roundoff_does_not_reject_valid_price_bars(self):
+        raw = history()
+        raw.loc[20, 'high'] = raw.loc[20, 'close'] - 4e-15
+        panel = research.prepare_panel(raw)
+        self.assertGreater(len(panel), 0)
+        raw.loc[20, 'high'] = raw.loc[20, 'close'] - .001
+        with self.assertRaisesRegex(ValueError, 'Inconsistent OHLC'):
+            research.prepare_panel(raw)
+
     def test_chronological_disjoint_splits_reset_finrl_day_index(self):
         splits = research.split_panel(research.prepare_panel(history()))
         train, validation, test = splits
