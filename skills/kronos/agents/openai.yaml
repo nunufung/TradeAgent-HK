@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kronos for TradeAgent-HK"
+  short_description: "K-line forecasting research for HK stocks"
+  default_prompt: "Use $kronos to prepare a validated HK stock forecast and explain how it complements TradeAgent-HK analysts and option rules."
