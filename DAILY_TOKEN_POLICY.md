@@ -10,7 +10,7 @@ Automatic morning research uses `daily_runner.py`; the daily workflow no longer 
 - Up to 48 forwarded API calls, 100,000 input-plus-output token accounting budget, 800 output tokens per call, two tool rounds per analyst, 60,000 input bytes per request.
 - Before each call, reserve a conservative bound based on complete serialized request bytes plus output allowance and overhead. After success, reconcile with DeepSeek's reported prompt/completion usage. Failed or unconfirmed calls keep their full reserved allowance. Truncated outputs are rejected rather than labeled complete research.
 - Save actual input, output and cache-hit tokens in `daily_token_usage.json`; never save keys or prompts in that ledger. Cache hits are measured, not assumed as savings. The budget controls this project's automatic session, not account-wide billing or manually invoked workflows.
-- Research runs for at most 45 minutes and starts no new API calls after 06:30 HKT. Unknown inputs or failed research produce a current-day waiting summary without invented trade recommendations.
+- Research runs for at most 45 minutes and starts no new API calls after 07:15 HKT. Unknown inputs or failed research produce a current-day waiting summary without invented trade recommendations.
 
 ## One compact delivery
 
