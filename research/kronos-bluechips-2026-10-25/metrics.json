@@ -1,0 +1,953 @@
+{
+  "scope": "GitHub watchlist bluechip routing group, not a certified HSI constituent list; includes 2800 ETF",
+  "stocks": [
+    {
+      "ticker": "0005",
+      "name": "匯豐控股",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 23,
+        "rejected": 1,
+        "predicted": {
+          "mae": 0.15266310703353697,
+          "rmse": 0.1689221212399981,
+          "direction_correct": 10,
+          "direction_n": 23
+        },
+        "zero": {
+          "mae": 0.02290543892214957,
+          "rmse": 0.029854231594599323,
+          "direction_correct": 0,
+          "direction_n": 23
+        },
+        "trend": {
+          "mae": 0.024658722297324832,
+          "rmse": 0.032865750004686056,
+          "direction_correct": 13,
+          "direction_n": 23
+        },
+        "always_up_correct": 13,
+        "zero_mae_all_attempts": 0.022080284676702724
+      }
+    },
+    {
+      "ticker": "0388",
+      "name": "香港交易所",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.026136886496281677,
+          "rmse": 0.03052766341461724,
+          "direction_correct": 10,
+          "direction_n": 23
+        },
+        "zero": {
+          "mae": 0.019995012210547752,
+          "rmse": 0.02320740374551505,
+          "direction_correct": 0,
+          "direction_n": 23
+        },
+        "trend": {
+          "mae": 0.019166733370870506,
+          "rmse": 0.02444226360268257,
+          "direction_correct": 15,
+          "direction_n": 23
+        },
+        "always_up_correct": 9,
+        "zero_mae_all_attempts": 0.019995012210547752
+      }
+    },
+    {
+      "ticker": "1299",
+      "name": "友邦保險",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.02426557222500959,
+          "rmse": 0.03428600817036013,
+          "direction_correct": 17,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.0295261102151005,
+          "rmse": 0.038288841777016004,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.036431198208256556,
+          "rmse": 0.045681229166957604,
+          "direction_correct": 9,
+          "direction_n": 24
+        },
+        "always_up_correct": 13,
+        "zero_mae_all_attempts": 0.0295261102151005
+      }
+    },
+    {
+      "ticker": "2318",
+      "name": "中國平安",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.04054474782245587,
+          "rmse": 0.04626594274395119,
+          "direction_correct": 7,
+          "direction_n": 23
+        },
+        "zero": {
+          "mae": 0.029212847938760052,
+          "rmse": 0.03471470229881702,
+          "direction_correct": 0,
+          "direction_n": 23
+        },
+        "trend": {
+          "mae": 0.03130221828273958,
+          "rmse": 0.039060201875060624,
+          "direction_correct": 12,
+          "direction_n": 23
+        },
+        "always_up_correct": 9,
+        "zero_mae_all_attempts": 0.029212847938760052
+      }
+    },
+    {
+      "ticker": "0939",
+      "name": "建設銀行",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.06719907249669571,
+          "rmse": 0.07543443398439742,
+          "direction_correct": 13,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.02567173516691727,
+          "rmse": 0.03322871403223101,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.030904119852477152,
+          "rmse": 0.038554810045291904,
+          "direction_correct": 12,
+          "direction_n": 24
+        },
+        "always_up_correct": 13,
+        "zero_mae_all_attempts": 0.02567173516691727
+      }
+    },
+    {
+      "ticker": "1398",
+      "name": "工商銀行",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.07290378735996747,
+          "rmse": 0.07977847938090829,
+          "direction_correct": 12,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.028077533987804024,
+          "rmse": 0.03507794337649646,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.03220706193294673,
+          "rmse": 0.040357988344563306,
+          "direction_correct": 10,
+          "direction_n": 24
+        },
+        "always_up_correct": 12,
+        "zero_mae_all_attempts": 0.028077533987804024
+      }
+    },
+    {
+      "ticker": "3988",
+      "name": "中國銀行",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.11239228456476336,
+          "rmse": 0.12287133337346919,
+          "direction_correct": 9,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.026105450129805613,
+          "rmse": 0.03282539965538109,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.029738778674074155,
+          "rmse": 0.03751713484424888,
+          "direction_correct": 13,
+          "direction_n": 24
+        },
+        "always_up_correct": 15,
+        "zero_mae_all_attempts": 0.026105450129805613
+      }
+    },
+    {
+      "ticker": "0941",
+      "name": "中國移動",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.013525812237517754,
+          "rmse": 0.01972489478307646,
+          "direction_correct": 12,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.015024129640349446,
+          "rmse": 0.02021954143520566,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.017705997234428245,
+          "rmse": 0.023595302921003213,
+          "direction_correct": 13,
+          "direction_n": 24
+        },
+        "always_up_correct": 11,
+        "zero_mae_all_attempts": 0.015024129640349446
+      }
+    },
+    {
+      "ticker": "0883",
+      "name": "中國海洋石油",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.04492573793121763,
+          "rmse": 0.05668212479103406,
+          "direction_correct": 14,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.03832579252194933,
+          "rmse": 0.04761821162595025,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.044641312478261135,
+          "rmse": 0.05638238013565409,
+          "direction_correct": 10,
+          "direction_n": 24
+        },
+        "always_up_correct": 13,
+        "zero_mae_all_attempts": 0.03832579252194933
+      }
+    },
+    {
+      "ticker": "0016",
+      "name": "新鴻基地產",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 23,
+        "rejected": 1,
+        "predicted": {
+          "mae": 0.04435688714886189,
+          "rmse": 0.07017408010389946,
+          "direction_correct": 8,
+          "direction_n": 23
+        },
+        "zero": {
+          "mae": 0.030033108506764883,
+          "rmse": 0.04184763205955395,
+          "direction_correct": 0,
+          "direction_n": 23
+        },
+        "trend": {
+          "mae": 0.03852454422744076,
+          "rmse": 0.04701137180696722,
+          "direction_correct": 11,
+          "direction_n": 23
+        },
+        "always_up_correct": 11,
+        "zero_mae_all_attempts": 0.02995049938910731
+      }
+    },
+    {
+      "ticker": "2020",
+      "name": "安踏體育",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.03091253990369927,
+          "rmse": 0.04327326060556214,
+          "direction_correct": 18,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.031331379955624995,
+          "rmse": 0.038372121265037064,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.036926385243764744,
+          "rmse": 0.04496695399393641,
+          "direction_correct": 7,
+          "direction_n": 24
+        },
+        "always_up_correct": 11,
+        "zero_mae_all_attempts": 0.031331379955624995
+      }
+    },
+    {
+      "ticker": "2899",
+      "name": "紫金礦業",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.05906847959206476,
+          "rmse": 0.06492646634869599,
+          "direction_correct": 7,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.055022882085031866,
+          "rmse": 0.06363601514530794,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.05744439851665681,
+          "rmse": 0.07048715650304523,
+          "direction_correct": 15,
+          "direction_n": 24
+        },
+        "always_up_correct": 9,
+        "zero_mae_all_attempts": 0.055022882085031866
+      }
+    },
+    {
+      "ticker": "0027",
+      "name": "銀河娛樂",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.03191888236467231,
+          "rmse": 0.039120752690669974,
+          "direction_correct": 11,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.02664000637339925,
+          "rmse": 0.03608470609442268,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.026672543544509337,
+          "rmse": 0.04015514313385769,
+          "direction_correct": 15,
+          "direction_n": 24
+        },
+        "always_up_correct": 9,
+        "zero_mae_all_attempts": 0.02664000637339925
+      }
+    },
+    {
+      "ticker": "2800",
+      "name": "盈富基金",
+      "status": "FAILED_OR_MISSING",
+      "metrics": null
+    },
+    {
+      "ticker": "0857",
+      "name": "中國石油股份",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.055387610461064524,
+          "rmse": 0.0739489279998533,
+          "direction_correct": 15,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.038091836273215836,
+          "rmse": 0.04679354415184771,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.04485411609481618,
+          "rmse": 0.05716799520688812,
+          "direction_correct": 6,
+          "direction_n": 24
+        },
+        "always_up_correct": 12,
+        "zero_mae_all_attempts": 0.038091836273215836
+      }
+    },
+    {
+      "ticker": "9992",
+      "name": "泡泡瑪特",
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.04633262141040351,
+          "rmse": 0.06273706181341149,
+          "direction_correct": 15,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.03976699447394638,
+          "rmse": 0.05971721601232882,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.049378401996829135,
+          "rmse": 0.068096536549284,
+          "direction_correct": 11,
+          "direction_n": 24
+        },
+        "always_up_correct": 10,
+        "zero_mae_all_attempts": 0.03976699447394638
+      }
+    }
+  ],
+  "pooled": {
+    "attempted": 360,
+    "valid": 358,
+    "rejected": 2,
+    "predicted": {
+      "mae": 0.05459161090216395,
+      "rmse": 0.07508210401339181,
+      "direction_correct": 178,
+      "direction_n": 356
+    },
+    "zero": {
+      "mae": 0.030403876129061137,
+      "rmse": 0.0404530889027885,
+      "direction_correct": 0,
+      "direction_n": 356
+    },
+    "trend": {
+      "mae": 0.034721155029063505,
+      "rmse": 0.046410655875090426,
+      "direction_correct": 172,
+      "direction_n": 356
+    },
+    "always_up_correct": 170,
+    "zero_mae_all_attempts": 0.030321499669217492
+  },
+  "provenance": {
+    "0005": {
+      "generated_at": "2026-10-25T09:14:12.553887+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "0005": "e5d168548e838a052675ebb9f5024dc0d49a59c4b62074a138634d2577d519e2"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "0388": {
+      "generated_at": "2026-10-25T09:14:00.609118+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "0388": "7bae6db3969bfde151260c6c997bffd2f8365fd7f0c1e6edf68640a98a3c333f"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "1299": {
+      "generated_at": "2026-10-25T09:13:58.818096+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "1299": "0b97ef6bb3c9d9dd18c034142c5f13f34116d21537928410db72caf79b20a21c"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "2318": {
+      "generated_at": "2026-10-25T09:14:04.323755+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "2318": "3a8015ba8b80e87f29924d55b1f0d26af70105dbb41f8875d8b5f54c8d58de7a"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "0939": {
+      "generated_at": "2026-10-25T09:14:08.041621+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "0939": "f98ac1e73df9dc6ebeea3e01a277f3a7fb52ab92e2820a79978c256f2d18ed83"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "1398": {
+      "generated_at": "2026-10-25T09:14:10.380466+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "1398": "3be408fbb8e1c368c0692688857c09d4e810802c29ea6b55a88d3bab0d9896c8"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "3988": {
+      "generated_at": "2026-10-25T09:14:04.179521+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "3988": "c66acd5786537dbd46c94390c13e8198a2c0da831acbd58850fce95882f9b47f"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "0941": {
+      "generated_at": "2026-10-25T09:14:12.877280+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "0941": "f56e107a37930ac37f770ef6d46a8701eb6fe50b08de27acdc0887a6bb7e2809"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "0883": {
+      "generated_at": "2026-10-25T09:14:09.173800+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "0883": "ea6302be1761216224225c112ad6157af06024f4c96ec17d97a337731493b886"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "0016": {
+      "generated_at": "2026-10-25T09:14:06.110013+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "0016": "7645c330fd333dea12538731f1c87b8771bd8d68835080929e96234a36578fa2"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "2020": {
+      "generated_at": "2026-10-25T09:14:08.529050+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "2020": "99d3558381005ab494a8fe4ed56d1442b97db627903cdd7437bdfb19ed904cdd"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "2899": {
+      "generated_at": "2026-10-25T09:14:00.565439+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "2899": "569603bdd1cb449456caf114739829d2fcd5d7eba730623144260614ddecdcdf"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "0027": {
+      "generated_at": "2026-10-25T09:14:11.862330+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "0027": "70565b0319f822d093530d968445fcaf3fac0dbecc0b86cb05e094c0920c1b62"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "0857": {
+      "generated_at": "2026-10-25T09:14:07.957665+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "0857": "e177d9b2b5d2022b35195dc72156d7b37e81388b5827a850be387b1b647ecfe0"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
+    "9992": {
+      "generated_at": "2026-10-25T09:14:01.110803+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "9992": "b95b9b5934fbff1dc5bd9803b14b9853e392e7c49cadeebe7969bc140a9d8d7a"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    }
+  }
+}
