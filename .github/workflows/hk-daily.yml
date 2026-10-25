@@ -2,10 +2,11 @@ name: HK Daily Report
 
 on:
   schedule:
-    - cron: '17 20 * * *'  # 04:17 HKT: budgeted research; finish by 06:30
+    - cron: '17 20 * * *'  # 04:17 HKT: budgeted research; delayed-start grace through 07:15
     - cron: '47 22 * * *'  # 06:47 HKT: one concise message
     - cron: '17 23 * * *'  # 07:17 HKT: backup if delivery has not been claimed
-    - cron: '37 23 * * *' # 07:37 HKT: final backup, no duplicate sends
+    - cron: '37 23 * * *' # 07:37 HKT: backup if receipt missing
+    - cron: '47 23 * * *' # 07:47 HKT: final chance, no duplicate sends
   workflow_dispatch:
     inputs:
       ticker:
@@ -268,8 +269,15 @@ jobs:
               core.setFailed('Missed 08:00 HKT delivery deadline. No Telegram report sent. Use recover_daily for an explicit catch-up.');
               return;
             }
-            core.setOutput('skip','false');
             const report = artifacts.filter(a => !a.expired && a.name.startsWith('hk-morning-' + day + '-')).sort((a,b) => b.id-a.id)[0];
+            // Do not send a waiting-only fallback while delayed research may still
+            // finish. Later 07:37/07:47 backups can safely send if no artifact arrives.
+            if (!report && clock < '07:25' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
+              core.setOutput('skip','true');
+              core.info('Morning research not yet saved; defer delivery until a later backup slot.');
+              return;
+            }
+            core.setOutput('skip','false');
             if (report) {
               core.setOutput('name', report.name);
               core.setOutput('run_id', String(report.workflow_run.id));
