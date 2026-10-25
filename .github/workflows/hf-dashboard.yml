@@ -1,0 +1,60 @@
+name: Hugging Face Research Dashboard Sync
+
+on:
+  schedule:
+    - cron: '25 0 * * *' # 08:25 HKT, after the 08:05 health audit
+  workflow_dispatch:
+  push:
+    paths:
+      - 'dashboard/**'
+      - 'tests/test_public_dashboard.py'
+      - '.github/workflows/hf-dashboard.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hf-dashboard-sync
+  cancel-in-progress: false
+
+jobs:
+  public-dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test public-data privacy and contract
+        run: python -m unittest discover -s tests -p test_public_dashboard.py -v
+      - name: Syntax check browser interaction
+        run: node --check dashboard/space/assets/app.js
+      - name: Export public-only dashboard snapshot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python dashboard/build_data.py
+      - name: Save browsable static dashboard
+        uses: actions/upload-artifact@v4
+        with:
+          name: hf-dashboard-preview-${{ github.run_id }}
+          path: dashboard/space/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Publish to Hugging Face Static Space
+        if: ${{ github.ref == 'refs/heads/main' && env.HF_TOKEN != '' }}
+        run: |
+          python -m pip install "huggingface_hub>=0.34,<2"
+          python dashboard/publish_space.py
+      - name: Explain missing write permission without claiming publication
+        if: ${{ github.ref == 'refs/heads/main' && env.HF_TOKEN == '' }}
+        run: |
+          echo '### Space publish: NOT CONNECTED' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The public dashboard was built and stored as a GitHub Actions artifact, but Hugging Face write access is missing.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Add a write-scoped Hugging Face User Access Token named HF_TOKEN in GitHub repository Settings > Secrets and variables > Actions. Then re-run this workflow.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No Space was created or updated in this run.' >> "$GITHUB_STEP_SUMMARY"
