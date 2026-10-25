@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 from free_tech_news import configure_free_news, attach_news_context, collect_news, write_news_audit
 from book_skill_context import attach_book_context, load_book_context
 from trading_workflows import attach_workflow_context
+from agent_event_log import emit as emit_agent_event
 
 HKT = ZoneInfo("Asia/Hong_Kong")
 ANALYSTS = ("market", "social", "news", "fundamentals")
@@ -84,6 +85,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
 
     for raw_ticker in tickers:
         underlying = _futu_code(raw_ticker)
+        emit_agent_event("RUN_STARTED", ticker=underlying, state="STARTED")
         print(f"Four-analyst research starting: {underlying}", flush=True)
         ticker = _yahoo_ticker(raw_ticker)
         report_sections.extend([f"\n## {underlying}（{ticker}）\n"])
@@ -108,13 +110,21 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
             attach_daily_context(graph)
 
         try:
+            emit_agent_event("GRAPH_STARTED", ticker=underlying, state="STARTED")
             state, rating = graph.propagate(ticker, trade_date)
+            emit_agent_event("GRAPH_FINISHED", ticker=underlying, state="COMPLETED")
             write_news_audit(news_batch, ticker, state.get("news_report", ""))
             signal = signal_from_state(state, rating, ticker)
+            for role in ANALYSTS:
+                # Evidence of report existence at graph return, not a claim about node execution timestamp.
+                emit_agent_event('REPORT_OBSERVED' if signal['analysts'][role]['complete'] else 'REPORT_MISSING',
+                                 ticker=underlying, role=role,
+                                 state='OBSERVED' if signal['analysts'][role]['complete'] else 'MISSING')
             signal['book_skills'] = applied_skills
             signal['workflow_skill'] = workflow_skill
             rating, complete, reports = signal['rating'], signal['analysis_complete'], signal['reports']
             signals[underlying] = signal
+            emit_agent_event("RUN_FINISHED", ticker=underlying, state="COMPLETED")
             print(f"Four-analyst research ready: {underlying}; rating={rating}; complete={complete}", flush=True)
             report_sections.append(f"\n**TradingAgents 最終評級：{rating}**\n\n")
             for name in ANALYSTS:
@@ -123,6 +133,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
                 f"\n期權連動：{', '.join(signal['allowed_option_types']) or '不篩選（中性／需覆核）'}\n"
             )
         except Exception as exc:  # A failed stock run must never open the options gate.
+            emit_agent_event("GRAPH_FAILED", ticker=underlying, state="FAILED")
             print(f"Four-analyst research unavailable: {underlying}; error={type(exc).__name__}; option direction blocked.", flush=True)
             signals[underlying] = {
                 "rating": "REVIEW",
