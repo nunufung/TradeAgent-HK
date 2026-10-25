@@ -3,6 +3,8 @@ import unittest
 import tempfile
 from pathlib import Path
 from agent_event_log import emit, read
+from traced_propagation import propagate_traced
+from contextlib import nullcontext
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from dashboard.build_data import snapshot, safe_number
@@ -116,6 +118,48 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertIn("timestamp_hkt",a)
             with self.assertRaises(ValueError):
                 emit("INVENTED_AGENT_HANDOFF",ticker="HK.00700",path=dest)
+
+    def test_streamed_graph_reports_are_observed_without_duplicate_execution(self):
+        class Prop:
+            def get_graph_args(self):
+                return {"config": {"recursion_limit": 20}}
+        class FakeGraph:
+            config = {"model": "stub"}
+            propagator = Prop()
+            def __init__(self):
+                self.calls = 0
+                self.persisted = 0
+                self.cleaned = 0
+            def checkpoint_scope(self, *args):
+                return nullcontext(None)
+            def create_run_state(self, *args):
+                return {"company_of_interest": "700.HK"}
+            def checkpoint_input(self, initial):
+                return initial
+            def stream_run(self, inp, **kwargs):
+                self.calls += 1
+                yield [], {"company_of_interest": "700.HK"}
+                yield [], {"market_report": "technical research"}
+                yield [], {"news_report": "news research"}
+                yield [], {"sentiment_report": "sentiment"}
+                yield [], {"fundamentals_report": "fundamentals", "final_trade_decision": "Hold"}
+            def record_decision(self, *args):
+                self.persisted += 1
+            def clear_checkpoint_on_success(self, *args):
+                self.cleaned += 1
+        g = FakeGraph()
+        observed = []
+        def capture(kind, **kwargs):
+            observed.append((kind,kwargs.get("role")))
+        state, rating = propagate_traced(g, "700.HK", "2026-10-25", "HK.00700",
+                                        lambda _config: nullcontext(), capture,
+                                        rating_fn=lambda _state: "Hold")
+        self.assertEqual(rating,"Hold")
+        self.assertEqual((g.calls,g.persisted,g.cleaned),(1,1,1))
+        self.assertEqual([role for event,role in observed if event=="REPORT_OBSERVED"],
+                         ["market","news","social","fundamentals"])
+        self.assertEqual(state["final_trade_decision"],"Hold")
+        self.assertNotIn("technical research",json.dumps(observed))
 
     def test_missing_forecast_fails_closed(self):
         w,_,_,b=self.sample()
