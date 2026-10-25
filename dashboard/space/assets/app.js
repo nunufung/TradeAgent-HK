@@ -66,6 +66,37 @@ function ideas(){
  if(!stocks.length)list.append(node("div","panel pad","當日並無通過資料驗證嘅股票研究建議；不會使用舊報告代替。"));
  text("ideas-option","主推期權：暫無可執行合約。即使出現條件式 Short Put / Short Call 方向，仍需即時期權鏈、支撐阻力、事件日曆及帳戶風控獨立確認。");
 }
+function spider(){
+ const e=data.agent_events||{},h=data.health||{},r=data.daily_recommendations||{};
+ const trusted=e.mode==="DAILY_SNAPSHOT_NOT_LIVE"&&e.day===h.day;
+ const states=new Map((trusted&&Array.isArray(e.agents)?e.agents:[]).map(a=>[a.role,a]));
+ for(const role of ["market","fundamental","news","sentiment"]){
+  const a=states.get(role), el=$("spider-"+role);
+  const label=a&&a.state==="COMPLETED"?"COMPLETED":"UNVERIFIED";
+  el.textContent=label;el.title=a?.detail||"無獨立工作流證據";
+  el.closest(".spider-desk").classList.toggle("confirmed",label==="COMPLETED");
+ }
+ text("spider-chief-status",trusted&&e.research_complete?"當日研究已通過審核":"當日研究未證實完成");
+ text("spider-research",trusted&&e.research_complete?"AUDITED":"UNVERIFIED");
+ text("spider-risk",r.state==="RESEARCH_ONLY"&&r.analysis_date===h.day?r.action:"WAIT");
+ text("spider-telegram",trusted&&h.telegram==="api_acknowledged"?"API ACK":"UNVERIFIED");
+ text("spider-ledger",trusted&&Number.isFinite(e.token_count)?"TOTAL TOKENS · "+e.token_count.toLocaleString("en-US"):"TOKEN LEDGER · UNVERIFIED");
+ const list=$("spider-events");list.replaceChildren();
+ const observations=trusted&&Array.isArray(e.observations)?e.observations:[];
+ const allowed=["daily_research","telegram","research_decision"];
+ for(const event of observations.slice(0,8)){
+  if(!allowed.includes(event.component)||event.day!==h.day||typeof event.detail!=="string")continue;
+  const card=node("div","spider-event");
+  const header=node("div","spider-event-header");
+  header.append(node("b",null,event.component.replaceAll("_"," ").toUpperCase()),node("span",null,event.state||"UNVERIFIED"));
+  card.append(header,node("p",null,event.detail));
+  if(typeof event.source==="string"&&event.source.startsWith("https://github.com/nunufung/TradeAgent-HK/")){
+   const link=node("a",null,"GITHUB EVIDENCE ↗");link.href=event.source;link.target="_blank";link.rel="noopener noreferrer";card.append(link);
+  }
+  list.append(card);
+ }
+ if(!list.childElementCount)list.append(node("div","spider-event","沒有可核實嘅當日事件紀錄。"));
+}
 function commandCenter(){
  const h=data.health||{},r=data.daily_recommendations||{},m=data.model_status||{};
  const sameDay=r.state==="RESEARCH_ONLY"&&r.analysis_date===h.day;
@@ -154,7 +185,7 @@ async function load(){
  const payload=await r.json();
  if(payload.schema_version!==1||!Array.isArray(payload.stocks)||!payload.meta)throw Error("Invalid schema");
  data=payload;$("error").classList.add("hidden");text("snapshot-time",date(payload.meta.generated_at)+" HKT");
- health();models();ideas();commandCenter();initStocks();table();
+ health();models();ideas();commandCenter();spider();initStocks();table();
  }catch(e){
  text("error","Dashboard 資料未部署或暫時無法讀取。請檢查 GitHub Actions Dashboard Sync artifact。沒有資料時不會顯示模擬交易結果。");
  $("error").classList.remove("hidden");
