@@ -16,6 +16,7 @@
       <div class="nav-label">WORKSPACE</div>
       <nav class="side-nav" aria-label="Dashboard navigation">
         <button class="nav active" data-view="overview"><span class="nav-symbol">◫</span>總覽 Overview</button>
+        <button class="nav" data-view="ideas"><span class="nav-symbol">◎</span>每日建議 Daily Ideas</button>
         <button class="nav" data-view="models"><span class="nav-symbol">⌁</span>模型分析 Models</button>
         <button class="nav" data-view="watchlist"><span class="nav-symbol">▦</span>股票觀察 Watchlist</button>
       </nav>
@@ -67,6 +68,21 @@
             <section class="panel model-summary"><div class="panel-header"><div><div class="eyebrow muted">MODEL RESEARCH</div><h2>Fincept ARIMA</h2></div><span class="chip neutral">STATISTICAL</span></div><div class="model-big" id="fincept-mae">—</div><div class="submetric">Historical validation MAE · 百分點</div><div class="model-details"><span>不變基準 MAE <b id="fincept-base">—</b></span><span>有效窗口 <b id="fincept-valid">—</b></span></div><div class="mini-caption" id="fincept-cutoff">模型資料未載入</div></section>
             <section class="panel model-summary"><div class="panel-header"><div><div class="eyebrow muted">MODEL RESEARCH</div><h2>Kronos Small</h2></div><span class="chip neutral">TIME SERIES</span></div><div class="model-big" id="kronos-mae">—</div><div class="submetric">Historical validation MAE · 百分點</div><div class="model-details"><span>有效窗口 <b id="kronos-valid">—</b></span><span>最新推理 <b id="kronos-infer">未取得</b></span></div><div class="mini-caption">歷史模型回測 ≠ 選擇權收益。不能取代風控。</div></section>
           </div>
+        </section>
+        <section id="ideas-view" class="view">
+          <div class="section-header"><div><div class="eyebrow muted">DAILY RESEARCH · HKT</div><h2>每日股票及期權研究建議</h2></div></div>
+          <div class="panel pad idea-head">
+            <div class="panel-header"><div><div class="eyebrow muted">DECISION STATUS</div><h2 id="ideas-action">等待資料</h2></div><span class="chip warn" id="ideas-state">UNAVAILABLE</span></div>
+            <p id="ideas-reason">尚未取得同日研究結果。</p>
+            <div class="tagline" id="ideas-date">研究日期：未取得</div>
+          </div>
+          <div class="section-header"><div><div class="eyebrow muted">EQUITY SHORTLIST</div><h2>當日研究股票</h2></div></div>
+          <div id="ideas-list" class="idea-list"><div class="panel pad">未有可用研究建議。</div></div>
+          <div class="panel pad" style="margin-top:18px"><div class="eyebrow muted">OPTION DISCIPLINE</div><h2>期權決策 · 不提供自動開倉訊號</h2>
+            <p id="ideas-option">未通過完整風險覆核，沒有可執行期權建議。</p>
+            <div class="tagline">21–45 DTE、|Delta| ≤ 0.10、Spread ≤ 30%、OI ≥ 100、Volume ≥ 1、Margin/Premium ≤ 10x；必須再核實最新行情、事件、保證金及倉位覆蓋。任何晨報只供研究，非交易指令。</div>
+          </div>
+          <div class="notice soft" style="margin-top:18px">僅顯示同日完整研究嘅公開摘要；資料過期或缺失時不會沿用舊建議。此頁沒有即時合約報價、私人持倉或下單功能。</div>
         </section>
         <section id="models-view" class="view">
           <div class="section-header"><div><div class="eyebrow muted">MODEL TRANSPARENCY</div><h2>模型及研究流程</h2></div></div>
