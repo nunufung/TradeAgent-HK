@@ -103,6 +103,36 @@ def public_recommendations(raw, today):
             "risk_review_complete": False}
 
 
+def public_agent_events(health, recommendations, today):
+    """Observed daily *workflow* evidence only. No invented agent timelines."""
+    roles = ("market", "fundamental", "news", "sentiment")
+    r = public_recommendations(recommendations, today)
+    h = audit_status(health, today)
+    research_complete = h["research"] == "complete"
+    # Per-role execution timestamps are not emitted by the upstream workflow.
+    agents = [{"role": role, "state": "UNVERIFIED",
+               "detail": "未有獨立 Agent 執行事件／時間戳"} for role in roles]
+    observations = []
+    if h["state"] != "UNVERIFIED":
+        observations.append({"component": "daily_research", "state": "COMPLETE" if research_complete else "INCOMPLETE",
+                             "detail": "同日研究審核：" + (h["research"] or "unknown"),
+                             "source": "https://github.com/nunufung/TradeAgent-HK/actions/workflows/production-health.yml",
+                             "day": today})
+        observations.append({"component": "telegram", "state": "ACKNOWLEDGED" if h["telegram"] == "api_acknowledged" else "UNVERIFIED",
+                             "detail": "Telegram API 收據：" + (h["telegram"] or "unverified"),
+                             "source": "https://github.com/nunufung/TradeAgent-HK/actions/workflows/hk-daily.yml",
+                             "day": today})
+    if r["state"] == "RESEARCH_ONLY":
+        observations.append({"component": "research_decision", "state": "RECORDED",
+                             "detail": "同日研究候選：" + str(len(r["stocks"])) + "；期權閘門：" + r["action"],
+                             "source": "https://github.com/nunufung/TradeAgent-HK/actions/workflows/hk-daily.yml",
+                             "day": today})
+    return {"mode": "DAILY_SNAPSHOT_NOT_LIVE", "day": today, "agents": agents,
+            "observations": observations[:8], "research_complete": research_complete,
+            "token_count": h["tokens"], "token_scope": "daily_total_not_per_agent",
+            "source_note": "Only audited daily workflow evidence. No per-agent event stream yet."}
+
+
 def snapshot(*, health=None, fincept=None, kronos=None, recommendations=None, watchlist=None, kronos_backtest=None, now=None):
     now = now or datetime.now(HKT)
     today = now.astimezone(HKT).date().isoformat()
@@ -178,6 +208,7 @@ def snapshot(*, health=None, fincept=None, kronos=None, recommendations=None, wa
         },
         "health": audit_status(health, today),
         "daily_recommendations": public_recommendations(recommendations, today),
+        "agent_events": public_agent_events(health, recommendations, today),
         "model_status": {
             "daily_llm": {"provider": "DeepSeek", "model": "deepseek-chat",
                           "description": "GitHub Actions bounded TradingAgents analysis"},
