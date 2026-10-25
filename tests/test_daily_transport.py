@@ -78,9 +78,23 @@ class DailyTransportTests(unittest.TestCase):
             self.assertEqual(budget.snapshot()['actual_tokens'],820)
             self.assertEqual(budget.snapshot()['unconfirmed_calls'],0)
 
+    def test_delayed_0633_research_still_runs_before_0715(self):
+        now = NOW.replace(hour=6, minute=33)
+        clock = Mock()
+        clock.now.return_value = now
+        clock.combine = datetime.combine
+        with temporary_cwd() as root, patch('daily_runner.datetime', clock), patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test'}), patch('daily_runner.gateway') as gate, patch('daily_runner.subprocess.Popen') as spawn:
+            (root / 'final_summary.txt').write_text('研究截至：2026-10-10 06:45 HKT\\n期權：等待')
+            gate.return_value.__enter__.return_value = 'http://localhost:1234/v1'
+            spawn.return_value.wait.return_value = 0
+            daily_runner.run()
+            spawn.assert_called_once()
+            spawn.return_value.wait.assert_called_once_with(timeout=42 * 60)
+            self.assertEqual((root / 'daily_research_status.txt').read_text(), 'complete')
+
     def test_gateway_late_calls_never_reach_deepseek(self):
         clock = Mock()
-        clock.now.return_value = NOW.replace(hour=6,minute=30)
+        clock.now.return_value = NOW.replace(hour=7,minute=15)
         with temporary_cwd() as root, patch('daily_budget.datetime', clock):
             budget = Budget(root/'usage.json', NOW.date().isoformat())
             with patch('daily_budget.urllib.request.urlopen') as upstream, gateway(budget) as url:

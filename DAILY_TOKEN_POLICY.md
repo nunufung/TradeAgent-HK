@@ -10,11 +10,13 @@ Automatic morning research uses `daily_runner.py`; the daily workflow no longer 
 - Up to 48 forwarded API calls, 100,000 input-plus-output token accounting budget, 800 output tokens per call, two tool rounds per analyst, 60,000 input bytes per request.
 - Before each call, reserve a conservative bound based on complete serialized request bytes plus output allowance and overhead. After success, reconcile with DeepSeek's reported prompt/completion usage. Failed or unconfirmed calls keep their full reserved allowance. Truncated outputs are rejected rather than labeled complete research.
 - Save actual input, output and cache-hit tokens in `daily_token_usage.json`; never save keys or prompts in that ledger. Cache hits are measured, not assumed as savings. The budget controls this project's automatic session, not account-wide billing or manually invoked workflows.
-- Research runs for at most 45 minutes and starts no new API calls after 06:30 HKT. Unknown inputs or failed research produce a current-day waiting summary without invented trade recommendations.
+- Research runs for at most 45 minutes and starts no new API calls after 07:15 HKT. Unknown inputs or failed research produce a current-day waiting summary without invented trade recommendations.
 
 ## One compact delivery
 
-Prepare at 04:17 HKT. Attempt delivery immediately after the scheduled research job completes; independent 06:47, 07:17 and 07:37 runs provide backups if no daily delivery claim exists. The message uses the professional decision-first format, at most 1,200 characters, with stock conclusions, option status and execution conditions. Raw evidence stays in Actions artifacts for audit and Mac option research.
+Prepare at 04:17 HKT. Attempt delivery immediately after the scheduled research job completes; independent 06:47, 07:17, 07:37 and 07:47 runs provide backups if no daily delivery claim exists. The message uses the professional decision-first format, at most 1,200 characters, with stock conclusions, option status and execution conditions. Raw evidence stays in Actions artifacts for audit and Mac option research.
+
+When a delayed research run has not yet saved its artifact, early backup slots before 07:25 HKT defer rather than sending a premature fallback. The 07:37 and 07:47 slots can still deliver a transparent waiting summary if research never finishes.
 
 Delivery uploads a day-specific claim before exactly one Telegram `sendMessage` call. It never retries an ambiguous network result, because Telegram has no idempotency key for this call. A claim without a confirmed receipt needs investigation; it is not proof of delivery. This deliberately prefers at-most-one report over possible duplicates. Missing/stale/oversized research is replaced with a transparent current-day waiting summary. No old research is relabeled current.
 
