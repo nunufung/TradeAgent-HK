@@ -103,7 +103,43 @@ def public_recommendations(raw, today):
             "risk_review_complete": False}
 
 
-def public_agent_events(health, recommendations, today):
+def public_trace(today):
+    """Sanitize actual runner-emitted event log from private build staging."""
+    import re
+    root = ROOT / "dashboard/import/recommendations"
+    if not root.is_dir():
+        return []
+    files = [p for p in root.rglob("agent_events.jsonl") if p.is_file() and p.stat().st_size < 160_000]
+    if len(files) != 1:
+        return []
+    events = []
+    roles = {"market", "social", "news", "fundamentals"}
+    kinds = {"RUN_STARTED", "GRAPH_STARTED", "GRAPH_FINISHED", "GRAPH_FAILED",
+             "REPORT_OBSERVED", "REPORT_MISSING", "RUN_FINISHED"}
+    try:
+        for line in files[0].read_text(encoding="utf-8").splitlines()[:250]:
+            raw = json.loads(line)
+            if not isinstance(raw, dict) or raw.get("version") != 1:
+                return []
+            ticker, role, kind = raw.get("ticker"), raw.get("role"), raw.get("kind")
+            stamp = raw.get("timestamp_hkt")
+            if not (isinstance(ticker, str) and re.fullmatch(r"HK\\.\\d{5}", ticker)
+                    and kind in kinds and (role is None or role in roles)
+                    and isinstance(stamp, str)):
+                return []
+            dt = datetime.fromisoformat(stamp)
+            if dt.tzinfo is None or dt.astimezone(HKT).date().isoformat() != today:
+                continue
+            if dt.utcoffset() is None:
+                return []
+            events.append({"ticker": ticker, "role": role, "kind": kind,
+                           "timestamp_hkt": dt.astimezone(HKT).isoformat()})
+    except (OSError, ValueError, TypeError):
+        return []
+    return events[-80:]
+
+
+def public_agent_events(health, recommendations, today, trace=None):
     """Observed daily *workflow* evidence only. No invented agent timelines."""
     roles = ("market", "fundamental", "news", "sentiment")
     r = public_recommendations(recommendations, today)
@@ -128,12 +164,13 @@ def public_agent_events(health, recommendations, today):
                              "source": "https://github.com/nunufung/TradeAgent-HK/actions/workflows/hk-daily.yml",
                              "day": today})
     return {"mode": "DAILY_SNAPSHOT_NOT_LIVE", "day": today, "agents": agents,
+            "trace": trace if isinstance(trace, list) else [],
             "observations": observations[:8], "research_complete": research_complete,
             "token_count": h["tokens"], "token_scope": "daily_total_not_per_agent",
             "source_note": "Only audited daily workflow evidence. No per-agent event stream yet."}
 
 
-def snapshot(*, health=None, fincept=None, kronos=None, recommendations=None, watchlist=None, kronos_backtest=None, now=None):
+def snapshot(*, health=None, fincept=None, kronos=None, recommendations=None, agent_trace=None, watchlist=None, kronos_backtest=None, now=None):
     now = now or datetime.now(HKT)
     today = now.astimezone(HKT).date().isoformat()
     watchlist = watchlist if watchlist is not None else load_local("market_watchlist.json")
@@ -208,7 +245,7 @@ def snapshot(*, health=None, fincept=None, kronos=None, recommendations=None, wa
         },
         "health": audit_status(health, today),
         "daily_recommendations": public_recommendations(recommendations, today),
-        "agent_events": public_agent_events(health, recommendations, today),
+        "agent_events": public_agent_events(health, recommendations, today, agent_trace),
         "model_status": {
             "daily_llm": {"provider": "DeepSeek", "model": "deepseek-chat",
                           "description": "GitHub Actions bounded TradingAgents analysis"},
@@ -239,7 +276,7 @@ def snapshot(*, health=None, fincept=None, kronos=None, recommendations=None, wa
 
 def main():
     health, fincept, kronos, recommendations = select_sources()
-    data = snapshot(health=health, fincept=fincept, kronos=kronos, recommendations=recommendations)
+    data = snapshot(health=health, fincept=fincept, kronos=kronos, recommendations=recommendations, agent_trace=public_trace(datetime.now(HKT).date().isoformat()))
     out = ROOT / "dashboard/space/data/dashboard.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
