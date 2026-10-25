@@ -45,6 +45,24 @@ function models(){
  const url=data.links?.[key];if(typeof url==="string"&&url.startsWith("https://github.com/"))$(id).href=url;
  }
 }
+function ideas(){
+ const r=data.daily_recommendations||{},valid=r.state==="RESEARCH_ONLY";
+ text("ideas-action",valid?"今日決策："+(r.action||"等待"):"今日暫無可核實建議");
+ const chip=$("ideas-state");chip.textContent=valid?"RESEARCH ONLY":"UNAVAILABLE";chip.className="chip "+(valid?"warn":"bad");
+ text("ideas-reason",r.reason||"當日研究資料未齊。");
+ text("ideas-date","研究日期："+(r.analysis_date||"未取得")+" · HKT · 並非即時訊號");
+ const list=$("ideas-list");list.replaceChildren();
+ const stocks=valid&&Array.isArray(r.stocks)?r.stocks:[];
+ for(const item of stocks){
+  const card=node("article","panel pad idea-card");
+  const name=data.stocks.find(s=>s.ticker===item.ticker.slice(-4))?.name||"";
+  const h=node("h2",null,item.ticker+" "+name+" · "+item.rating);
+  const status=node("div","tagline",item.complete?"四分析員齊備 · "+(item.strategy||"等待"):"研究未完成 · 不做");
+  card.append(h,node("p",null,item.summary||"研究證據不足"),status);list.append(card);
+ }
+ if(!stocks.length)list.append(node("div","panel pad","當日並無通過資料驗證嘅股票研究建議；不會使用舊報告代替。"));
+ text("ideas-option","主推期權：暫無可執行合約。即使出現條件式 Short Put / Short Call 方向，仍需即時期權鏈、支撐阻力、事件日曆及帳戶風控獨立確認。");
+}
 function initStocks(){
  const select=$("chart-stock");select.replaceChildren();
  const options=data.stocks.filter(s=>s.fincept?.status==="FORECAST_ONLY"||s.kronos?.status==="FORECAST_ONLY");
@@ -101,7 +119,7 @@ async function load(){
  const payload=await r.json();
  if(payload.schema_version!==1||!Array.isArray(payload.stocks)||!payload.meta)throw Error("Invalid schema");
  data=payload;$("error").classList.add("hidden");text("snapshot-time",date(payload.meta.generated_at)+" HKT");
- health();models();initStocks();table();
+ health();models();ideas();initStocks();table();
  }catch(e){
  text("error","Dashboard 資料未部署或暫時無法讀取。請檢查 GitHub Actions Dashboard Sync artifact。沒有資料時不會顯示模擬交易結果。");
  $("error").classList.remove("hidden");
