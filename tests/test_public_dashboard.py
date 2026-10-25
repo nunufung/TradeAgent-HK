@@ -81,6 +81,26 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertEqual(stale["state"],"UNAVAILABLE")
         self.assertEqual(stale["stocks"],[])
 
+    def test_spider_never_invents_agent_activity(self):
+        w,f,k,b=self.sample()
+        now=datetime(2026,10,25,8,30,tzinfo=ZoneInfo("Asia/Hong_Kong"))
+        health={"date_hkt":"2026-10-25","overall":"WARNING",
+                "research":"complete","telegram":"api_acknowledged",
+                "deepseek":{"actual_tokens":1234,"measured_calls":1},
+                "private_key":"SECRET_HIDDEN"}
+        result=snapshot(health=health,watchlist=w,fincept=f,kronos=k,kronos_backtest=b,now=now)["agent_events"]
+        self.assertEqual(result["mode"],"DAILY_SNAPSHOT_NOT_LIVE")
+        self.assertTrue(result["research_complete"])
+        self.assertTrue(all(a["state"]=="UNVERIFIED" for a in result["agents"]))
+        self.assertEqual(result["token_count"],1234)
+        self.assertNotIn("SECRET_HIDDEN",json.dumps(result))
+        self.assertTrue(all(o["day"]=="2026-10-25" for o in result["observations"]))
+        stale=snapshot(health={"date_hkt":"2026-10-24","overall":"PASS","research":"complete"},
+                       watchlist=w,fincept=f,kronos=k,kronos_backtest=b,now=now)["agent_events"]
+        self.assertFalse(stale["research_complete"])
+        self.assertEqual(stale["observations"],[])
+        self.assertIsNone(stale["token_count"])
+
     def test_missing_forecast_fails_closed(self):
         w,_,_,b=self.sample()
         result=snapshot(watchlist=w,fincept={},kronos={},kronos_backtest=b)
