@@ -12,13 +12,14 @@ REPORTS = {
     "fundamentals": "fundamentals_report",
 }
 
-def propagate_traced(graph, ticker, trade_date, underlying, run_config_fn, emit):
+def propagate_traced(graph, ticker, trade_date, underlying, run_config_fn, emit, rating_fn=None):
     """Run the actual graph ONCE and record when each nonempty report first appears.
 
     IMPORTANT: An observed report event proves output availability, NOT node start
     or a sequential analyst handoff. Four analysts can run concurrently.
     """
-    from tradingagents.agents.rating import run_rating
+    if rating_fn is None:
+        from tradingagents.agents.rating import run_rating as rating_fn
     with run_config_fn(graph.config), graph.checkpoint_scope(ticker, trade_date, "stock", None) as thread:
         initial = graph.create_run_state(ticker, trade_date, "stock", None)
         args = graph.propagator.get_graph_args()
@@ -38,4 +39,4 @@ def propagate_traced(graph, ticker, trade_date, underlying, run_config_fn, emit)
         # Same persistence/cleanup behavior as the pinned graph's _run_graph.
         graph.record_decision(ticker, trade_date, final_state)
         graph.clear_checkpoint_on_success(ticker, trade_date, "stock", None)
-        return final_state, run_rating(final_state)
+        return final_state, rating_fn(final_state)
