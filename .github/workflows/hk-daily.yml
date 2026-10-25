@@ -202,6 +202,7 @@ jobs:
             report_market.md
             news_market.md
             stock_signals.json
+            agent_events.jsonl
             stock_analysis.md
           retention-days: 3
       - name: Save research audit without sending another report
