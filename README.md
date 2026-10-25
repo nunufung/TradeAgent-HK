@@ -34,6 +34,10 @@ The [Kronos Skill](skills/kronos/SKILL.md) guides candlestick forecasting and se
 
 The morning report downloads the latest successful artifact and includes a concise model scenario in its existing single Telegram message. Missing, invalid or older-than-26-hour forecasts produce an explicit unavailable notice. Inference runs separately with a 20-minute job limit, uses no DeepSeek calls and cannot delay the existing morning research job. These are uncalibrated five-path mean research scenarios, not backtested strategy returns, analyst consensus or option-entry approval. Review Actions artifacts and actual delivery receipts to verify live operation.
 
+## Fincept Terminal research Skill
+
+The [Fincept Terminal Skill](skills/fincept-terminal/SKILL.md) adds source-backed research routing, provider provenance, portfolio/option risk checks and integration readiness checks for Fincept-Corporation/FinceptTerminal. It is discoverable through `.agents/skills/fincept-terminal`. The checked main branch had no Fincept module, submodule or runtime adapter before this registration; this change installs instructions only. Desktop installation, account/provider access, analytics execution and Fincept output in daily Telegram reports remain unverified. See the Skill references for the dated inspection and reviewed upstream revision.
+
 ## Validation
 
 Run `python -m unittest discover -s tests`. Chinese PDF tests need an available CJK font (set `TAHK_CJK_FONT` when needed). Local tests do not prove live API savings or confirmed Telegram delivery; check the next production run's token ledger and delivery receipt.

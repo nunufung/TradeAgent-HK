@@ -1,0 +1,31 @@
+{
+  "checked_at": "2026-10-25",
+  "repository": "nunufung/TradeAgent-HK",
+  "inspected_commit": "bf99206e2fc2f7bae749f3f696dd86b668fa53bc",
+  "pre_change": {
+    "fincept_named_tree_paths": [],
+    "fincept_submodule": false,
+    "fincept_skill": false,
+    "fincept_references_in_checked_entrypoints": false
+  },
+  "checked_files": [
+    ".gitmodules",
+    "requirements.txt",
+    "main.py",
+    "linked_stock_analysis.py",
+    "book_skill_context.py",
+    "trading_workflows.py",
+    ".github/workflows/hk-daily.yml",
+    "README.md"
+  ],
+  "change_scope": "Register fincept-terminal Skill and .agents discovery link; add README documentation only.",
+  "post_change_intent": {
+    "skill_registration": "REGISTERED_BY_THIS_CHANGE",
+    "desktop_installation": "NOT_VERIFIED",
+    "provider_access": "NOT_VERIFIED",
+    "analytics_execution": "NOT_RUN",
+    "daily_pipeline_adapter": "NOT_IMPLEMENTED_BY_THIS_CHANGE",
+    "telegram_fincept_output": "NOT_VERIFIED"
+  },
+  "interpretation": "Inspection applies to the checked GitHub revision, not to the user's Mac or any separate Fincept account. Refresh this snapshot for future status checks."
+}

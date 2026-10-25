@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fincept Terminal Research"
+  short_description: "Fincept research workflows for TradeAgent-HK"
+  default_prompt: "Use $fincept-terminal to check Fincept readiness and support TradeAgent-HK research with traceable data and independent option risk checks."
