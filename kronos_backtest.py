@@ -11,6 +11,10 @@ from pathlib import Path
 SOURCE='67b630e67f6a18c9e9be918d9b4337c960db1e9a'
 MODELS={'NeoQuasar/Kronos-Tokenizer-base':'0e0117387f39004a9016484a186a908917e22426', 'NeoQuasar/Kronos-small':'901c26c1332695a2a8f243eb2f37243a37bea320'}
 
+def price_order_valid(open_price, high, low, close, tolerance=1e-10):
+    """Accept only sub-tick floating-point noise; never alter prices."""
+    return high+tolerance >= max(open_price, close, low) and low-tolerance <= min(open_price, close, high)
+
 def metrics(rows):
     import math
     valid=[r for r in rows if r['valid']]
@@ -47,14 +51,15 @@ def run(args):
     recent=cal.sessions_in_range((now-timedelta(days=15)).date(),now.date())
     cutoff=[s for s in recent if cal.session_close(s).to_pydatetime()<now][-1]
     records=[]; hashes={}
-    for ticker in ['0700','9988']:
+    tickers=args.tickers or ['0700','9988']
+    for ticker in tickers:
         frame=yf.Ticker(ticker+'.HK').history(period='3y',auto_adjust=True,raise_errors=True)
         frame.columns=frame.columns.str.lower();frame=frame[frame.index.date<=cutoff.date()]
         cols=['open','high','low','close','volume'];frame=frame[cols]
         assert frame.index[-1].date()==cutoff.date() and len(frame)>=520
         assert frame.index.is_unique and frame.index.is_monotonic_increasing
         assert np.isfinite(frame.to_numpy()).all() and (frame[['open','high','low','close']]>0).all().all() and (frame.volume>=0).all()
-        assert (frame.high>=frame[['open','close','low']].max(axis=1)).all() and (frame.low<=frame[['open','close','high']].min(axis=1)).all()
+        assert all(price_order_valid(o,h,l,c) for o,h,l,c in zip(frame.open,frame.high,frame.low,frame.close)), 'OHLC ordering exceeds 1e-10 tolerance'
         raw=frame.to_csv();(out/(ticker+'-history.csv')).write_text(raw);hashes[ticker]=hashlib.sha256(raw.encode()).hexdigest()
         origins=list(range(len(frame)-120-1,len(frame)-5,5))
         assert len(origins)==24
@@ -79,9 +84,9 @@ def run(args):
                 records.append(record)
             (out/'checkpoint.json').write_text(json.dumps(records,allow_nan=False))
             print(ticker,'completed',batch+len(positions),'of 24',flush=True)
-    result={'generated_at':now.isoformat(),'source_commit':SOURCE,'models':MODELS,'parameters':{'lookback':400,'horizon':5,'sample_count':5,'seed':42,'T':1.,'top_p':.9,'top_k':0,'device':'cpu','batch_size':4},'data_source':'Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots','data_sha256':hashes,'limitations':['Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.','Fixed parameters; no fine-tuning or selection on these windows.','Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.','Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.','No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.','Adjusted histories downloaded today can reflect subsequent corporate actions.'],'metrics':{t:metrics([r for r in records if r['ticker']==t]) for t in ['0700','9988']},'records':records}
+    result={'generated_at':now.isoformat(),'source_commit':SOURCE,'models':MODELS,'parameters':{'lookback':400,'horizon':5,'sample_count':5,'seed':42,'T':1.,'top_p':.9,'top_k':0,'device':'cpu','batch_size':4},'data_source':'Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots','data_sha256':hashes,'limitations':['Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.','Fixed parameters; no fine-tuning or selection on these windows.','Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.','Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.','No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.','Adjusted histories downloaded today can reflect subsequent corporate actions.'],'metrics':{t:metrics([r for r in records if r['ticker']==t]) for t in tickers},'records':records}
     (out/'results.json').write_text(json.dumps(result,ensure_ascii=False,indent=2,allow_nan=False))
     print(json.dumps(result['metrics'],indent=2),flush=True)
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--source',required=True);p.add_argument('--output',default='research/kronos-backtest-2026-10-25');run(p.parse_args())
+    p=argparse.ArgumentParser();p.add_argument('--source',required=True);p.add_argument('--tickers',nargs='+');p.add_argument('--output',default='research/kronos-backtest-2026-10-25');run(p.parse_args())

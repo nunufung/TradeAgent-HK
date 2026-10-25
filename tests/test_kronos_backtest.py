@@ -18,3 +18,9 @@ class ForecastMetricsTests(unittest.TestCase):
         r=metrics([{'valid':True,'actual':0.,'predicted':.1,'zero':0.,'trend':0.}])
         self.assertEqual(r['predicted']['direction_n'],0)
         self.assertEqual(metrics([{'valid':False}])['valid'],0)
+
+class PriceOrderTests(unittest.TestCase):
+    def test_float_rounding_is_not_a_market_price_error(self):
+        from kronos_backtest import price_order_valid
+        self.assertTrue(price_order_valid(3.75,3.76,3.733223000000001,3.7332230000000006))
+        self.assertFalse(price_order_valid(3.75,3.76,3.74,3.73))
