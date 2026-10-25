@@ -80,7 +80,7 @@ class DailyTransportTests(unittest.TestCase):
 
     def test_gateway_late_calls_never_reach_deepseek(self):
         clock = Mock()
-        clock.now.return_value = NOW.replace(hour=6,minute=30)
+        clock.now.return_value = NOW.replace(hour=7,minute=15)
         with temporary_cwd() as root, patch('daily_budget.datetime', clock):
             budget = Budget(root/'usage.json', NOW.date().isoformat())
             with patch('daily_budget.urllib.request.urlopen') as upstream, gateway(budget) as url:
