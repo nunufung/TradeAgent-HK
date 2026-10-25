@@ -60,6 +60,27 @@ class PublicDashboardTests(unittest.TestCase):
                         now=datetime(2026,10,25,8,30,tzinfo=ZoneInfo("Asia/Hong_Kong")))
         self.assertEqual(result["health"]["state"],"UNVERIFIED")
 
+    def test_daily_recommendations_are_dated_and_redacted(self):
+        w,f,k,b=self.sample()
+        raw={"analysis_date":"2026-10-25","action":"等待",
+             "risk_review_complete":False,"main_option":{"account":"SECRET_OPTION_ACCOUNT"},
+             "stocks":[{"underlying":"HK.00700","complete":True,"rating":"Buy",
+                        "strategy":"Short Put（條件式）","decision_summary":"等待核實行情。",
+                        "evidence":{"market":"SECRET_EVIDENCE"},"private_note":"SECRET_POSITION"}],
+             "reasons":["等待即時合約掃描。"],"api_key":"SECRET_API_KEY"}
+        now=datetime(2026,10,25,8,30,tzinfo=ZoneInfo("Asia/Hong_Kong"))
+        result=snapshot(watchlist=w,fincept=f,kronos=k,kronos_backtest=b,
+                        recommendations=raw,now=now)["daily_recommendations"]
+        self.assertEqual(result["stocks"][0]["rating"],"Buy")
+        self.assertFalse(result["risk_review_complete"])
+        self.assertIsNone(result["option"])
+        self.assertNotIn("SECRET_",json.dumps(result))
+        raw["analysis_date"]="2026-10-24"
+        stale=snapshot(watchlist=w,fincept=f,kronos=k,kronos_backtest=b,
+                       recommendations=raw,now=now)["daily_recommendations"]
+        self.assertEqual(stale["state"],"UNAVAILABLE")
+        self.assertEqual(stale["stocks"],[])
+
     def test_missing_forecast_fails_closed(self):
         w,_,_,b=self.sample()
         result=snapshot(watchlist=w,fincept={},kronos={},kronos_backtest=b)
