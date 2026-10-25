@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080e1d" />
+  <meta name="description" content="TradeAgent-HK public research intelligence, model transparency and operations health." />
+  <title>TradeAgent-HK | Intelligence Dashboard</title>
+  <link rel="stylesheet" href="./assets/style.css" />
+  <script src="./assets/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="TradeAgent-HK Home"><span class="brand-icon">T<span>↗</span></span><span class="brand-copy"><strong>TradeAgent</strong><small>HK INTELLIGENCE</small></span></a>
+      <div class="nav-label">WORKSPACE</div>
+      <nav class="side-nav" aria-label="Dashboard navigation">
+        <button class="nav active" data-view="overview"><span class="nav-symbol">◫</span>總覽 Overview</button>
+        <button class="nav" data-view="models"><span class="nav-symbol">⌁</span>模型分析 Models</button>
+        <button class="nav" data-view="watchlist"><span class="nav-symbol">▦</span>股票觀察 Watchlist</button>
+      </nav>
+      <div class="side-spacer"></div>
+      <div class="sidebar-note"><span class="online-dot"></span> PUBLIC · READ-ONLY<br><small>資料並非即時報價，不構成買賣建議。</small></div>
+      <a class="side-link" id="github-sidebar" href="https://github.com/nunufung/TradeAgent-HK" target="_blank" rel="noopener noreferrer">GitHub Repository ↗</a>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb">PROJECTS <span>/</span> TRADEAGENT-HK <span>/</span> <b id="view-crumb">OVERVIEW</b></div>
+        <div class="top-right"><span class="readonly">● READ ONLY</span><button id="refresh" class="outline-btn" type="button">↻ Refresh</button></div>
+      </header>
+      <div class="content">
+        <section class="intro">
+          <div class="eyebrow"><span class="accent-line"></span> HONG KONG EQUITIES · AI RESEARCH</div>
+          <div class="intro-row">
+            <div><h1>Trading Intelligence<span class="period">.</span></h1><p>四分析員研究、量化模型、系統健康狀態 — 集中顯示。所有數據標示來源與日期。</p></div>
+            <div class="asof"><span>DATA SNAPSHOT</span><strong id="snapshot-time">未載入</strong><small>Hong Kong Time · Not live</small></div>
+          </div>
+        </section>
+        <div id="error" class="notice hidden" role="status"></div>
+        <section id="overview-view" class="view active">
+          <div class="kpi-grid">
+            <div class="panel kpi"><div class="k-label">WATCHLIST COVERAGE <span>↗</span></div><strong id="kpi-stocks">—</strong><div class="k-foot">香港股票 / ETF · 公開研究</div></div>
+            <div class="panel kpi"><div class="k-label">DAILY RESEARCH <span>◎</span></div><strong id="kpi-research" class="metric-word">—</strong><div class="k-foot" id="kpi-health-day">狀態未驗證</div></div>
+            <div class="panel kpi"><div class="k-label">DEEPSEEK API CALLS <span>◇</span></div><strong id="kpi-api">—</strong><div class="k-foot">最近同日健康審核 · 非累積</div></div>
+            <div class="panel kpi"><div class="k-label">TELEGRAM RECEIPT <span>↗</span></div><strong id="kpi-telegram" class="metric-word">—</strong><div class="k-foot">只確認 API 接受，非手機已讀</div></div>
+          </div>
+          <div class="two-col">
+            <section class="panel forecast-panel">
+              <div class="panel-header"><div><div class="eyebrow muted">FORECAST EXPLORER</div><h2>模型預測路徑</h2></div><span class="chip">5 SESSIONS</span></div>
+              <div class="filters-row"><label class="select-label">股票 <select id="chart-stock" aria-label="選擇股票"></select></label><label class="select-label">模型 <select id="chart-model"><option value="fincept">Fincept · ARIMA</option><option value="kronos">Kronos · Small</option></select></label></div>
+              <div class="chart-top"><span id="chart-stock-name" class="chart-title">—</span><span id="chart-change" class="chart-return">—</span></div>
+              <div class="chart-wrap"><svg id="forecast-chart" role="img" aria-label="模型五交易日預測" viewBox="0 0 660 250" preserveAspectRatio="xMidYMid meet"></svg></div>
+              <div class="chart-caption" id="chart-caption">載入模型資料中……</div>
+            </section>
+            <section class="panel health-panel">
+              <div class="panel-header"><div><div class="eyebrow muted">OPERATIONAL STATUS</div><h2>系統健康狀態</h2></div><span class="chip" id="health-chip">UNVERIFIED</span></div>
+              <div class="health-rows">
+                <div class="health-row"><div class="health-name"><span class="health-icon">◇</span><span>DeepSeek Research<small>TradingAgents · Daily</small></span></div><span id="health-research" class="state">—</span></div>
+                <div class="health-row"><div class="health-name"><span class="health-icon">↗</span><span>Telegram Delivery<small>API acknowledgement</small></span></div><span id="health-telegram" class="state">—</span></div>
+                <div class="health-row"><div class="health-name"><span class="health-icon">⌁</span><span>Futu OpenD<small>Latest Mac smoke test</small></span></div><span id="health-futu" class="state">—</span></div>
+                <div class="health-row"><div class="health-name"><span class="health-icon">▥</span><span>DeepSeek Token Ledger<small>Measured daily tokens</small></span></div><span id="health-tokens" class="state">—</span></div>
+              </div>
+              <div class="panel-foot"><a id="health-source" href="https://github.com/nunufung/TradeAgent-HK/actions" target="_blank" rel="noopener noreferrer">View GitHub evidence ↗</a><span id="health-date">—</span></div>
+            </section>
+          </div>
+          <div class="two-col model-row">
+            <section class="panel model-summary"><div class="panel-header"><div><div class="eyebrow muted">MODEL RESEARCH</div><h2>Fincept ARIMA</h2></div><span class="chip neutral">STATISTICAL</span></div><div class="model-big" id="fincept-mae">—</div><div class="submetric">Historical validation MAE · 百分點</div><div class="model-details"><span>不變基準 MAE <b id="fincept-base">—</b></span><span>有效窗口 <b id="fincept-valid">—</b></span></div><div class="mini-caption" id="fincept-cutoff">模型資料未載入</div></section>
+            <section class="panel model-summary"><div class="panel-header"><div><div class="eyebrow muted">MODEL RESEARCH</div><h2>Kronos Small</h2></div><span class="chip neutral">TIME SERIES</span></div><div class="model-big" id="kronos-mae">—</div><div class="submetric">Historical validation MAE · 百分點</div><div class="model-details"><span>有效窗口 <b id="kronos-valid">—</b></span><span>最新推理 <b id="kronos-infer">未取得</b></span></div><div class="mini-caption">歷史模型回測 ≠ 選擇權收益。不能取代風控。</div></section>
+          </div>
+        </section>
+        <section id="models-view" class="view">
+          <div class="section-header"><div><div class="eyebrow muted">MODEL TRANSPARENCY</div><h2>模型及研究流程</h2></div></div>
+          <div class="model-flow"><div><span class="flow-index">01</span><strong>Research Inputs</strong><small>Public news / Yahoo adjusted historical prices</small></div><div class="flow-arrow">→</div><div><span class="flow-index">02</span><strong>TradingAgents</strong><small>Technical · Sentiment · News · Fundamental</small></div><div class="flow-arrow">→</div><div><span class="flow-index">03</span><strong>Rule Engine</strong><small>HKEX expiry / spread / margin / event gates</small></div><div class="flow-arrow">→</div><div><span class="flow-index">04</span><strong>Delivery</strong><small>GitHub Actions → Telegram API</small></div></div>
+          <div class="two-col"><div class="panel pad"><div class="eyebrow muted">DEEPSEEK · LLM</div><h2>四分析員研究</h2><p>日常 Workflow 設定以 deepseek-chat 執行四分析員，並受 Token 預算與執行時限約束。此公開頁面不存放分析員原始 Prompt、API Key 或私人研究日誌。</p><div class="tagline">Investment / Risk Debate → Final Research Summary</div></div><div class="panel pad"><div class="eyebrow muted">MODEL VERIFICATION</div><h2>量化模型邊界</h2><p>Fincept 使用 ARIMA(1,1,1)；Kronos 輸出五日 K 線推理。圖表只展示已記錄嘅預測路徑，並非保證回報。歷史誤差同不變價格基準需要一起檢查。</p><div class="tagline">Dated forecasts · No live trading authorization</div></div></div>
+          <div class="panel pad"><div class="eyebrow muted">PROVENANCE</div><h2>研究文件</h2><div class="source-links"><a id="fincept-source" target="_blank" rel="noopener noreferrer" href="#">Fincept validation report ↗</a><a id="kronos-source" target="_blank" rel="noopener noreferrer" href="#">Kronos backtest report ↗</a><a href="https://github.com/nunufung/TradeAgent-HK/blob/main/PRODUCTION_HEALTH.md" target="_blank" rel="noopener noreferrer">Production health audit rules ↗</a></div></div>
+        </section>
+        <section id="watchlist-view" class="view">
+          <div class="section-header"><div><div class="eyebrow muted">MARKET UNIVERSE</div><h2>股票觀察名單</h2></div><div class="table-tools"><input id="search-stock" type="search" placeholder="搜尋股票／代號…" aria-label="搜尋股票" /><select id="group-filter" aria-label="選擇組別"><option value="all">所有組別</option><option value="bluechip">Bluechip group</option><option value="technology">Technology group</option></select></div></div>
+          <div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>股票</th><th>組別</th><th>Fincept 5日預測</th><th>Kronos 5日預測</th><th>Kronos 歷史MAE</th><th>資料截止</th></tr></thead><tbody id="stocks-body"><tr><td colspan="6">載入公開研究資料中……</td></tr></tbody></table></div><div id="table-count" class="table-footer">—</div></div>
+          <div class="notice soft">藍籌組別係 TradeAgent-HK 研究分類，並非經認證的恒指成分股列表。預測、模型方向命中率及回測誤差都唔代表期權可盈利性。</div>
+        </section>
+        <footer><span>© TradeAgent-HK · PUBLIC RESEARCH VIEW</span><span>NO BROKER LOGIN · NO LIVE QUOTES · NO AUTO TRADING</span></footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
