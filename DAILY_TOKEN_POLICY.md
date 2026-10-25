@@ -14,7 +14,9 @@ Automatic morning research uses `daily_runner.py`; the daily workflow no longer 
 
 ## One compact delivery
 
-Prepare at 04:17 HKT. Attempt delivery immediately after the scheduled research job completes; independent 06:47, 07:17 and 07:37 runs provide backups if no daily delivery claim exists. The message uses the professional decision-first format, at most 1,200 characters, with stock conclusions, option status and execution conditions. Raw evidence stays in Actions artifacts for audit and Mac option research.
+Prepare at 04:17 HKT. Attempt delivery immediately after the scheduled research job completes; independent 06:47, 07:17, 07:37 and 07:47 runs provide backups if no daily delivery claim exists. The message uses the professional decision-first format, at most 1,200 characters, with stock conclusions, option status and execution conditions. Raw evidence stays in Actions artifacts for audit and Mac option research.
+
+When a delayed research run has not yet saved its artifact, early backup slots before 07:25 HKT defer rather than sending a premature fallback. The 07:37 and 07:47 slots can still deliver a transparent waiting summary if research never finishes.
 
 Delivery uploads a day-specific claim before exactly one Telegram `sendMessage` call. It never retries an ambiguous network result, because Telegram has no idempotency key for this call. A claim without a confirmed receipt needs investigation; it is not proof of delivery. This deliberately prefers at-most-one report over possible duplicates. Missing/stale/oversized research is replaced with a transparent current-day waiting summary. No old research is relabeled current.
 
