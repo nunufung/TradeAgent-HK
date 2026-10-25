@@ -33,9 +33,57 @@ jobs:
         run: python -m unittest discover -s tests -p test_public_dashboard.py -v
       - name: Syntax check browser interaction
         run: node --check dashboard/space/assets/app.js
+      - name: Locate dated main-branch model and health artifacts
+        id: sources
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo, per_page: 100
+            });
+            const eligible = all.filter(a => !a.expired && a.workflow_run?.head_branch === 'main')
+              .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+            for (const [key,prefix] of Object.entries({
+              health: 'production-health-',
+              fincept: 'fincept-research-',
+              kronos: 'kronos-forecast-'
+            })) {
+              const artifact = eligible.find(a => a.name.startsWith(prefix));
+              if (artifact) {
+                core.setOutput(key + '_name', artifact.name);
+                core.setOutput(key + '_run', String(artifact.workflow_run.id));
+              } else {
+                core.warning(key + ' artifact missing; dashboard will mark data unavailable.');
+              }
+            }
+      - name: Download verified health audit
+        if: steps.sources.outputs.health_name != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.sources.outputs.health_name }}
+          run-id: ${{ steps.sources.outputs.health_run }}
+          github-token: ${{ github.token }}
+          path: dashboard/import/health
+      - name: Download Fincept forecast
+        if: steps.sources.outputs.fincept_name != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.sources.outputs.fincept_name }}
+          run-id: ${{ steps.sources.outputs.fincept_run }}
+          github-token: ${{ github.token }}
+          path: dashboard/import/fincept
+      - name: Download Kronos forecast
+        if: steps.sources.outputs.kronos_name != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.sources.outputs.kronos_name }}
+          run-id: ${{ steps.sources.outputs.kronos_run }}
+          github-token: ${{ github.token }}
+          path: dashboard/import/kronos
       - name: Export public-only dashboard snapshot
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: python dashboard/build_data.py
       - name: Save browsable static dashboard
         uses: actions/upload-artifact@v4
