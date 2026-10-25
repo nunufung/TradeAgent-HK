@@ -1,0 +1,84 @@
+{
+  "generated_at": "2026-10-25T08:52:11.465954+08:00",
+  "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+  "models": {
+    "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+    "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+  },
+  "parameters": {
+    "lookback": 400,
+    "horizon": 5,
+    "sample_count": 5,
+    "seed": 42,
+    "T": 1.0,
+    "top_p": 0.9,
+    "top_k": 0,
+    "device": "cpu",
+    "batch_size": 4
+  },
+  "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+  "data_sha256": {
+    "0700": "8bef958ee9604fa01a1ef61d20addcf74fccb927fb84a2320f2c66792cb8f38b",
+    "9988": "303dee7e0208be11801f884221087ee57132ad0fcb632e29efef75a26d2742c0"
+  },
+  "limitations": [
+    "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+    "Fixed parameters; no fine-tuning or selection on these windows.",
+    "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+    "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+    "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+    "Adjusted histories downloaded today can reflect subsequent corporate actions."
+  ],
+  "metrics": {
+    "0700": {
+      "attempted": 24,
+      "valid": 24,
+      "rejected": 0,
+      "predicted": {
+        "mae": 0.04135688219552422,
+        "rmse": 0.050457670490897916,
+        "direction_correct": 11,
+        "direction_n": 24
+      },
+      "zero": {
+        "mae": 0.03627691416163691,
+        "rmse": 0.04683753634926234,
+        "direction_correct": 0,
+        "direction_n": 24
+      },
+      "trend": {
+        "mae": 0.036992754948338376,
+        "rmse": 0.04739828169996653,
+        "direction_correct": 12,
+        "direction_n": 24
+      },
+      "always_up_correct": 9,
+      "zero_mae_all_attempts": 0.03627691416163691
+    },
+    "9988": {
+      "attempted": 24,
+      "valid": 23,
+      "rejected": 1,
+      "predicted": {
+        "mae": 0.05114815644669032,
+        "rmse": 0.06904695115654014,
+        "direction_correct": 11,
+        "direction_n": 22
+      },
+      "zero": {
+        "mae": 0.05090777262739175,
+        "rmse": 0.06466118904276952,
+        "direction_correct": 0,
+        "direction_n": 22
+      },
+      "trend": {
+        "mae": 0.05242409293461067,
+        "rmse": 0.07061178440039217,
+        "direction_correct": 14,
+        "direction_n": 22
+      },
+      "always_up_correct": 8,
+      "zero_mae_all_attempts": 0.05118083964696272
+    }
+  }
+}
