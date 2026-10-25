@@ -1,5 +1,8 @@
 import json
 import unittest
+import tempfile
+from pathlib import Path
+from agent_event_log import emit, read
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from dashboard.build_data import snapshot, safe_number
@@ -100,6 +103,19 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertFalse(stale["research_complete"])
         self.assertEqual(stale["observations"],[])
         self.assertIsNone(stale["token_count"])
+
+    def test_real_trace_emission_is_structured_and_excludes_private_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = str(Path(tmp) / "events.jsonl")
+            a=emit("GRAPH_STARTED",ticker="HK.00700",state="STARTED",path=dest)
+            b=emit("REPORT_OBSERVED",ticker="HK.00700",role="market",state="OBSERVED",path=dest)
+            events=read(dest)
+            self.assertEqual([x["kind"] for x in events],["GRAPH_STARTED","REPORT_OBSERVED"])
+            self.assertEqual(events[1]["role"],"market")
+            self.assertNotIn("prompt",json.dumps(events))
+            self.assertIn("timestamp_hkt",a)
+            with self.assertRaises(ValueError):
+                emit("INVENTED_AGENT_HANDOFF",ticker="HK.00700",path=dest)
 
     def test_missing_forecast_fails_closed(self):
         w,_,_,b=self.sample()
