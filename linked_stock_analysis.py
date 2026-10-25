@@ -111,15 +111,15 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
 
         try:
             emit_agent_event("GRAPH_STARTED", ticker=underlying, state="STARTED")
-            state, rating = graph.propagate(ticker, trade_date)
+            from tradingagents.dataflows.config import run_config
+            from traced_propagation import propagate_traced
+            state, rating = propagate_traced(graph, ticker, trade_date, underlying, run_config, emit_agent_event)
             emit_agent_event("GRAPH_FINISHED", ticker=underlying, state="COMPLETED")
             write_news_audit(news_batch, ticker, state.get("news_report", ""))
             signal = signal_from_state(state, rating, ticker)
             for role in ANALYSTS:
-                # Evidence of report existence at graph return, not a claim about node execution timestamp.
-                emit_agent_event('REPORT_OBSERVED' if signal['analysts'][role]['complete'] else 'REPORT_MISSING',
-                                 ticker=underlying, role=role,
-                                 state='OBSERVED' if signal['analysts'][role]['complete'] else 'MISSING')
+                if not signal["analysts"][role]["complete"]:
+                    emit_agent_event("REPORT_MISSING", ticker=underlying, role=role, state="MISSING")
             signal['book_skills'] = applied_skills
             signal['workflow_skill'] = workflow_skill
             rating, complete, reports = signal['rating'], signal['analysis_complete'], signal['reports']
