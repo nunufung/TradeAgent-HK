@@ -28,9 +28,11 @@ The reviewed Psychology of Money risk skill is loaded into four-analyst research
 
 The optional [FinRL integration](FINRL_INTEGRATION.md) adds HK stock reinforcement-learning training and held-out backtesting, with A2C/PPO and optional DDPG/SAC/TD3, cost assumptions and benchmark comparisons. Run it through **Actions → FinRL Research → Run workflow** or the local CLI. Saved results can feed the daily strategy-backtest section through the existing explicit research-input setting. Training runs separately; outputs are historical stock simulations and cannot authorize option entries.
 
-## Kronos forecasting Skill
+## Kronos forecasts
 
-The optional [Kronos Skill](skills/kronos/SKILL.md) documents HK stock candlestick forecasting with [shiyu-coder/Kronos](https://github.com/shiyu-coder/Kronos), including reviewed model/tokenizer pairs, isolated setup, HKEX session validation and chronological evaluation. It complements the four analysts and preserves independent option eligibility checks. The Skill is discoverable through `.agents/skills/kronos`; registration does not install model weights, execute inference or add automatic forecasts to daily reports or Telegram. See its references for readiness checks and the reviewed source commit.
+The [Kronos Skill](skills/kronos/SKILL.md) guides candlestick forecasting and separate option risk checks. The independent **Kronos Forecast** workflow downloads reviewed Kronos-small/base-tokenizer weights and forecasts five HKEX sessions for Tencent (0700) and Alibaba (9988), using 400 adjusted completed daily bars from Yahoo Finance. It runs at 03:17 HKT, on relevant code pushes, or manually; each run records weight revisions, inputs, sampling parameters and generated candles in an artifact.
+
+The morning report downloads the latest successful artifact and includes a concise model scenario in its existing single Telegram message. Missing, invalid or older-than-26-hour forecasts produce an explicit unavailable notice. Inference runs separately with a 20-minute job limit, uses no DeepSeek calls and cannot delay the existing morning research job. These are uncalibrated five-path mean research scenarios, not backtested strategy returns, analyst consensus or option-entry approval. Review Actions artifacts and actual delivery receipts to verify live operation.
 
 ## Validation
 

@@ -1,0 +1,44 @@
+name: Kronos Forecast
+on:
+  schedule:
+    - cron: '17 19 * * *' # 03:17 HKT, independent of morning delivery
+  workflow_dispatch:
+  push:
+    paths:
+      - 'kronos_forecast.py'
+      - '.github/workflows/kronos-research.yml'
+permissions:
+  contents: read
+concurrency:
+  group: kronos-forecast
+  cancel-in-progress: false
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install isolated CPU research dependencies
+        run: |
+          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-kronos.txt
+          git clone https://github.com/shiyu-coder/Kronos.git /tmp/Kronos
+          git -C /tmp/Kronos checkout --detach 67b630e67f6a18c9e9be918d9b4337c960db1e9a
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: kronos-small-base-v1
+      - name: Generate real HK forecasts
+        env:
+          HF_HUB_DISABLE_XET: '1'
+        run: python kronos_forecast.py --source /tmp/Kronos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kronos-forecast-${{ github.run_id }}
+          path: kronos_forecast.json
+          if-no-files-found: error
+          retention-days: 7
