@@ -394,8 +394,32 @@
     {
       "ticker": "2800",
       "name": "盈富基金",
-      "status": "FAILED_OR_MISSING",
-      "metrics": null
+      "status": "COMPLETED",
+      "metrics": {
+        "attempted": 24,
+        "valid": 24,
+        "rejected": 0,
+        "predicted": {
+          "mae": 0.024508878541562182,
+          "rmse": 0.028982327290299793,
+          "direction_correct": 11,
+          "direction_n": 24
+        },
+        "zero": {
+          "mae": 0.018962671560583465,
+          "rmse": 0.02490110779949335,
+          "direction_correct": 0,
+          "direction_n": 24
+        },
+        "trend": {
+          "mae": 0.020129637624848526,
+          "rmse": 0.027218275108778833,
+          "direction_correct": 16,
+          "direction_n": 24
+        },
+        "always_up_correct": 11,
+        "zero_mae_all_attempts": 0.018962671560583465
+      }
     },
     {
       "ticker": "0857",
@@ -459,29 +483,29 @@
     }
   ],
   "pooled": {
-    "attempted": 360,
-    "valid": 358,
+    "attempted": 384,
+    "valid": 382,
     "rejected": 2,
     "predicted": {
-      "mae": 0.05459161090216395,
-      "rmse": 0.07508210401339181,
-      "direction_correct": 178,
-      "direction_n": 356
+      "mae": 0.05270159630359212,
+      "rmse": 0.07304737052124036,
+      "direction_correct": 189,
+      "direction_n": 380
     },
     "zero": {
-      "mae": 0.030403876129061137,
-      "rmse": 0.0404530889027885,
+      "mae": 0.029685056993868825,
+      "rmse": 0.03965596565869261,
       "direction_correct": 0,
-      "direction_n": 356
+      "direction_n": 380
     },
     "trend": {
-      "mae": 0.034721155029063505,
-      "rmse": 0.046410655875090426,
-      "direction_correct": 172,
-      "direction_n": 356
+      "mae": 0.03380441048010759,
+      "rmse": 0.04544410761866798,
+      "direction_correct": 188,
+      "direction_n": 380
     },
-    "always_up_correct": 170,
-    "zero_mae_all_attempts": 0.030321499669217492
+    "always_up_correct": 181,
+    "zero_mae_all_attempts": 0.02961157291242786
   },
   "provenance": {
     "0005": {
@@ -887,6 +911,37 @@
         "Adjusted histories downloaded today can reflect subsequent corporate actions."
       ]
     },
+    "2800": {
+      "generated_at": "2026-10-25T09:16:56.436931+08:00",
+      "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+      "models": {
+        "NeoQuasar/Kronos-Tokenizer-base": "0e0117387f39004a9016484a186a908917e22426",
+        "NeoQuasar/Kronos-small": "901c26c1332695a2a8f243eb2f37243a37bea320"
+      },
+      "parameters": {
+        "lookback": 400,
+        "horizon": 5,
+        "sample_count": 5,
+        "seed": 42,
+        "T": 1.0,
+        "top_p": 0.9,
+        "top_k": 0,
+        "device": "cpu",
+        "batch_size": 4
+      },
+      "data_source": "Yahoo Finance via yfinance; auto_adjust=True; retrieved at evaluation time, not point-in-time snapshots",
+      "data_sha256": {
+        "2800": "12c3f6a0c157a02271c7522e9a60093651310ccaf5a6d80fa3d9a1bfd5f06c0f"
+      },
+      "limitations": [
+        "Model pretraining cutoff unverified; source date alone does not establish absence of training overlap.",
+        "Fixed parameters; no fine-tuning or selection on these windows.",
+        "Five-day target intervals do not overlap within each stock; shared dates across stocks remain correlated.",
+        "Invalid candles rejected without repair; paired metrics only on valid windows, rejection rate disclosed.",
+        "No trading P/L, costs, option chains, assignment or margin model; not a strategy profitability validation.",
+        "Adjusted histories downloaded today can reflect subsequent corporate actions."
+      ]
+    },
     "0857": {
       "generated_at": "2026-10-25T09:14:07.957665+08:00",
       "source_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
@@ -949,5 +1004,11 @@
         "Adjusted histories downloaded today can reflect subsequent corporate actions."
       ]
     }
+  },
+  "execution_notes": {
+    "initial_cloud_run": "https://github.com/nunufung/TradeAgent-HK/actions/runs/40149775086",
+    "initial_failed_ticker": "2800",
+    "retry": "same provider redownload; date checks passed; no price repair",
+    "environments": "15 tickers GitHub Python3.11 CPU; 2800 retry local Python3.12 CPU; torch2.6.0 in both"
   }
 }
