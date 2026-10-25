@@ -17,6 +17,7 @@
       <nav class="side-nav" aria-label="Dashboard navigation">
         <button class="nav active" data-view="command"><span class="nav-symbol">◉</span>作戰中心 Command</button>
         <button class="nav" data-view="overview"><span class="nav-symbol">◫</span>總覽 Overview</button>
+        <button class="nav" data-view="lookup"><span class="nav-symbol">⌕</span>代號分析 Lookup</button>
         <button class="nav" data-view="ideas"><span class="nav-symbol">◎</span>每日建議 Daily Ideas</button>
         <button class="nav" data-view="models"><span class="nav-symbol">⌁</span>模型分析 Models</button>
         <button class="nav" data-view="watchlist"><span class="nav-symbol">▦</span>股票觀察 Watchlist</button>
@@ -134,6 +135,38 @@
           <div class="two-col model-row">
             <section class="panel model-summary"><div class="panel-header"><div><div class="eyebrow muted">MODEL RESEARCH</div><h2>Fincept ARIMA</h2></div><span class="chip neutral">STATISTICAL</span></div><div class="model-big" id="fincept-mae">—</div><div class="submetric">Historical validation MAE · 百分點</div><div class="model-details"><span>不變基準 MAE <b id="fincept-base">—</b></span><span>有效窗口 <b id="fincept-valid">—</b></span></div><div class="mini-caption" id="fincept-cutoff">模型資料未載入</div></section>
             <section class="panel model-summary"><div class="panel-header"><div><div class="eyebrow muted">MODEL RESEARCH</div><h2>Kronos Small</h2></div><span class="chip neutral">TIME SERIES</span></div><div class="model-big" id="kronos-mae">—</div><div class="submetric">Historical validation MAE · 百分點</div><div class="model-details"><span>有效窗口 <b id="kronos-valid">—</b></span><span>最新推理 <b id="kronos-infer">未取得</b></span></div><div class="mini-caption">歷史模型回測 ≠ 選擇權收益。不能取代風控。</div></section>
+          </div>
+        </section>
+        <section id="lookup-view" class="view">
+          <div class="section-header"><div><div class="eyebrow muted">ON-DEMAND RESEARCH / LOOKUP</div><h2>股票／期權代號分析</h2></div><span class="chip neutral">SNAPSHOT · READ ONLY</span></div>
+          <div class="panel pad lookup-panel">
+            <p class="lookup-intro">輸入香港股票代號，查閱現有模型預測、四分析員研究及審慎投資評論。期權代號需要同時輸入相關正股，因為現有公開 Dashboard 未連接即時期權鏈。</p>
+            <form id="lookup-form" class="lookup-form">
+              <label>分析類型
+                <select id="lookup-type"><option value="stock">正股 Stock</option><option value="option">期權 Option</option></select>
+              </label>
+              <label>股票／期權代號
+                <input id="lookup-code" type="text" maxlength="28" placeholder="例如 0700 / 700" autocomplete="off" required />
+              </label>
+              <label id="lookup-underlying-wrap" class="hidden">相關正股代號
+                <input id="lookup-underlying" type="text" maxlength="5" placeholder="例如 0700" autocomplete="off" />
+              </label>
+              <button type="submit" class="outline-btn lookup-submit">查閱研究評論 →</button>
+            </form>
+            <p class="lookup-hint" id="lookup-hint">不會發送代號去任何交易系統；輸入只在你嘅瀏覽器處理。</p>
+          </div>
+          <div class="panel pad lookup-result" id="lookup-result" aria-live="polite">
+            <div class="eyebrow muted">INVESTMENT RESEARCH COMMENT</div>
+            <h2 id="lookup-title">輸入代號以查看分析</h2>
+            <div id="lookup-status" class="lookup-status">未查詢</div>
+            <div id="lookup-content" class="lookup-content">現有資料為每日快照，唔係即時報價或買賣指令。</div>
+            <div class="lookup-foot" id="lookup-source"></div>
+          </div>
+          <div class="panel pad lookup-request">
+            <div class="eyebrow muted">REQUEST NEW ANALYSIS</div>
+            <h2>需要重新執行四分析員？</h2>
+            <p>目前 Hugging Face 係公開 Static Space，無法安全地直接啟動需要 GitHub 權限及 DeepSeek API 嘅工作流。你可以用現有 GitHub Actions 手動觸發指定股票分析，再查閱 GitHub／Telegram 結果。期權合約仍須 Futu OpenD 即時鏈數據及完整 HKEX 風控驗證。</p>
+            <div class="lookup-actions"><button id="lookup-copy" class="outline-btn" type="button" disabled>複製正股代號</button><a class="outline-btn" href="https://github.com/nunufung/TradeAgent-HK/actions/workflows/telegram-stock-request.yml" target="_blank" rel="noopener noreferrer">開啟 GitHub 單股分析 ↗</a></div>
           </div>
         </section>
         <section id="ideas-view" class="view">
