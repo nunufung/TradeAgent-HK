@@ -1,0 +1,24 @@
+{
+  "run_id": 40155878913,
+  "url": "https://github.com/nunufung/TradeAgent-HK/actions/runs/40155878913",
+  "commit": "08f06a54cb110da205be2d33462f79ee64558cfd",
+  "status": "success",
+  "runtime": "GitHub ubuntu-latest Python3.11; declared requirements-fincept.txt",
+  "forecasts_valid": 15,
+  "universe": 16,
+  "forecast_min_return_rounded": -0.0026,
+  "forecast_max_return_rounded": 0.0002,
+  "metrics": {
+    "attempted": 360,
+    "valid": 342,
+    "rejected": 18,
+    "direction_correct": 185,
+    "direction_n": 340,
+    "model_mae": 0.030203531339720358,
+    "zero_mae": 0.03018350391951425,
+    "trend_mae": 0.03445126520259203
+  },
+  "artifact_id": 12584443580,
+  "artifact_sha256": "24796785fdd08ace6f99f4607e80937c6955933caa35d3e8419d7bd88bf5041c",
+  "telegram_new_format_receipt": "NOT_YET_VERIFIED"
+}

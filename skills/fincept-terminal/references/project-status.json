@@ -37,6 +37,9 @@
     "historical_validation": "research/fincept-bluechips-2026-10-25/REPORT.md",
     "desktop_app": "NOT_INSTALLED_BY_THIS_CHANGE",
     "provider": "Yahoo Finance; not independently certified",
-    "daily_adapter": "implemented; cloud smoke run and next Telegram receipt checked separately"
+    "daily_adapter": "implemented; cloud smoke run and next Telegram receipt checked separately",
+    "cloud_run": "https://github.com/nunufung/TradeAgent-HK/actions/runs/40155878913",
+    "cloud_status": "SUCCESS_WITH_DISCLOSED_PARTIAL_COVERAGE",
+    "telegram_new_format_receipt": "NOT_YET_VERIFIED"
   }
 }
