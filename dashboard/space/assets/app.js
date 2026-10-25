@@ -82,6 +82,14 @@ function spider(){
  text("spider-telegram",trusted&&h.telegram==="api_acknowledged"?"API ACK":"UNVERIFIED");
  text("spider-ledger",trusted&&Number.isFinite(e.token_count)?"TOTAL TOKENS · "+e.token_count.toLocaleString("en-US"):"TOKEN LEDGER · UNVERIFIED");
  const list=$("spider-events");list.replaceChildren();
+ const trace=Array.isArray(e.trace)?e.trace:[];
+ const roleAliases={market:"market",social:"sentiment",news:"news",fundamentals:"fundamental"};
+ for(const ev of trace){
+  if(ev.kind!=="REPORT_OBSERVED"||!roleAliases[ev.role])continue;
+  const desk=$("spider-"+roleAliases[ev.role]);
+  desk.textContent="REPORT OBSERVED";desk.title="Output verified at "+(ev.timestamp_hkt||"unknown")+"; node start time not measured";
+  desk.closest(".spider-desk").classList.add("confirmed");
+ }
  const observations=trusted&&Array.isArray(e.observations)?e.observations:[];
  const allowed=["daily_research","telegram","research_decision"];
  for(const event of observations.slice(0,8)){
@@ -94,6 +102,14 @@ function spider(){
    const link=node("a",null,"GITHUB EVIDENCE ↗");link.href=event.source;link.target="_blank";link.rel="noopener noreferrer";card.append(link);
   }
   list.append(card);
+ }
+ for(const ev of trace.slice(-14).reverse()){
+  if(!["RUN_STARTED","GRAPH_STARTED","GRAPH_FINISHED","GRAPH_FAILED","REPORT_OBSERVED","REPORT_MISSING","RUN_FINISHED"].includes(ev.kind))continue;
+  const card=node("div","spider-event");
+  const hdr=node("div","spider-event-header");
+  hdr.append(node("b",null,ev.kind.replaceAll("_"," ")+" · "+ev.ticker),node("span",null,ev.timestamp_hkt||""));
+  card.append(hdr,node("p",null,ev.role?"Agent role: "+ev.role+" · verified graph-output observation":"TradingAgents graph execution event"));
+  list.prepend(card);
  }
  if(!list.childElementCount)list.append(node("div","spider-event","沒有可核實嘅當日事件紀錄。"));
 }
