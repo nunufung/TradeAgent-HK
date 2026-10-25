@@ -15,7 +15,8 @@
       <a class="brand" href="#" aria-label="TradeAgent-HK Home"><span class="brand-icon">T<span>↗</span></span><span class="brand-copy"><strong>TradeAgent</strong><small>HK INTELLIGENCE</small></span></a>
       <div class="nav-label">WORKSPACE</div>
       <nav class="side-nav" aria-label="Dashboard navigation">
-        <button class="nav active" data-view="overview"><span class="nav-symbol">◫</span>總覽 Overview</button>
+        <button class="nav active" data-view="command"><span class="nav-symbol">◉</span>作戰中心 Command</button>
+        <button class="nav" data-view="overview"><span class="nav-symbol">◫</span>總覽 Overview</button>
         <button class="nav" data-view="ideas"><span class="nav-symbol">◎</span>每日建議 Daily Ideas</button>
         <button class="nav" data-view="models"><span class="nav-symbol">⌁</span>模型分析 Models</button>
         <button class="nav" data-view="watchlist"><span class="nav-symbol">▦</span>股票觀察 Watchlist</button>
@@ -26,8 +27,8 @@
     </aside>
     <main class="main">
       <header class="topbar">
-        <div class="crumb">PROJECTS <span>/</span> TRADEAGENT-HK <span>/</span> <b id="view-crumb">OVERVIEW</b></div>
-        <div class="top-right"><span class="readonly">● READ ONLY</span><button id="refresh" class="outline-btn" type="button">↻ Refresh</button></div>
+        <div class="crumb">PROJECTS <span>/</span> TRADEAGENT-HK <span>/</span> <b id="view-crumb">COMMAND</b></div>
+        <div class="top-right"><button id="fullscreen" class="outline-btn" type="button">⛶ 大屏模式</button><span class="readonly">● READ ONLY</span><button id="refresh" class="outline-btn" type="button">↻ Refresh</button></div>
       </header>
       <div class="content">
         <section class="intro">
@@ -38,7 +39,45 @@
           </div>
         </section>
         <div id="error" class="notice hidden" role="status"></div>
-        <section id="overview-view" class="view active">
+        <section id="command-view" class="view active">
+          <div class="command-heading"><div><div class="eyebrow muted">MISSION CONTROL / OBSERVABILITY</div><h2>AI Agent 智能交易作戰中心 <span class="command-v2">V2</span></h2><p>GitHub 真實快照 · 連線動畫僅示意資料流程，並非即時 Agent 活動</p></div><div class="command-time"><span>LAST SNAPSHOT · HKT</span><strong id="command-snapshot">未取得</strong></div></div>
+          <div class="command-kpis">
+            <div class="panel command-stat"><span>觀察標的 / WATCHLIST</span><strong id="command-stocks">—</strong><small>公開追蹤名單</small></div>
+            <div class="panel command-stat"><span>四分析員 / RESEARCH</span><strong id="command-research">—</strong><small id="command-research-day">日期待查</small></div>
+            <div class="panel command-stat"><span>交易閘門 / OPTION GATE</span><strong id="command-option">WAIT</strong><small>不自動下單</small></div>
+            <div class="panel command-stat"><span>交付狀態 / DELIVERY</span><strong id="command-delivery">—</strong><small>Telegram API 收據</small></div>
+          </div>
+          <div class="command-grid">
+            <div class="panel mission-panel">
+              <div class="panel-header"><div><div class="eyebrow muted">AGENT ORCHESTRATION</div><h2>研究作戰流程</h2></div><span class="chip neutral">VISUAL FLOW · NOT LIVE</span></div>
+              <div class="mission-stage input-stage"><span>01 · INPUT LAYER</span><div class="mission-inputs"><div>◈ 市場及行情資料</div><div>▣ 公司新聞</div><div>◇ 模型研究快照</div></div></div>
+              <div class="flow-wire" aria-hidden="true"><span></span></div>
+              <div class="mission-stage agent-stage"><span>02 · FOUR ANALYSTS</span><div class="agent-cards">
+                <div class="agent-unit"><span class="agent-glyph">⌁</span><b>Market</b><small>技術與趨勢</small><em id="agent-market">待驗證</em></div>
+                <div class="agent-unit"><span class="agent-glyph">◫</span><b>Fundamental</b><small>公司基本面</small><em id="agent-fundamental">待驗證</em></div>
+                <div class="agent-unit"><span class="agent-glyph">▤</span><b>News</b><small>重要事件</small><em id="agent-news">待驗證</em></div>
+                <div class="agent-unit"><span class="agent-glyph">◉</span><b>Sentiment</b><small>市場情緒</small><em id="agent-sentiment">待驗證</em></div>
+              </div></div>
+              <div class="flow-wire" aria-hidden="true"><span></span></div>
+              <div class="mission-decision"><span>03 · AI RESEARCH & RISK ENGINE</span><strong>DeepSeek × TradingAgents</strong><small>模型研究、投資辯論、香港期權風控規則</small><div id="command-decision-state" class="mission-decision-state">等待當日證據</div></div>
+              <div class="flow-wire" aria-hidden="true"><span></span></div>
+              <div class="mission-outputs"><div><b>04 · STOCK IDEAS</b><span id="command-stock-idea">未有同日建議</span></div><div><b>04 · OPTION RESEARCH</b><span id="command-option-idea">待完整風控</span></div><div><b>04 · DELIVERY</b><span id="command-telegram-route">未驗證</span></div></div>
+              <div class="mission-caption">彩色線條是介面動畫；只有經 GitHub artifact 審核嘅狀態先被標示為完成。</div>
+            </div>
+            <div class="command-aside">
+              <div class="panel mission-side"><div class="eyebrow muted">TODAY'S INTELLIGENCE</div><h2>每日研究方向</h2><div id="command-shortlist" class="command-shortlist">正在讀取每日研究……</div><button type="button" class="outline-btn command-jump" id="open-ideas">查看完整建議 ↗</button></div>
+              <div class="panel mission-side"><div class="eyebrow muted">SYSTEM CONNECTIONS</div><h2>工作流監控</h2><div class="mission-services">
+                <div><span>◈ DeepSeek Research</span><b id="service-deepseek">UNVERIFIED</b></div>
+                <div><span>⌁ Kronos</span><b id="service-kronos">UNVERIFIED</b></div>
+                <div><span>◫ Fincept</span><b id="service-fincept">UNVERIFIED</b></div>
+                <div><span>▱ Futu OpenD</span><b id="service-futu">UNVERIFIED</b></div>
+                <div><span>↗ Telegram</span><b id="service-telegram">UNVERIFIED</b></div>
+                <div><span>◉ GitHub Snapshot</span><b id="service-snapshot">UNVERIFIED</b></div>
+              </div><div class="mission-caption">模型有資料 ≠ 已通過交易驗證；Telegram ACK ≠ 已讀。</div></div>
+            </div>
+          </div>
+        </section>
+        <section id="overview-view" class="view">
           <div class="kpi-grid">
             <div class="panel kpi"><div class="k-label">WATCHLIST COVERAGE <span>↗</span></div><strong id="kpi-stocks">—</strong><div class="k-foot">香港股票 / ETF · 公開研究</div></div>
             <div class="panel kpi"><div class="k-label">DAILY RESEARCH <span>◎</span></div><strong id="kpi-research" class="metric-word">—</strong><div class="k-foot" id="kpi-health-day">狀態未驗證</div></div>
