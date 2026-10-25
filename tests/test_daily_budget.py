@@ -30,6 +30,8 @@ class DailyBudgetTests(unittest.TestCase):
             b.finish(ticket, {'prompt_tokens':50,'completion_tokens':20,'prompt_cache_hit_tokens':10})
             saved = json.loads(path.read_text())
             self.assertEqual(saved['actual_tokens'],70)
+            self.assertEqual(saved['entries'][0]['provider'], 'DeepSeek')
+            self.assertEqual(saved['entries'][0]['model'], 'deepseek-chat')
             self.assertEqual(saved['cache_hit_tokens'],10)
             self.assertNotIn('private-input',path.read_text())
             self.assertEqual(Budget(path,'2026-10-10').snapshot()['calls'],1)

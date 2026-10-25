@@ -1,0 +1,125 @@
+name: Production Health Audit
+
+on:
+  schedule:
+    - cron: '5 0 * * *' # 08:05 Asia/Hong_Kong, including weekends
+  workflow_dispatch:
+  push:
+    paths:
+      - production_health.py
+      - daily_budget.py
+      - tests/test_daily_budget.py
+      - tests/test_production_health.py
+      - .github/workflows/production-health.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -p test_production_health.py -v
+      - run: python -m unittest discover -s tests -p test_daily_budget.py -v
+
+  audit:
+    needs: tests
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Locate production artifacts and most recent Futu smoke test
+        id: locate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const day = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(new Date());
+            const {owner, repo} = context.repo;
+            const all = await github.paginate(github.rest.actions.listArtifactsForRepo,
+              {owner, repo, per_page: 100});
+            const artifacts = all.filter(a => !a.expired);
+            const exact = name => artifacts.find(a => a.name === name);
+            const prefix = name => artifacts.filter(a => a.name.startsWith(name))
+              .sort((a,b) => b.id - a.id)[0];
+            const receipt = exact('hk-daily-delivery-receipt-' + day);
+            const report = prefix('hk-morning-' + day + '-');
+            const ledger = prefix('hk-token-budget-' + day + '-');
+            for (const [key, artifact] of Object.entries({receipt, report, ledger})) {
+              if (artifact) {
+                core.setOutput(key + '_name', artifact.name);
+                core.setOutput(key + '_run', String(artifact.workflow_run.id));
+              }
+            }
+            let futu = null;
+            try {
+              const response = await github.rest.actions.listWorkflowRuns({
+                owner, repo, workflow_id: 'futu-opend-smoke.yml', per_page: 5
+              });
+              const run = response.data.workflow_runs[0];
+              if (run) futu = {
+                conclusion: run.conclusion, status: run.status,
+                created_at: run.created_at, url: run.html_url
+              };
+            } catch (e) {
+              core.warning('Futu smoke-test status unavailable; no connectivity success assumed.');
+            }
+            fs.mkdirSync('audit_inputs', {recursive: true});
+            fs.writeFileSync('audit_inputs/manifest.json', JSON.stringify({
+              date: day, checked_at_utc: new Date().toISOString(),
+              artifacts: {
+                delivery_receipt: !!receipt,
+                delivery_claim: !!exact('hk-daily-delivery-claim-' + day),
+                research_claim: !!exact('hk-daily-research-claim-' + day),
+                morning_report: !!report,
+                token_ledger: !!ledger
+              }, futu_latest: futu
+            }, null, 2));
+      - name: Load Telegram delivery receipt
+        if: steps.locate.outputs.receipt_name != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.locate.outputs.receipt_name }}
+          run-id: ${{ steps.locate.outputs.receipt_run }}
+          github-token: ${{ github.token }}
+          path: audit_inputs/receipt
+      - name: Load morning research completion status
+        if: steps.locate.outputs.report_name != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.locate.outputs.report_name }}
+          run-id: ${{ steps.locate.outputs.report_run }}
+          github-token: ${{ github.token }}
+          path: audit_inputs/morning_report
+      - name: Load DeepSeek token ledger
+        if: steps.locate.outputs.ledger_name != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.locate.outputs.ledger_name }}
+          run-id: ${{ steps.locate.outputs.ledger_run }}
+          github-token: ${{ github.token }}
+          path: audit_inputs/ledger
+      - name: Verify receipts and evidence; report failure when incomplete
+        run: python production_health.py
+      - name: Persist production audit for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-health-${{ github.run_id }}
+          path: |
+            production_health.json
+            production_health.md
+          if-no-files-found: warn
+          retention-days: 30
