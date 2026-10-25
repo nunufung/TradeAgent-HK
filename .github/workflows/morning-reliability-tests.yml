@@ -1,0 +1,37 @@
+name: Morning Reliability Regression
+
+on:
+  push:
+    paths:
+      - daily_budget.py
+      - daily_runner.py
+      - daily_delivery.py
+      - tests/test_daily_budget.py
+      - tests/test_daily_transport.py
+      - .github/workflows/hk-daily.yml
+      - .github/workflows/morning-reliability-tests.yml
+  pull_request:
+    paths:
+      - daily_budget.py
+      - daily_runner.py
+      - daily_delivery.py
+      - tests/test_daily_budget.py
+      - tests/test_daily_transport.py
+      - .github/workflows/hk-daily.yml
+      - .github/workflows/morning-reliability-tests.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -p test_daily_budget.py -v
+      - run: python -m unittest discover -s tests -p test_daily_transport.py -v
