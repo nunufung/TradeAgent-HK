@@ -7,6 +7,8 @@ on:
   push:
     paths:
       - production_health.py
+      - daily_budget.py
+      - tests/test_daily_budget.py
       - tests/test_production_health.py
       - .github/workflows/production-health.yml
 
@@ -24,6 +26,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m unittest discover -s tests -p test_production_health.py -v
+      - run: python -m unittest discover -s tests -p test_daily_budget.py -v
 
   audit:
     needs: tests
