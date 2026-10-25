@@ -1,7 +1,7 @@
 (()=>{
 "use strict";
 const $=id=>document.getElementById(id),NS="http://www.w3.org/2000/svg";
-let data=null,lastTrace=[],replayTimers=[];
+let data=null,lastTrace=[],replayTimers=[],lookupUnderlying='';
 const num=(x,d=2)=>Number.isFinite(x)?Number(x).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
 const text=(id,v)=>{$(id).textContent=v??"—"};
 const date=x=>{if(!x)return"未取得";const d=new Date(x);return isNaN(d.valueOf())?String(x).slice(0,10):d.toLocaleString("zh-HK",{timeZone:"Asia/Hong_Kong",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})};
@@ -15,6 +15,16 @@ function nav(){
  $("refresh").addEventListener("click",load);
  $("open-ideas").addEventListener("click",()=>document.querySelector('.nav[data-view="ideas"]').click());
  $("spider-replay").addEventListener("click",replayTrace);
+ $("lookup-type").addEventListener("change",()=>{
+   $("lookup-underlying-wrap").classList.toggle("hidden",$("lookup-type").value!=="option");
+   $("lookup-code").placeholder=$("lookup-type").value==="option"?"輸入合約代號（需核對正股）":"例如 0700 / 700";
+ });
+ $("lookup-form").addEventListener("submit",e=>{e.preventDefault();lookup();});
+ $("lookup-copy").addEventListener("click",()=>{
+   if(!data||!lookupUnderlying)return;
+   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(lookupUnderlying).then(()=>{text("lookup-hint","已複製 "+lookupUnderlying+"，可在 GitHub Run workflow 嘅 ticker 欄貼上。");}).catch(()=>{text("lookup-hint","請手動複製正股代號："+lookupUnderlying);});}
+   else{text("lookup-hint","請手動複製正股代號："+lookupUnderlying);}
+ });
  $("fullscreen").addEventListener("click",()=>{if(document.fullscreenElement){document.exitFullscreen?.()}else{document.documentElement.requestFullscreen?.()}});
 
  $("chart-stock").addEventListener("change",chart);
@@ -82,6 +92,58 @@ function replayTrace(){
   else document.querySelector(".spider-terminal")?.classList.add("replay-hot");
  },i*550)));
  replayTimers.push(setTimeout(()=>{clear();button.disabled=false;button.textContent="▶ 歷史事件回放";},seq.length*550+450));
+}
+function normalizeHK(value){
+ const m=String(value||"").trim().toUpperCase().match(/^(?:HK[.])?([0-9]{1,5})(?:[.]HK)?$/);
+ const n=m?Number(m[1]):0;
+ return n>0&&n<=99999?String(n).padStart(4,"0"):null;
+}
+function lookup(){
+ if(!data)return;
+ const kind=$("lookup-type").value, entered=$("lookup-code").value.trim().toUpperCase();
+ let underlying=null, contract=null;
+ if(kind==="stock"){underlying=normalizeHK(entered)}
+ else{
+   // Option symbols are broker/exchange specific: do not guess an underlying from their digits.
+   contract=/^[A-Z0-9.\-]{3,28}$/.test(entered)?entered:null;
+   underlying=normalizeHK($("lookup-underlying").value);
+ }
+ const result=$("lookup-content");result.replaceChildren();
+ const add=(heading,body)=>{const unit=node("div","lookup-section");unit.append(node("b",null,heading),node("p",null,body));result.append(unit);};
+ lookupUnderlying=underlying||"";
+ $("lookup-copy").disabled=!underlying;
+ if(!underlying||(kind==="option"&&!contract)){
+   text("lookup-title","請檢查輸入代號");
+   text("lookup-status","INVALID / UNVERIFIED");
+   add("格式提示",kind==="option"?"期權合約代號只可包含英文字母、數字、連字號或句點，並必須輸入有效香港正股代號。":"請輸入香港正股數字代號，例如 700、0700、HK.00700。");
+   text("lookup-source","沒有產生投資建議；沒有觸發任何外部分析。");
+   return;
+ }
+ const stock=data.stocks.find(x=>Number(x.ticker)===Number(underlying)),r=data.daily_recommendations||{};
+ const research=r.state==="RESEARCH_ONLY"&&r.analysis_date===data.meta.generated_at.slice(0,10)
+  ?(r.stocks||[]).find(x=>Number(x.ticker)===Number(underlying)):null;
+ const name=stock?.name||"未列入公開觀察名單";
+ text("lookup-title",(kind==="option"?"Option "+contract+" · ":"")+"HK."+String(Number(underlying)).padStart(5,"0")+(stock?" · "+name:""));
+ text("lookup-status",research?.complete?"RESEARCH RECORDED · NOT LIVE":stock?"WATCHLIST SNAPSHOT · NOT LIVE":"NO VERIFIED STOCK RESEARCH");
+ if(kind==="option")add("合約識別與風控","你輸入嘅合約 "+contract+" 尚未有已驗證期權鏈、行使價、到期日、Bid/Ask、Delta、IV、OI 或保證金。不能判斷合約價格是否合理，亦不提供買賣或開倉指示。請先在 Futu / HKEX 核實合約身份及條款。");
+ if(research&&research.complete){
+  add("四分析員結論",research.rating+" · "+(research.summary||"沒有可用研究摘要。"));
+  add("研究方向",research.strategy||"未有合格期權方向。");
+ }else add("四分析員結論","本次快照沒有該正股同日完整四分析員研究。即使模型有預測，亦不等同確認買入／賣出。");
+ if(stock){
+  for(const model of ["fincept","kronos"]){
+   const m=stock[model],v=m?.forecast_return_pct;
+   add(model==="fincept"?"Fincept 歷史預測":"Kronos 歷史預測",
+       m?.status==="FORECAST_ONLY"&&Number.isFinite(v)
+       ?(v>=0?"+":"")+num(v)+"%（五個交易日預測；資料截至 "+(m.data_cutoff||"未取得")+"；非即市或已驗證回報）"
+       :"目前沒有可核實預測。");
+  }
+  const b=stock.backtest||{};
+  if(Number.isFinite(b.kronos_mae_pp)&&Number.isFinite(b.baseline_mae_pp))
+   add("模型可靠性","Kronos 歷史 MAE "+num(b.kronos_mae_pp)+"pp；不變價格基準 "+num(b.baseline_mae_pp)+"pp。須比較基準誤差，不能單憑預測方向落單。");
+ }
+ add("投資評論／風險",kind==="option"?"暫不確認任何期權交易機會。必須覆核合約到期、Delta、價差、IV、成交量、OI、支撐阻力、事件日曆及可承受保證金；本頁不連接真實持倉。":"現有資料可供研究觀察，但不足以形成有即市依據的投資決策；先核實行情、企業事件和個人風險承受能力。");
+ text("lookup-source","來源：TradeAgent-HK GitHub 每日公開快照 · "+date(data.meta.generated_at)+" HKT · 非即時報價。按代號輸入不會自動執行 TradingAgents。");
 }
 function spider(){
  const e=data.agent_events||{},h=data.health||{},r=data.daily_recommendations||{};
@@ -224,7 +286,7 @@ async function load(){
  const payload=await r.json();
  if(payload.schema_version!==1||!Array.isArray(payload.stocks)||!payload.meta)throw Error("Invalid schema");
  data=payload;$("error").classList.add("hidden");text("snapshot-time",date(payload.meta.generated_at)+" HKT");
- health();models();ideas();commandCenter();spider();initStocks();table();
+ health();models();ideas();commandCenter();spider();initStocks();table();if($("lookup-code").value.trim())lookup();
  }catch(e){
  text("error","Dashboard 資料未部署或暫時無法讀取。請檢查 GitHub Actions Dashboard Sync artifact。沒有資料時不會顯示模擬交易結果。");
  $("error").classList.remove("hidden");
