@@ -1,7 +1,7 @@
 (()=>{
 "use strict";
 const $=id=>document.getElementById(id),NS="http://www.w3.org/2000/svg";
-let data=null;
+let data=null,lastTrace=[],replayTimers=[];
 const num=(x,d=2)=>Number.isFinite(x)?Number(x).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
 const text=(id,v)=>{$(id).textContent=v??"—"};
 const date=x=>{if(!x)return"未取得";const d=new Date(x);return isNaN(d.valueOf())?String(x).slice(0,10):d.toLocaleString("zh-HK",{timeZone:"Asia/Hong_Kong",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})};
@@ -14,6 +14,7 @@ function nav(){
  text("view-crumb",btn.dataset.view.toUpperCase())}));
  $("refresh").addEventListener("click",load);
  $("open-ideas").addEventListener("click",()=>document.querySelector('.nav[data-view="ideas"]').click());
+ $("spider-replay").addEventListener("click",replayTrace);
  $("fullscreen").addEventListener("click",()=>{if(document.fullscreenElement){document.exitFullscreen?.()}else{document.documentElement.requestFullscreen?.()}});
 
  $("chart-stock").addEventListener("change",chart);
@@ -66,6 +67,22 @@ function ideas(){
  if(!stocks.length)list.append(node("div","panel pad","當日並無通過資料驗證嘅股票研究建議；不會使用舊報告代替。"));
  text("ideas-option","主推期權：暫無可執行合約。即使出現條件式 Short Put / Short Call 方向，仍需即時期權鏈、支撐阻力、事件日曆及帳戶風控獨立確認。");
 }
+function replayTrace(){
+ const seq=lastTrace.filter(ev=>["GRAPH_STARTED","GRAPH_FINISHED","REPORT_OBSERVED","GRAPH_FAILED"].includes(ev.kind)).slice(-24);
+ if(!seq.length)return;
+ const button=$("spider-replay");button.disabled=true;button.textContent="▶ 回放歷史紀錄中…";
+ const clear=()=>document.querySelectorAll(".spider-desk,.spider-chief,.spider-terminal").forEach(el=>el.classList.remove("replay-hot"));
+ replayTimers.forEach(clearTimeout);replayTimers=[];clear();
+ const aliases={market:"market",social:"sentiment",news:"news",fundamentals:"fundamental"};
+ seq.forEach((ev,i)=>replayTimers.push(setTimeout(()=>{
+  clear();
+  if(ev.kind==="REPORT_OBSERVED"&&aliases[ev.role]){
+   document.querySelector('.spider-desk[data-agent="'+aliases[ev.role]+'"]')?.classList.add("replay-hot");
+  }else if(ev.kind==="GRAPH_STARTED")document.querySelector(".spider-chief")?.classList.add("replay-hot");
+  else document.querySelector(".spider-terminal")?.classList.add("replay-hot");
+ },i*550)));
+ replayTimers.push(setTimeout(()=>{clear();button.disabled=false;button.textContent="▶ 歷史事件回放";},seq.length*550+450));
+}
 function spider(){
  const e=data.agent_events||{},h=data.health||{},r=data.daily_recommendations||{};
  const trusted=e.mode==="DAILY_SNAPSHOT_NOT_LIVE"&&e.day===h.day;
@@ -83,6 +100,7 @@ function spider(){
  text("spider-ledger",trusted&&Number.isFinite(e.token_count)?"TOTAL TOKENS · "+e.token_count.toLocaleString("en-US"):"TOKEN LEDGER · UNVERIFIED");
  const list=$("spider-events");list.replaceChildren();
  const trace=Array.isArray(e.trace)?e.trace:[];
+ lastTrace=trace;$("spider-replay").disabled=trace.length===0;
  const recentTicker=trace.length?trace[trace.length-1].ticker:null;
  const found=new Set(trace.filter(ev=>ev.ticker===recentTicker&&ev.kind==="REPORT_OBSERVED").map(ev=>ev.role));
  const verifiedCount=["market","social","news","fundamentals"].filter(role=>found.has(role)).length;
