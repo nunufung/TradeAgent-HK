@@ -7,19 +7,13 @@ unfiltered reports. Missing live evidence is always displayed as unavailable.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from io import BytesIO
 import json
 import math
-import os
 from pathlib import Path
-from urllib.request import Request, urlopen
-from zipfile import ZipFile
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 HKT = ZoneInfo("Asia/Hong_Kong")
-API_ROOT = "https://api.github.com/repos/nunufung/TradeAgent-HK"
-MAX_ZIP = 12_000_000
 
 
 def safe_number(value, digits=3):
@@ -39,63 +33,27 @@ def load_local(path):
         return None
 
 
-def get_json(url, token):
-    req = Request(url, headers={
-        "Accept": "application/vnd.github+json",
-        "Authorization": "Bearer " + token,
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "TradeAgent-HK-public-dashboard",
-    })
-    with urlopen(req, timeout=20) as response:
-        return json.load(response)
+def load_import(folder, filename):
+    """Read a single whitelisted file downloaded by official GitHub Actions."""
+    root = ROOT / "dashboard" / "import" / folder
+    if not root.is_dir():
+        return None
+    matches = [p for p in root.rglob(filename) if p.is_file() and p.stat().st_size < 3_000_000]
+    if len(matches) != 1:
+        return None
+    try:
+        result = json.loads(matches[0].read_text(encoding="utf-8"))
+        return result if isinstance(result, dict) else None
+    except (OSError, ValueError):
+        return None
 
 
-def load_artifact(artifacts, prefix, filename, token):
-    """Read only the named JSON entry from a main-branch artifact ZIP."""
-    for item in sorted(artifacts, key=lambda a: a.get("created_at", ""), reverse=True):
-        if not item.get("name", "").startswith(prefix) or item.get("expired"):
-            continue
-        # Do not trust PR or arbitrary branch artifacts for the public Space.
-        branch = (item.get("workflow_run") or {}).get("head_branch")
-        if branch != "main":
-            continue
-        try:
-            req = Request(
-                f"{API_ROOT}/actions/artifacts/{int(item['id'])}/zip",
-                headers={"Authorization": "Bearer " + token,
-                         "User-Agent": "TradeAgent-HK-public-dashboard"})
-            with urlopen(req, timeout=20) as response:
-                raw = response.read(MAX_ZIP + 1)
-            if len(raw) > MAX_ZIP:
-                continue
-            with ZipFile(BytesIO(raw)) as archive:
-                candidates = [entry for entry in archive.infolist()
-                              if entry.filename.split("/")[-1] == filename
-                              and not entry.is_dir() and entry.file_size < 3_000_000]
-                if len(candidates) != 1:
-                    continue
-                with archive.open(candidates[0]) as data:
-                    result = json.loads(data.read())
-                if isinstance(result, dict):
-                    return result, item.get("created_at")
-        except (OSError, ValueError, KeyError, TypeError):
-            continue
-    return None, None
-
-
-def select_sources(artifact_fetch=True):
-    health = fincept = kronos = None
-    token = os.getenv("GITHUB_TOKEN", "").strip()
-    if token and artifact_fetch:
-        try:
-            data = get_json(API_ROOT + "/actions/artifacts?per_page=100", token)
-            artifacts = data.get("artifacts", [])
-            health, _ = load_artifact(artifacts, "production-health-", "production_health.json", token)
-            fincept, _ = load_artifact(artifacts, "fincept-research-", "fincept_forecast.json", token)
-            kronos, _ = load_artifact(artifacts, "kronos-forecast-", "kronos_forecast.json", token)
-        except (OSError, ValueError, KeyError):
-            pass
-    # These are archived research snapshots, explicitly labeled as historical.
+def select_sources():
+    """GitHub Actions downloads the main-branch artifacts by run ID first."""
+    health = load_import("health", "production_health.json")
+    fincept = load_import("fincept", "fincept_forecast.json")
+    kronos = load_import("kronos", "kronos_forecast.json")
+    # Historical fallback is labeled by its source-generated timestamp.
     if fincept is None:
         fincept = load_local("research/fincept-bluechips-2026-10-25/fincept_forecast.json")
     return health, fincept, kronos
