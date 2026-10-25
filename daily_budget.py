@@ -62,7 +62,8 @@ class Budget:
             self.state['charged_tokens'] += reserve
             self.state['unconfirmed_calls'] += 1
             ticket = len(self.state['entries'])
-            self.state['entries'].append({'call':self.state['calls'],'reserved':reserve,'status':'reserved'})
+            self.state['entries'].append({'call':self.state['calls'],'reserved':reserve,'status':'reserved',
+                                        'provider':'DeepSeek','model':payload['model']})
             self._save()  # Durable before an API call, including uncertain failures.
             return ticket
 
