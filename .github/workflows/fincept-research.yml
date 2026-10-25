@@ -6,6 +6,9 @@ on:
   push:
     paths:
       - 'fincept_research.py'
+      - 'fincept_report.py'
+      - 'fincept_audit_report.py'
+      - 'requirements-fincept.txt'
       - '.github/workflows/fincept-research.yml'
 permissions:
   contents: read
@@ -24,6 +27,8 @@ jobs:
           cache: pip
       - name: Install isolated statistical research dependencies
         run: pip install -r requirements-fincept.txt
+      - name: Check artifact and summary integration on Python 3.11
+        run: python -m unittest discover -s tests -p test_fincept.py
       - name: Run real Fincept forecast and requested validation
         env:
           OPENBLAS_NUM_THREADS: '1'

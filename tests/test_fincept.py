@@ -21,3 +21,11 @@ class ArtifactTests(unittest.TestCase):
         from final_summary import render_final_summary
         text=render_final_summary({'date':'2026-10-25','signals':{}},now=datetime(2026,10,25,7,tzinfo=HKT),kronos_line='Kronos：輔助情景。',fincept_line='Fincept ARIMA：輔助情景。')
         self.assertIn('Kronos',text);self.assertIn('Fincept',text);self.assertIn('不開新倉',text);self.assertLessEqual(len(text),1200)
+
+
+class RuntimeCompatibilityTests(unittest.TestCase):
+    def test_production_python_311_syntax(self):
+        import ast
+        root=Path(__file__).resolve().parents[1]
+        for name in ['fincept_report.py','fincept_research.py','fincept_audit_report.py']:
+            ast.parse((root/name).read_text(),feature_version=(3,11))

@@ -18,5 +18,5 @@ def brief(path=Path('fincept_forecast.json'),now=None):
         good=[r for r in rows if r['status']=='FORECAST_ONLY' and r['ticker'] in expected and r['ticker'].isdigit() and len(r['ticker'])==4 and r['data_cutoff']==d['data_cutoff'] and math.isfinite(r['endpoint_return']) and r['endpoint_return']>-1 and r['last_close']>0 and math.isfinite(r['last_close']) and math.isclose(r['endpoint_return'],r['forecast'][-1]/r['last_close']-1,rel_tol=1e-8,abs_tol=1e-10) and len(r['forecast'])==5 and all(math.isfinite(v) and v>0 for v in r['forecast'])]
         if not good:return fallback
         values=[r['endpoint_return'] for r in good]
-        return f"Fincept ARIMA（截至{d["data_cutoff"][5:]}）｜{len(good)}/{len(expected)}標的：各股5日情景{min(values):+.2%}至{max(values):+.2%}；非區間保證／期權入場訊號。"
+        return f"Fincept ARIMA（截至{d['data_cutoff'][5:]}）｜{len(good)}/{len(expected)}標的：各股5日情景{min(values):+.2%}至{max(values):+.2%}；非區間保證／期權入場訊號。"
     except (OSError,ValueError,KeyError,TypeError,OverflowError,IndexError,AttributeError):return fallback
