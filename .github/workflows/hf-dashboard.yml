@@ -46,7 +46,8 @@ jobs:
             for (const [key,prefix] of Object.entries({
               health: 'production-health-',
               fincept: 'fincept-research-',
-              kronos: 'kronos-forecast-'
+              kronos: 'kronos-forecast-',
+              recommendations: 'hk-reports-'
             })) {
               const artifact = eligible.find(a => a.name.startsWith(prefix));
               if (artifact) {
@@ -83,6 +84,15 @@ jobs:
           run-id: ${{ steps.sources.outputs.kronos_run }}
           github-token: ${{ github.token }}
           path: dashboard/import/kronos
+      - name: Download daily research recommendations (private staging only)
+        if: steps.sources.outputs.recommendations_name != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.sources.outputs.recommendations_name }}
+          run-id: ${{ steps.sources.outputs.recommendations_run }}
+          github-token: ${{ github.token }}
+          path: dashboard/import/recommendations
       - name: Export public-only dashboard snapshot
         run: python dashboard/build_data.py
       - name: Save browsable static dashboard
