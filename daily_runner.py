@@ -12,7 +12,7 @@ def run():
     now = datetime.now(HKT)
     ledger = Path('daily_token_usage.json')
     budget = Budget(ledger, now.date().isoformat())
-    deadline = datetime.combine(now.date(), time(6, 30), HKT)
+    deadline = datetime.combine(now.date(), time(7, 15), HKT)
     seconds = min(45 * 60, int((deadline - now).total_seconds()))
     status = 'incomplete'
     if seconds > 0 and os.environ.get('DEEPSEEK_API_KEY'):
