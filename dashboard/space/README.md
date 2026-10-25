@@ -6,7 +6,7 @@ colorTo: indigo
 sdk: static
 app_file: index.html
 pinned: false
-short_description: Public, read-only Hong Kong trading research and model transparency.
+short_description: Hong Kong trading research dashboard
 ---
 
 # TradeAgent-HK Intelligence
