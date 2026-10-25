@@ -111,7 +111,7 @@ def gateway(budget: Budget):
             ticket = None
             try:
                 now = datetime.now(HKT)
-                if now.date().isoformat() != budget.day or now.time() >= time(6, 30):
+                if now.date().isoformat() != budget.day or now.time() >= time(7, 15):
                     raise BudgetExceeded('Morning research cutoff reached.')
                 if self.path not in ('/chat/completions','/v1/chat/completions'):
                     raise BudgetExceeded('Unsupported API route.')
