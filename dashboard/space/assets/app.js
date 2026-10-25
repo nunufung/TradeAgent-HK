@@ -83,9 +83,14 @@ function spider(){
  text("spider-ledger",trusted&&Number.isFinite(e.token_count)?"TOTAL TOKENS · "+e.token_count.toLocaleString("en-US"):"TOKEN LEDGER · UNVERIFIED");
  const list=$("spider-events");list.replaceChildren();
  const trace=Array.isArray(e.trace)?e.trace:[];
+ const recentTicker=trace.length?trace[trace.length-1].ticker:null;
+ const found=new Set(trace.filter(ev=>ev.ticker===recentTicker&&ev.kind==="REPORT_OBSERVED").map(ev=>ev.role));
+ const verifiedCount=["market","social","news","fundamentals"].filter(role=>found.has(role)).length;
+ text("spider-progress-label",recentTicker?recentTicker+" · "+verifiedCount+" / 4 reports":"0 / 4 · UNVERIFIED");
+ $("spider-progress-fill").style.width=(verifiedCount*25)+"%";
  const roleAliases={market:"market",social:"sentiment",news:"news",fundamentals:"fundamental"};
  for(const ev of trace){
-  if(ev.kind!=="REPORT_OBSERVED"||!roleAliases[ev.role])continue;
+  if(ev.kind!=="REPORT_OBSERVED"||ev.ticker!==recentTicker||!roleAliases[ev.role])continue;
   const desk=$("spider-"+roleAliases[ev.role]);
   desk.textContent="REPORT OBSERVED";desk.title="Output verified at "+(ev.timestamp_hkt||"unknown")+"; node start time not measured";
   desk.closest(".spider-desk").classList.add("confirmed");
