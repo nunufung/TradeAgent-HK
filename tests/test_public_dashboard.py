@@ -161,6 +161,19 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertEqual(state["final_trade_decision"],"Hold")
         self.assertNotIn("technical research",json.dumps(observed))
 
+    def test_lookup_ui_is_read_only_and_never_collects_credentials(self):
+        ui=(Path(__file__).resolve().parents[1]/"dashboard/space/index.html").read_text(encoding="utf-8")
+        js=(Path(__file__).resolve().parents[1]/"dashboard/space/assets/app.js").read_text(encoding="utf-8")
+        self.assertIn('id="lookup-form"',ui)
+        self.assertIn('id="lookup-code"',ui)
+        self.assertIn('id="lookup-underlying"',ui)
+        self.assertIn('value="option"',ui)
+        self.assertIn('function lookup()',js)
+        self.assertIn('function normalizeHK(',js)
+        self.assertIn('NO VERIFIED STOCK RESEARCH',js)
+        self.assertNotIn('DEEPSEEK_API_KEY',ui+js)
+        self.assertNotIn('HF_TOKEN',ui+js)
+
     def test_missing_forecast_fails_closed(self):
         w,_,_,b=self.sample()
         result=snapshot(watchlist=w,fincept={},kronos={},kronos_backtest=b)
