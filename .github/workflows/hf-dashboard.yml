@@ -22,8 +22,6 @@ jobs:
   public-dashboard:
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    env:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,13 +44,25 @@ jobs:
           path: dashboard/space/
           retention-days: 14
           if-no-files-found: error
+      - name: Check availability of Hugging Face publish credential
+        id: hf_auth
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -n "$HF_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish to Hugging Face Static Space
-        if: ${{ github.ref == 'refs/heads/main' && env.HF_TOKEN != '' }}
+        if: ${{ github.ref == 'refs/heads/main' && steps.hf_auth.outputs.available == 'true' }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python -m pip install "huggingface_hub>=0.34,<2"
           python dashboard/publish_space.py
       - name: Explain missing write permission without claiming publication
-        if: ${{ github.ref == 'refs/heads/main' && env.HF_TOKEN == '' }}
+        if: ${{ github.ref == 'refs/heads/main' && steps.hf_auth.outputs.available != 'true' }}
         run: |
           echo '### Space publish: NOT CONNECTED' >> "$GITHUB_STEP_SUMMARY"
           echo 'The public dashboard was built and stored as a GitHub Actions artifact, but Hugging Face write access is missing.' >> "$GITHUB_STEP_SUMMARY"
