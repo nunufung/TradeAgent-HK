@@ -56,7 +56,8 @@ def select_sources():
     # Historical fallback is labeled by its source-generated timestamp.
     if fincept is None:
         fincept = load_local("research/fincept-bluechips-2026-10-25/fincept_forecast.json")
-    return health, fincept, kronos
+    recommendation = load_import("recommendations", "recommendations.json")
+    return health, fincept, kronos, recommendation
 
 
 def audit_status(health, today):
@@ -75,7 +76,34 @@ def audit_status(health, today):
             "cache_hits": safe_number(api.get("cache_hit_tokens"), 0)}
 
 
-def snapshot(*, health=None, fincept=None, kronos=None, watchlist=None, kronos_backtest=None, now=None):
+def public_recommendations(raw, today):
+    """Whitelist only same-day research decisions; never export evidence, account or option quotes."""
+    empty = {"state": "UNAVAILABLE", "analysis_date": today, "action": "等待",
+             "stocks": [], "option": None, "reason": "未有同日完整研究紀錄，不能提供交易建議。"}
+    if not isinstance(raw, dict) or raw.get("analysis_date") != today:
+        return empty
+    rows = []
+    for item in raw.get("stocks", [])[:6]:
+        if not isinstance(item, dict):
+            continue
+        code = item.get("underlying")
+        if not isinstance(code, str) or not __import__("re").fullmatch(r"HK\.\d{5}", code):
+            continue
+        complete = item.get("complete") is True
+        rating = item.get("rating") if item.get("rating") in ("Buy", "Overweight", "Hold", "Underweight", "Sell", "REVIEW") else "REVIEW"
+        rows.append({"ticker": code[5:], "rating": rating if complete else "REVIEW",
+                     "complete": complete, "strategy": safe_text(item.get("strategy"), 70) if complete else "不做",
+                     "summary": safe_text(item.get("decision_summary"), 210) if complete else "四分析員研究未齊備。"})
+    action = raw.get("action") if raw.get("action") in ("等待", "不做") else "等待"
+    reasons = raw.get("reasons") if isinstance(raw.get("reasons"), list) else []
+    # Option audit and contracts may carry quote/account-sensitive data. Publish no contract.
+    return {"state": "RESEARCH_ONLY" if rows else "UNAVAILABLE",
+            "analysis_date": today, "action": action, "stocks": rows,
+            "option": None, "reason": safe_text(reasons[0], 180) if reasons else "未通過完整期權風控審核。",
+            "risk_review_complete": False}
+
+
+def snapshot(*, health=None, fincept=None, kronos=None, recommendations=None, watchlist=None, kronos_backtest=None, now=None):
     now = now or datetime.now(HKT)
     today = now.astimezone(HKT).date().isoformat()
     watchlist = watchlist if watchlist is not None else load_local("market_watchlist.json")
@@ -149,6 +177,7 @@ def snapshot(*, health=None, fincept=None, kronos=None, watchlist=None, kronos_b
             "not_live": True,
         },
         "health": audit_status(health, today),
+        "daily_recommendations": public_recommendations(recommendations, today),
         "model_status": {
             "daily_llm": {"provider": "DeepSeek", "model": "deepseek-chat",
                           "description": "GitHub Actions bounded TradingAgents analysis"},
