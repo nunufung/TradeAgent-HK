@@ -8,7 +8,7 @@ Hong Kong equity and options research using four independent TradingAgents analy
 - Research up to two dynamically selected stocks, retaining technical, sentiment, news and fundamental analysts, investment debate and risk review.
 - Attempt one concise Telegram text report immediately after scheduled research finishes, with independent 06:47, 07:17 and 07:37 HKT backup runs. A durable claim and confirmed receipt prevent repeat sends.
 - Each date permits one paid morning session: at most 48 calls, a 100,000-token accounting budget and 800 output tokens per call. Record DeepSeek-reported input/output/cache-hit usage in the Actions ledger.
-- Stop automatic research by 06:30 and refuse automatic delivery after the 08:00 deadline. Missed sends fail visibly. GitHub schedules can be delayed or dropped, so this cannot guarantee arrival before 08:00.
+- Stop automatic research by 07:15 and refuse automatic delivery after the 08:00 deadline. Missed sends fail visibly. GitHub schedules can be delayed or dropped, so this cannot guarantee arrival before 08:00.
 - Explicit Telegram stock requests are supported through the existing bridge: `hk-daily.yml` accepts `ticker`, `request_source` and `scope`, and routes a supplied ticker to the stock PDF workflow. Automatic polling remains disabled.
 - For a missed daily message, explicitly run `HK Daily Report` with `recover_daily=true` and no ticker. This sends today's saved report (or a transparent incomplete-research notice), labelled as a manual catch-up, with a confirmed receipt. It does not restart paid morning research.
 
