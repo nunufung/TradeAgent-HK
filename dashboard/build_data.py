@@ -207,8 +207,8 @@ def snapshot(*, health=None, fincept=None, kronos=None, recommendations=None, wa
 
 
 def main():
-    health, fincept, kronos = select_sources()
-    data = snapshot(health=health, fincept=fincept, kronos=kronos)
+    health, fincept, kronos, recommendations = select_sources()
+    data = snapshot(health=health, fincept=fincept, kronos=kronos, recommendations=recommendations)
     out = ROOT / "dashboard/space/data/dashboard.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
