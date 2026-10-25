@@ -1,0 +1,47 @@
+name: Fincept Research
+on:
+  schedule:
+    - cron: '7 19 * * *' # 03:07 HKT, independent of daily research/delivery
+  workflow_dispatch:
+  push:
+    paths:
+      - 'fincept_research.py'
+      - '.github/workflows/fincept-research.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fincept-research
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install isolated statistical research dependencies
+        run: pip install -r requirements-fincept.txt
+      - name: Run real Fincept forecast and requested validation
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+          BACKTEST: ${{ github.event_name != 'schedule' && 'true' || 'false' }}
+        run: |
+          if [ "$BACKTEST" = true ]; then
+            python fincept_research.py --backtest
+          else
+            python fincept_research.py
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fincept-research-${{ github.run_id }}
+          path: |
+            fincept-output/fincept_forecast.json
+            fincept-output/windows.csv
+            fincept-output/REPORT.md
+          if-no-files-found: error
+          retention-days: 30

@@ -228,7 +228,8 @@ def write_recommendations(payload: dict, *, directory: Path = Path('.'), option_
     (directory/'recommendations.md').write_text(render_recommendations(result, market_audit=market_audit) + '\n' + render_workflows(workflows), encoding='utf-8')
     from final_summary import render_final_summary
     from kronos_report import brief
-    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now, workflow_audit=workflows, kronos_line=brief(directory/'kronos_forecast.json', now=now)), encoding='utf-8')
+    from fincept_report import brief as fincept_brief
+    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now, workflow_audit=workflows, kronos_line=brief(directory/'kronos_forecast.json', now=now), fincept_line=fincept_brief(directory/'fincept_forecast.json', now=now)), encoding='utf-8')
     return result
 
 

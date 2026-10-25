@@ -27,5 +27,16 @@
     "daily_pipeline_adapter": "NOT_IMPLEMENTED_BY_THIS_CHANGE",
     "telegram_fincept_output": "NOT_VERIFIED"
   },
-  "interpretation": "Inspection applies to the checked GitHub revision, not to the user's Mac or any separate Fincept account. Refresh this snapshot for future status checks."
+  "interpretation": "Inspection applies to the checked GitHub revision, not to the user's Mac or any separate Fincept account. Refresh this snapshot for future status checks.",
+  "runtime_update": {
+    "date": "2026-10-25",
+    "adapter": "fincept_research.py",
+    "upstream_module": "fincept-qt/scripts/Analytics/statsmodels_wrapper/timeseries_models.py",
+    "actual_function": "forecast_arima",
+    "model": "ARIMA(1,1,1) on log adjusted closes",
+    "historical_validation": "research/fincept-bluechips-2026-10-25/REPORT.md",
+    "desktop_app": "NOT_INSTALLED_BY_THIS_CHANGE",
+    "provider": "Yahoo Finance; not independently certified",
+    "daily_adapter": "implemented; cloud smoke run and next Telegram receipt checked separately"
+  }
 }

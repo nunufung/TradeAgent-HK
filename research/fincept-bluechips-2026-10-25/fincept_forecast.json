@@ -1,0 +1,975 @@
+{
+  "dependency_versions": {
+    "numpy": "1.26.4",
+    "pandas": "2.2.3",
+    "scipy": "1.13.1",
+    "statsmodels": "0.14.5",
+    "yfinance": "0.2.66",
+    "exchange_calendars": "4.11.2"
+  },
+  "schema_version": 1,
+  "generated_at": "2026-10-25T10:45:49.931391+08:00",
+  "data_cutoff": "2026-10-23",
+  "source_commit": "3d8617cae3f13c93874d4bee4fb0f2846e9c83bc",
+  "module": "fincept-qt/scripts/Analytics/statsmodels_wrapper/timeseries_models.py",
+  "module_sha256": "321c395b250288e2ed139989fecae0676aa7e0b076d621fde7b25c517e124785",
+  "provider": "Yahoo Finance via yfinance, auto_adjust=True; NOT independently certified",
+  "watchlist_sha256": "a0eae39ba3886760d1b0d323714500db392497bfe9f646dd229a27891633108f",
+  "universe": [
+    {
+      "code": "0005",
+      "name": "匯豐控股",
+      "group": "bluechip",
+      "aliases": [
+        "匯豐",
+        "汇丰",
+        "HSBC"
+      ]
+    },
+    {
+      "code": "0388",
+      "name": "香港交易所",
+      "group": "bluechip",
+      "aliases": [
+        "港交所",
+        "香港交易所",
+        "HKEX"
+      ]
+    },
+    {
+      "code": "1299",
+      "name": "友邦保險",
+      "group": "bluechip",
+      "aliases": [
+        "友邦",
+        "AIA"
+      ]
+    },
+    {
+      "code": "2318",
+      "name": "中國平安",
+      "group": "bluechip",
+      "aliases": [
+        "中國平安",
+        "中国平安",
+        "Ping An"
+      ]
+    },
+    {
+      "code": "0939",
+      "name": "建設銀行",
+      "group": "bluechip",
+      "aliases": [
+        "建設銀行",
+        "建设银行",
+        "建行",
+        "China Construction Bank"
+      ]
+    },
+    {
+      "code": "1398",
+      "name": "工商銀行",
+      "group": "bluechip",
+      "aliases": [
+        "工商銀行",
+        "工商银行",
+        "工行",
+        "ICBC"
+      ]
+    },
+    {
+      "code": "3988",
+      "name": "中國銀行",
+      "group": "bluechip",
+      "aliases": [
+        "中國銀行",
+        "中国银行",
+        "Bank of China"
+      ]
+    },
+    {
+      "code": "0941",
+      "name": "中國移動",
+      "group": "bluechip",
+      "aliases": [
+        "中國移動",
+        "中国移动",
+        "China Mobile"
+      ]
+    },
+    {
+      "code": "0883",
+      "name": "中國海洋石油",
+      "group": "bluechip",
+      "aliases": [
+        "中海油",
+        "中國海洋石油",
+        "中国海洋石油",
+        "CNOOC"
+      ]
+    },
+    {
+      "code": "0016",
+      "name": "新鴻基地產",
+      "group": "bluechip",
+      "aliases": [
+        "新鴻基",
+        "新鸿基",
+        "新地",
+        "Sun Hung Kai"
+      ]
+    },
+    {
+      "code": "2020",
+      "name": "安踏體育",
+      "group": "bluechip",
+      "aliases": [
+        "安踏",
+        "ANTA"
+      ]
+    },
+    {
+      "code": "2899",
+      "name": "紫金礦業",
+      "group": "bluechip",
+      "aliases": [
+        "紫金礦業",
+        "紫金矿业",
+        "Zijin Mining"
+      ]
+    },
+    {
+      "code": "0027",
+      "name": "銀河娛樂",
+      "group": "bluechip",
+      "aliases": [
+        "銀河娛樂",
+        "银河娱乐",
+        "Galaxy Entertainment"
+      ]
+    },
+    {
+      "code": "2800",
+      "name": "盈富基金",
+      "group": "bluechip",
+      "aliases": [
+        "盈富基金",
+        "Tracker Fund"
+      ]
+    },
+    {
+      "code": "0857",
+      "name": "中國石油股份",
+      "group": "bluechip",
+      "aliases": [
+        "中國石油",
+        "中国石油",
+        "PetroChina"
+      ]
+    },
+    {
+      "code": "9992",
+      "name": "泡泡瑪特",
+      "group": "bluechip",
+      "aliases": [
+        "泡泡瑪特",
+        "泡泡玛特",
+        "Pop Mart"
+      ]
+    }
+  ],
+  "method": "Fincept forecast_arima on log adjusted close; fixed ARIMA(1,1,1); exp(log-level point forecast), not a calibrated expected return",
+  "lookback": 400,
+  "horizon": 5,
+  "backtest": true,
+  "forecasts": [
+    {
+      "ticker": "0005",
+      "name": "匯豐控股",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "72da3c2da99f830552448d958c7dd9509ba81f5ce238f5b6e8276a555b7aac63",
+      "retrieved_at": "2026-10-25T10:45:46.318171+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 142.5,
+      "forecast": [
+        142.50004512684154,
+        142.50004512615948,
+        142.50004512615948,
+        142.50004512615948,
+        142.50004512615948
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": 3.1667480326902364e-07
+    },
+    {
+      "ticker": "0388",
+      "name": "香港交易所",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "50f4a559aa30a3f7019766a0373adb861d092df5f7333af54ef998ae636de0d0",
+      "retrieved_at": "2026-10-25T10:45:46.287845+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 370.79998779296875,
+      "forecast": [
+        370.7250036643956,
+        370.72579346463925,
+        370.7257851449121,
+        370.72578523255174,
+        370.7257852316285
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -0.0002001147890590138
+    },
+    {
+      "ticker": "1299",
+      "name": "友邦保險",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "b75a8be8b908d4d91bced474bdccdb19950d327c36e940b6ef36c5945f433147",
+      "retrieved_at": "2026-10-25T10:45:46.281825+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 71.05000305175781,
+      "forecast": [
+        71.01389186052515,
+        71.03887363123253,
+        71.02158891818783,
+        71.03354699428776,
+        71.02527351850117
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -0.00034805815896488124
+    },
+    {
+      "ticker": "2318",
+      "name": "中國平安",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "19edab916f8388e2d4d1a1c6ca6ed576fff547cc780c04fcd05256ed905d73e1",
+      "retrieved_at": "2026-10-25T10:45:46.315836+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 49.02000045776367,
+      "forecast": [
+        48.992451835213686,
+        48.99317558891023,
+        48.99315656920899,
+        48.9931570690287,
+        48.99315705589391
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -0.0005476010122212882
+    },
+    {
+      "ticker": "0939",
+      "name": "建設銀行",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "b31b5f1d1bca98cf998b7fd9c804d308f12ee57317ec74700385b8b63f1893d6",
+      "retrieved_at": "2026-10-25T10:45:47.132323+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 9.765000343322754,
+      "forecast": [
+        9.76462000259679,
+        9.764945755123101,
+        9.764666754606486,
+        9.764905711900857,
+        9.764701049893139
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -3.064960768994762e-05
+    },
+    {
+      "ticker": "1398",
+      "name": "工商銀行",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "10df72ed1bae59ff8f5ee1b9e2eec19af2854c2074d480ba190b9a66bf25b6bb",
+      "retrieved_at": "2026-10-25T10:45:47.211588+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 7.239999771118164,
+      "forecast": [
+        7.24134487969282,
+        7.24062926788916,
+        7.241009955485567,
+        7.240807432022482,
+        7.2409151712302595
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": 0.00012643648356824855
+    },
+    {
+      "ticker": "3988",
+      "name": "中國銀行",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "06cb7d982317f03eb43929581722ebf891f690301a8a14dd694f87d5fee7b834",
+      "retrieved_at": "2026-10-25T10:45:47.460526+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 5.954999923706055,
+      "forecast": [
+        5.955245846195114,
+        5.9552432420064285,
+        5.9552432695828355,
+        5.955243269290822,
+        5.955243269293914
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": 4.086407908920897e-05
+    },
+    {
+      "ticker": "0941",
+      "name": "中國移動",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "383366e5506173bd85644cfd1037925ba3fbe4ab0a9b4c4ecc7e7206ca8b4fb9",
+      "retrieved_at": "2026-10-25T10:45:47.653053+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 77.0999984741211,
+      "forecast": [
+        77.0811927781262,
+        77.07857591649828,
+        77.07821172982185,
+        77.07816104539064,
+        77.07815399154246
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -0.00028332662789820606
+    },
+    {
+      "ticker": "0883",
+      "name": "中國海洋石油",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "d535a5fd41a630ad8f9caefd848032b572e39d93bfcc66e666c43e8669e7bee2",
+      "retrieved_at": "2026-10-25T10:45:48.024608+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 23.1200008392334,
+      "forecast": [
+        23.114433949143837,
+        23.114367192338367,
+        23.11436639171044,
+        23.11436638210833,
+        23.114366381993168
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -0.00024370488908753707
+    },
+    {
+      "ticker": "0016",
+      "name": "新鴻基地產",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "68612545e4dc6cd06149fdfefc75bc6342bb8d235ccaeef33b70ca763082b92c",
+      "retrieved_at": "2026-10-25T10:45:48.180274+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 105.5,
+      "forecast": [
+        105.50000118629669,
+        105.50000118629715,
+        105.50000118629715,
+        105.50000118629715,
+        105.50000118629715
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": 1.1244522868381068e-08
+    },
+    {
+      "ticker": "2020",
+      "name": "安踏體育",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "889a90d4c60762f5ff2b2912b12da833d0e7af61f1c701e4bf082eb00b19215a",
+      "retrieved_at": "2026-10-25T10:45:48.398450+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 75.30000305175781,
+      "forecast": [
+        75.22214317745821,
+        75.22346726858682,
+        75.223444739341,
+        75.22344512266993,
+        75.2234451161477
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -0.001016705610987656
+    },
+    {
+      "ticker": "2899",
+      "name": "紫金礦業",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "4e1a2eaf0c314d3fc5faf09e40f9c03a26030eda4bc875f2e776e924861ec6a0",
+      "retrieved_at": "2026-10-25T10:45:48.505147+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 29.459999084472656,
+      "forecast": [
+        29.375268169447963,
+        29.454899083281543,
+        29.380048629949645,
+        29.450394503298924,
+        29.384272311002423
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -0.0025704947665848854
+    },
+    {
+      "ticker": "0027",
+      "name": "銀河娛樂",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "536163817d002befd91145dc887d341d9a839cac5e4a5f6e3504b8b083b6284b",
+      "retrieved_at": "2026-10-25T10:45:49.049572+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 31.600000381469727,
+      "forecast": [
+        31.586729827763772,
+        31.597983936695197,
+        31.588439313365367,
+        31.596533715107515,
+        31.589668895397217
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -0.00032694575784142366
+    },
+    {
+      "ticker": "2800",
+      "name": "盈富基金",
+      "status": "FAILED",
+      "data_sha256": "d6637ee293d54161467a6354cb9c2b6bae593b18a32cf1739a9d34cb2c7599ae",
+      "retrieved_at": "2026-10-25T10:45:49.098381+08:00",
+      "data_cutoff": "2026-10-23",
+      "error": "ValueError: Missing/non-session dates in current 400-bar history"
+    },
+    {
+      "ticker": "0857",
+      "name": "中國石油股份",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "9dd65e9520fdc1415ef01538bca6a72b3ce29a8ddfce68e88a8dd43a9faf794b",
+      "retrieved_at": "2026-10-25T10:45:49.186486+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 9.604999542236328,
+      "forecast": [
+        9.607782150077165,
+        9.606116645226875,
+        9.607113425493113,
+        9.606516833909945,
+        9.606873893212436
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": 0.00019514326553227157
+    },
+    {
+      "ticker": "9992",
+      "name": "泡泡瑪特",
+      "status": "FORECAST_ONLY",
+      "data_sha256": "5e736c98806d30ccd5ab93fc3e10fc2bd70b57eb42a4d6860b620d05c3eb00e6",
+      "retrieved_at": "2026-10-25T10:45:49.243998+08:00",
+      "data_cutoff": "2026-10-23",
+      "last_close": 131.6999969482422,
+      "forecast": [
+        131.60274258293524,
+        131.52359784860596,
+        131.45918255594802,
+        131.40675013061588,
+        131.36406793578362
+      ],
+      "sessions": [
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30"
+      ],
+      "endpoint_return": -0.002550713897059409
+    }
+  ],
+  "metrics": {
+    "attempted": 360,
+    "valid": 340,
+    "rejected": 20,
+    "predicted": {
+      "mae": 0.02993727832662011,
+      "rmse": 0.0400312461450475,
+      "direction_correct": 187,
+      "direction_n": 338
+    },
+    "zero": {
+      "mae": 0.02993974979680507,
+      "rmse": 0.040070463513278344,
+      "direction_correct": 0,
+      "direction_n": 338
+    },
+    "trend": {
+      "mae": 0.034285097819542636,
+      "rmse": 0.046078057434613594,
+      "direction_correct": 166,
+      "direction_n": 338
+    },
+    "always_up_correct": 162,
+    "zero_mae_all_attempts": 0.030321499929149738
+  },
+  "stock_metrics": {
+    "0005": {
+      "attempted": 24,
+      "valid": 21,
+      "rejected": 3,
+      "predicted": {
+        "mae": 0.022541733630045937,
+        "rmse": 0.030225249899659787,
+        "direction_correct": 14,
+        "direction_n": 21
+      },
+      "zero": {
+        "mae": 0.0228592569796738,
+        "rmse": 0.0304348962264859,
+        "direction_correct": 0,
+        "direction_n": 21
+      },
+      "trend": {
+        "mae": 0.025474702228505664,
+        "rmse": 0.03403784426416015,
+        "direction_correct": 12,
+        "direction_n": 21
+      },
+      "always_up_correct": 12,
+      "zero_mae_all_attempts": 0.022080284676702724
+    },
+    "0388": {
+      "attempted": 24,
+      "valid": 23,
+      "rejected": 1,
+      "predicted": {
+        "mae": 0.02043882427553972,
+        "rmse": 0.023492462014348844,
+        "direction_correct": 12,
+        "direction_n": 22
+      },
+      "zero": {
+        "mae": 0.020025417647789017,
+        "rmse": 0.02336262584243337,
+        "direction_correct": 0,
+        "direction_n": 22
+      },
+      "trend": {
+        "mae": 0.018226883978487533,
+        "rmse": 0.023475155171920347,
+        "direction_correct": 15,
+        "direction_n": 22
+      },
+      "always_up_correct": 9,
+      "zero_mae_all_attempts": 0.019995012210547752
+    },
+    "1299": {
+      "attempted": 24,
+      "valid": 24,
+      "rejected": 0,
+      "predicted": {
+        "mae": 0.0294313809033311,
+        "rmse": 0.0382260166702201,
+        "direction_correct": 16,
+        "direction_n": 24
+      },
+      "zero": {
+        "mae": 0.029526114114084248,
+        "rmse": 0.03828884363283344,
+        "direction_correct": 0,
+        "direction_n": 24
+      },
+      "trend": {
+        "mae": 0.03643120401750557,
+        "rmse": 0.0456812333506363,
+        "direction_correct": 9,
+        "direction_n": 24
+      },
+      "always_up_correct": 13,
+      "zero_mae_all_attempts": 0.029526114114084248
+    },
+    "2318": {
+      "attempted": 24,
+      "valid": 23,
+      "rejected": 1,
+      "predicted": {
+        "mae": 0.02913946665928471,
+        "rmse": 0.034667335663335054,
+        "direction_correct": 8,
+        "direction_n": 22
+      },
+      "zero": {
+        "mae": 0.028646390241694485,
+        "rmse": 0.03435006460169137,
+        "direction_correct": 0,
+        "direction_n": 22
+      },
+      "trend": {
+        "mae": 0.030012104420154978,
+        "rmse": 0.03782043048660264,
+        "direction_correct": 12,
+        "direction_n": 22
+      },
+      "always_up_correct": 9,
+      "zero_mae_all_attempts": 0.029212847938760052
+    },
+    "0939": {
+      "attempted": 24,
+      "valid": 22,
+      "rejected": 2,
+      "predicted": {
+        "mae": 0.025848603286817803,
+        "rmse": 0.03328753461616597,
+        "direction_correct": 14,
+        "direction_n": 22
+      },
+      "zero": {
+        "mae": 0.025930269158568973,
+        "rmse": 0.03338242238479007,
+        "direction_correct": 0,
+        "direction_n": 22
+      },
+      "trend": {
+        "mae": 0.02946178160209182,
+        "rmse": 0.035842330050536234,
+        "direction_correct": 12,
+        "direction_n": 22
+      },
+      "always_up_correct": 13,
+      "zero_mae_all_attempts": 0.02567173516691727
+    },
+    "1398": {
+      "attempted": 24,
+      "valid": 20,
+      "rejected": 4,
+      "predicted": {
+        "mae": 0.025720694489926078,
+        "rmse": 0.0315316029265248,
+        "direction_correct": 8,
+        "direction_n": 20
+      },
+      "zero": {
+        "mae": 0.025555550694614747,
+        "rmse": 0.031410965478460035,
+        "direction_correct": 0,
+        "direction_n": 20
+      },
+      "trend": {
+        "mae": 0.03025219760534555,
+        "rmse": 0.03712359580176202,
+        "direction_correct": 9,
+        "direction_n": 20
+      },
+      "always_up_correct": 11,
+      "zero_mae_all_attempts": 0.028077533987804024
+    },
+    "3988": {
+      "attempted": 24,
+      "valid": 21,
+      "rejected": 3,
+      "predicted": {
+        "mae": 0.022039586134026953,
+        "rmse": 0.027198420835770773,
+        "direction_correct": 11,
+        "direction_n": 21
+      },
+      "zero": {
+        "mae": 0.022083041220157192,
+        "rmse": 0.027257418448959025,
+        "direction_correct": 0,
+        "direction_n": 21
+      },
+      "trend": {
+        "mae": 0.026881601303029037,
+        "rmse": 0.0341406579474045,
+        "direction_correct": 11,
+        "direction_n": 21
+      },
+      "always_up_correct": 12,
+      "zero_mae_all_attempts": 0.026105450129805613
+    },
+    "0941": {
+      "attempted": 24,
+      "valid": 21,
+      "rejected": 3,
+      "predicted": {
+        "mae": 0.013178141770782201,
+        "rmse": 0.017624233943985747,
+        "direction_correct": 8,
+        "direction_n": 21
+      },
+      "zero": {
+        "mae": 0.01309029131308406,
+        "rmse": 0.017588924871547836,
+        "direction_correct": 0,
+        "direction_n": 21
+      },
+      "trend": {
+        "mae": 0.015022226545578346,
+        "rmse": 0.019382378543468352,
+        "direction_correct": 12,
+        "direction_n": 21
+      },
+      "always_up_correct": 10,
+      "zero_mae_all_attempts": 0.015024129640349446
+    },
+    "0883": {
+      "attempted": 24,
+      "valid": 22,
+      "rejected": 2,
+      "predicted": {
+        "mae": 0.03769579026545426,
+        "rmse": 0.04708379693263326,
+        "direction_correct": 17,
+        "direction_n": 22
+      },
+      "zero": {
+        "mae": 0.03791772010546345,
+        "rmse": 0.047209882300422945,
+        "direction_correct": 0,
+        "direction_n": 22
+      },
+      "trend": {
+        "mae": 0.045990826844228165,
+        "rmse": 0.05815833989979934,
+        "direction_correct": 9,
+        "direction_n": 22
+      },
+      "always_up_correct": 12,
+      "zero_mae_all_attempts": 0.03832579252194933
+    },
+    "0016": {
+      "attempted": 24,
+      "valid": 23,
+      "rejected": 1,
+      "predicted": {
+        "mae": 0.027630954546634695,
+        "rmse": 0.03858196249151063,
+        "direction_correct": 12,
+        "direction_n": 23
+      },
+      "zero": {
+        "mae": 0.027674394494613782,
+        "rmse": 0.03861265222268719,
+        "direction_correct": 0,
+        "direction_n": 23
+      },
+      "trend": {
+        "mae": 0.03593551608662746,
+        "rmse": 0.043286134845855126,
+        "direction_correct": 11,
+        "direction_n": 23
+      },
+      "always_up_correct": 10,
+      "zero_mae_all_attempts": 0.02995049938910731
+    },
+    "2020": {
+      "attempted": 24,
+      "valid": 24,
+      "rejected": 0,
+      "predicted": {
+        "mae": 0.031201525583595208,
+        "rmse": 0.03835880069201716,
+        "direction_correct": 11,
+        "direction_n": 24
+      },
+      "zero": {
+        "mae": 0.031331379955624995,
+        "rmse": 0.038372121265037064,
+        "direction_correct": 0,
+        "direction_n": 24
+      },
+      "trend": {
+        "mae": 0.036926385243764744,
+        "rmse": 0.04496695399393641,
+        "direction_correct": 7,
+        "direction_n": 24
+      },
+      "always_up_correct": 11,
+      "zero_mae_all_attempts": 0.031331379955624995
+    },
+    "2899": {
+      "attempted": 24,
+      "valid": 24,
+      "rejected": 0,
+      "predicted": {
+        "mae": 0.05485669358255977,
+        "rmse": 0.06341332518168413,
+        "direction_correct": 16,
+        "direction_n": 24
+      },
+      "zero": {
+        "mae": 0.055022882085031866,
+        "rmse": 0.06363601514530794,
+        "direction_correct": 0,
+        "direction_n": 24
+      },
+      "trend": {
+        "mae": 0.05744439851665681,
+        "rmse": 0.07048715650304523,
+        "direction_correct": 15,
+        "direction_n": 24
+      },
+      "always_up_correct": 9,
+      "zero_mae_all_attempts": 0.055022882085031866
+    },
+    "0027": {
+      "attempted": 24,
+      "valid": 24,
+      "rejected": 0,
+      "predicted": {
+        "mae": 0.026623924590638722,
+        "rmse": 0.036023508568588034,
+        "direction_correct": 13,
+        "direction_n": 24
+      },
+      "zero": {
+        "mae": 0.02664000637339925,
+        "rmse": 0.03608470609442268,
+        "direction_correct": 0,
+        "direction_n": 24
+      },
+      "trend": {
+        "mae": 0.026672543544509337,
+        "rmse": 0.04015514313385769,
+        "direction_correct": 15,
+        "direction_n": 24
+      },
+      "always_up_correct": 9,
+      "zero_mae_all_attempts": 0.02664000637339925
+    },
+    "2800": {
+      "attempted": 0,
+      "valid": 0
+    },
+    "0857": {
+      "attempted": 24,
+      "valid": 24,
+      "rejected": 0,
+      "predicted": {
+        "mae": 0.03814648368428866,
+        "rmse": 0.046866919659929,
+        "direction_correct": 14,
+        "direction_n": 24
+      },
+      "zero": {
+        "mae": 0.038091836273215836,
+        "rmse": 0.04679354415184771,
+        "direction_correct": 0,
+        "direction_n": 24
+      },
+      "trend": {
+        "mae": 0.04485411609481618,
+        "rmse": 0.05716799520688812,
+        "direction_correct": 6,
+        "direction_n": 24
+      },
+      "always_up_correct": 12,
+      "zero_mae_all_attempts": 0.038091836273215836
+    },
+    "9992": {
+      "attempted": 24,
+      "valid": 24,
+      "rejected": 0,
+      "predicted": {
+        "mae": 0.03963677268878708,
+        "rmse": 0.05959850069789844,
+        "direction_correct": 13,
+        "direction_n": 24
+      },
+      "zero": {
+        "mae": 0.03976699447394638,
+        "rmse": 0.05971721601232882,
+        "direction_correct": 0,
+        "direction_n": 24
+      },
+      "trend": {
+        "mae": 0.049378401996829135,
+        "rmse": 0.068096536549284,
+        "direction_correct": 11,
+        "direction_n": 24
+      },
+      "always_up_correct": 10,
+      "zero_mae_all_attempts": 0.03976699447394638
+    }
+  },
+  "limitations": [
+    "Fixed parameters, no tuning on these test windows.",
+    "Re-fit separately per origin; no foundation-model pretraining.",
+    "Current watchlist and adjusted historical snapshots introduce selection and point-in-time limitations.",
+    "Same-date stocks correlated; windows not independent across stocks.",
+    "Source/provider errors and nonconvergence rejected without substitution.",
+    "Forecast validation is not a net-return or option-profit backtest."
+  ],
+  "order": [
+    1,
+    1,
+    1
+  ]
+}

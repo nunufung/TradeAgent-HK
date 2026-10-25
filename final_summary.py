@@ -35,7 +35,7 @@ def _reason(stock: dict) -> str:
 
 def render_final_summary(payload: dict, *, market_audit: dict | None = None,
                          option_audit: dict | None = None, now: datetime | None = None,
-                         workflow_audit: dict | None = None, kronos_line: str | None = None) -> str:
+                         workflow_audit: dict | None = None, kronos_line: str | None = None, fincept_line: str | None = None) -> str:
     from market_recommendations import build_recommendations, _in_entry_window
     now = (now or datetime.now(HKT)).astimezone(HKT)
     result = build_recommendations(payload, option_audit=option_audit, now=now)
@@ -62,6 +62,8 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
     lines = ['TradeAgent-HK｜每日決策摘要', f'研究截至：{stamp}｜四分析員及風控整合，屬研究意見。', '']
     if kronos_line:
         lines.append(kronos_line)
+    if fincept_line:
+        lines.append(fincept_line)
     extra = '（交易時段外）' if result['action'] == '等待' and not _in_entry_window(now) else ''
     lines.append(f"期權：{result['action']}{extra}，目前不開新倉。")
     lines.append('')
@@ -108,6 +110,8 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
             compact.append('主推合約：暫無；等待報價及完整風控。')
         if kronos_line:
             compact.append(kronos_line)
+        if fincept_line:
+            compact.append(fincept_line)
         compact += workflow_lines + [lines[-1]]
         return '\n'.join(compact) + '\n'
     return '\n'.join(lines) + '\n'
@@ -146,7 +150,8 @@ def main() -> None:
     inputs, status = load_inputs()
     workflows = build_workflows(payload, build_recommendations(payload, option_audit=options), inputs=inputs, input_status=status)
     from kronos_report import brief
-    text = render_final_summary(payload, market_audit=market, option_audit=options, workflow_audit=workflows, kronos_line=brief(root/'kronos_forecast.json'))
+    from fincept_report import brief as fincept_brief
+    text = render_final_summary(payload, market_audit=market, option_audit=options, workflow_audit=workflows, kronos_line=brief(root/'kronos_forecast.json'), fincept_line=fincept_brief(root/'fincept_forecast.json'))
     if args.send:
         send_text(text)
         print('Final text summary sent to Telegram.')

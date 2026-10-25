@@ -34,9 +34,13 @@ The [Kronos Skill](skills/kronos/SKILL.md) guides candlestick forecasting and se
 
 The morning report downloads the latest successful artifact and includes a concise model scenario in its existing single Telegram message. Missing, invalid or older-than-26-hour forecasts produce an explicit unavailable notice. Inference runs separately with a 20-minute job limit, uses no DeepSeek calls and cannot delay the existing morning research job. These are uncalibrated five-path mean research scenarios, not backtested strategy returns, analyst consensus or option-entry approval. Review Actions artifacts and actual delivery receipts to verify live operation.
 
-## Fincept Terminal research Skill
+## Fincept Terminal research
 
-The [Fincept Terminal Skill](skills/fincept-terminal/SKILL.md) adds source-backed research routing, provider provenance, portfolio/option risk checks and integration readiness checks for Fincept-Corporation/FinceptTerminal. It is discoverable through `.agents/skills/fincept-terminal`. The checked main branch had no Fincept module, submodule or runtime adapter before this registration; this change installs instructions only. Desktop installation, account/provider access, analytics execution and Fincept output in daily Telegram reports remain unverified. See the Skill references for the dated inspection and reviewed upstream revision.
+The [Fincept Skill](skills/fincept-terminal/SKILL.md) now has a bounded headless adapter: `fincept_research.py` downloads and verifies the reviewed upstream time-series module, and actually calls its `forecast_arima` function. It uses fixed ARIMA(1,1,1) on 400 log adjusted daily closes to forecast five HKEX sessions for every member of the GitHub watchlist's `bluechip` group (including 2800 ETF). This is a statistical module integration, not a running desktop terminal or an autonomous Fincept agent team.
+
+**Fincept Research** runs independently at 03:07 HKT with pinned dependencies and no LLM calls. Manual/code-push runs also perform 24 chronological five-session validation windows per stock. The existing daily research job reads the latest successful artifact and includes a short, dated Fincept line in its single Telegram report. Missing, invalid, unknown-source or older-than-26-hour artifacts produce an unavailable notice; inference never runs inside the paid research/delivery process. Convergence failures and missing exchange dates are disclosed, never filled with synthetic successful forecasts.
+
+[Initial real-data validation](research/fincept-bluechips-2026-10-25/REPORT.md) includes per-stock forecasts, input hashes, failures, baseline comparisons and limitations. Yahoo Finance remains the underlying provider and is not independently certified. Forecast metrics are not trading or option-profit validation; project option gates and delivery receipts remain independent.
 
 ## Validation
 
