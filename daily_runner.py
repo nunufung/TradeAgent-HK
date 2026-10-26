@@ -37,7 +37,14 @@ def run():
                 pass
     if status != 'complete':
         Path('final_summary.txt').write_text(fallback_summary())
-    # Independent research-only option scan; never authorizes a live trade.\n    # Missing manual/verified chain leaves an explicit NO_CHAIN_DATA audit artifact.\n    try:\n        from agents.opportunity_selector import generate\n        generate()\n    except (OSError, ValueError, TypeError) as exc:\n        print('Opportunity scan unavailable:', type(exc).__name__)\n    Path('daily_research_status.txt').write_text(status)
+    # Independent research-only option scan; never authorizes a live trade.
+    # Missing manual/verified chain leaves an explicit NO_CHAIN_DATA audit artifact.
+    try:
+        from agents.opportunity_selector import generate
+        generate()
+    except (OSError, ValueError, TypeError) as exc:
+        print('Opportunity scan unavailable:', type(exc).__name__)
+    Path('daily_research_status.txt').write_text(status)
     print('Daily research status:', status, '; usage ledger recorded.')
 
 
