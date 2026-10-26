@@ -17,8 +17,8 @@ class BudgetExceeded(RuntimeError):
     pass
 
 class Budget:
-    def __init__(self, path: Path, day: str, *, max_calls=48, max_tokens=100000,
-                 max_output=800, max_input_bytes=60000):
+    def __init__(self, path: Path, day: str, *, max_calls=300, max_tokens=1000000,
+                 max_output=1600, max_input_bytes=120000):
         self.path, self.day = path, day
         self.max_calls, self.max_tokens = max_calls, max_tokens
         self.max_output, self.max_input_bytes = max_output, max_input_bytes
@@ -56,7 +56,7 @@ class Budget:
             raise BudgetExceeded('Daily request input is too large.')
         reserve = len(raw) + 512 + payload['max_tokens']
         with self.lock:
-            if self.state['calls'] >= self.max_calls or self.state['charged_tokens'] + reserve > self.max_tokens:
+            if (self.max_calls > 0 and self.state['calls'] >= self.max_calls) or (self.max_tokens > 0 and self.state['charged_tokens'] + reserve > self.max_tokens):
                 raise BudgetExceeded('Daily request or token budget exhausted.')
             self.state['calls'] += 1
             self.state['charged_tokens'] += reserve
@@ -90,7 +90,7 @@ def apply_daily_profile(config: dict, backend: str):
     config.update(llm_provider='openai', deep_think_provider='openai', quick_think_provider='openai',
                   backend_url=backend, deep_think_backend_url=backend, quick_think_backend_url=backend,
                   deep_think_llm='deepseek-chat', quick_think_llm='deepseek-chat',
-                  max_tokens=800, llm_max_retries=0, max_tool_rounds=2, max_recur_limit=64,
+                  max_tokens=1600, llm_max_retries=0, max_tool_rounds=2, max_recur_limit=64,
                   max_debate_rounds=1, max_risk_discuss_rounds=1,
                   news_article_limit=5, global_news_article_limit=3, global_news_lookback_days=2)
 
