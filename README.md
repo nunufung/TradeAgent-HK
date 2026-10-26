@@ -42,6 +42,10 @@ The [Fincept Skill](skills/fincept-terminal/SKILL.md) now has a bounded headless
 
 [Initial real-data validation](research/fincept-bluechips-2026-10-25/REPORT.md) includes per-stock forecasts, input hashes, failures, baseline comparisons and limitations. Yahoo Finance remains the underlying provider and is not independently certified. Forecast metrics are not trading or option-profit validation; project option gates and delivery receipts remain independent.
 
+## Ponytail development efficiency
+
+The [Ponytail Skill](skills/ponytail/SKILL.md), adapted from [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail), guides the smallest complete code change, reuse of existing helpers, targeted reads and concise explanations while preserving necessary tests and validation. It is discoverable through `.agents/skills/ponytail`. This is a development Skill, not a runtime token compressor: registration does not change DeepSeek prompts, budgets, the four analysts, option gates or Telegram delivery. Actual provider usage remains measured through the existing token ledger; no savings percentage is claimed from installation alone.
+
 ## Validation
 
 Run `python -m unittest discover -s tests`. Chinese PDF tests need an available CJK font (set `TAHK_CJK_FONT` when needed). Local tests do not prove live API savings or confirmed Telegram delivery; check the next production run's token ledger and delivery receipt.
