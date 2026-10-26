@@ -72,10 +72,21 @@ def generate(source="option_chain_manual.json",destination="opportunity_candidat
         result={"status":"NO_CHAIN_DATA","candidates":[],"rejected":0}
     else:
         raw=json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(raw,list):raise ValueError("option chain must be list")
-        checked=[evaluate(item,now=now) for item in raw]
-        candidates=sorted((x for x in checked if x["status"]!="REJECTED"),
-                          key=lambda x:x["score"],reverse=True)[:3]
+        from agents.vertical_spread_selector import screen_verticals
+        if isinstance(raw,list):
+            single_legs, vertical_spreads = raw, []
+        elif isinstance(raw,dict):
+            single_legs = raw.get("single_legs", [])
+            vertical_spreads = raw.get("vertical_spreads", [])
+            if not isinstance(single_legs,list) or not isinstance(vertical_spreads,list):
+                raise ValueError("option chain collections must be lists")
+        else:
+            raise ValueError("option chain must be a list or an explicit structure object")
+        checked=[evaluate(item,now=now) for item in single_legs if isinstance(item,dict)]
+        candidates=sorted(
+            [x for x in checked if x["status"]!="REJECTED"]+
+            screen_verticals(vertical_spreads,now=now),
+            key=lambda x:x["score"],reverse=True)[:3]
         result={"status":"CONDITIONAL_RESEARCH" if candidates else "NO_ELIGIBLE_CANDIDATE",
                 "candidates":candidates,"rejected":sum(x["status"]=="REJECTED" for x in checked)}
     Path(destination).write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8")
