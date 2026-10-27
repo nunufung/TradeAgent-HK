@@ -216,6 +216,7 @@ jobs:
             free_news_*.json
             market_candidates.json
             opportunity_candidates.json
+            overnight_call.json
             market_briefing.json
             stock_signals.json
             stock_analysis.md

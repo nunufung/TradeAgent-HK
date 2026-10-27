@@ -23,6 +23,8 @@ on:
       - 'market_watchlist.json'
       - 'market_recommendations.py'
       - 'final_summary.py'
+      - 'overnight_call.py'
+      - 'tests/test_overnight_call.py'
       - 'tests/test_final_summary.py'
       - '.github/workflows/futu-options.yml'
       - 'main.py'

@@ -211,6 +211,9 @@ def render_recommendations(result: dict, *, market_audit: dict | None = None) ->
               '資料狀態：分析齊備不代表行情及論據已核實；正股價位與估值僅屬研究輸入。行情來源、交易日期及盤中／收市狀態須逐項覆核。',
               '尚待覆核：' + '；'.join(PENDING_RULES) + '。',
               '持倉管理：未取得當前持倉、開倉權利金及帳戶資金餘額，不能判定實際止盈、止蝕或轉倉是否已觸發。']
+    if result.get('overnight_call') is not None:
+        from overnight_call import brief
+        lines += ['## 獨立候選策略', brief(result['overnight_call']), result['overnight_call']['limitations']]
     return '\n\n'.join(lines) + '\n'
 
 
@@ -220,8 +223,12 @@ def write_recommendations(payload: dict, *, directory: Path = Path('.'), option_
     from trading_workflows import load_inputs, build_workflows, render_workflows
     inputs, input_status = load_inputs()
     workflows = build_workflows(payload, result, inputs=inputs, input_status=input_status, now=now)
+    from overnight_call import build as build_overnight
+    overnight = build_overnight(inputs, now=now)
+    result['overnight_call'] = overnight
     result['trading_workflows'] = workflows
     directory.mkdir(parents=True, exist_ok=True)
+    (directory/'overnight_call.json').write_text(json.dumps(overnight, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
     (directory/'trading_workflows.json').write_text(json.dumps(workflows, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
     (directory/'trading_workflows.md').write_text(render_workflows(workflows), encoding='utf-8')
     (directory/'recommendations.json').write_text(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
@@ -229,7 +236,7 @@ def write_recommendations(payload: dict, *, directory: Path = Path('.'), option_
     from final_summary import render_final_summary
     from kronos_report import brief
     from fincept_report import brief as fincept_brief
-    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now, workflow_audit=workflows, kronos_line=brief(directory/'kronos_forecast.json', now=now), fincept_line=fincept_brief(directory/'fincept_forecast.json', now=now)), encoding='utf-8')
+    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now, workflow_audit=workflows, overnight_audit=overnight, kronos_line=brief(directory/'kronos_forecast.json', now=now), fincept_line=fincept_brief(directory/'fincept_forecast.json', now=now)), encoding='utf-8')
     return result
 
 

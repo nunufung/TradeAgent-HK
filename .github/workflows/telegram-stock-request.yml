@@ -92,6 +92,7 @@ jobs:
         if: steps.poll.outputs.kind == 'stock'
         env:
           REQUEST_TICKER: ${{ steps.poll.outputs.ticker }}
+          TAHK_RESEARCH_INPUT_JSON: ${{ secrets.TAHK_RESEARCH_INPUT_JSON }}
         run: python -u hk_adapter.py "$REQUEST_TICKER"
 
       - name: Generate requested PDF

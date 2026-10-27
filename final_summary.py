@@ -35,10 +35,16 @@ def _reason(stock: dict) -> str:
 
 def render_final_summary(payload: dict, *, market_audit: dict | None = None,
                          option_audit: dict | None = None, now: datetime | None = None,
-                         workflow_audit: dict | None = None, kronos_line: str | None = None, fincept_line: str | None = None) -> str:
+                         workflow_audit: dict | None = None, overnight_audit: dict | None = None, kronos_line: str | None = None, fincept_line: str | None = None) -> str:
     from market_recommendations import build_recommendations, _in_entry_window
     now = (now or datetime.now(HKT)).astimezone(HKT)
     result = build_recommendations(payload, option_audit=option_audit, now=now)
+    from overnight_call import build as build_overnight, brief as overnight_brief
+    if overnight_audit is None:
+        from trading_workflows import load_inputs
+        inputs, _ = load_inputs()
+        overnight_audit = build_overnight(inputs, now=now)
+    overnight_line = overnight_brief(overnight_audit)
     market = market_audit or {}
     if not market.get('watchlist'):
         path = Path(__file__).with_name('market_watchlist.json')
@@ -94,7 +100,8 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
         reason = '非交易時段，等待最新報價及完整風控覆核。' if not _in_entry_window(now) else (
             '尚欠即時 Futu 報價及完整風控查核。' if option_audit is None else result['reasons'][0][:75])
         lines.append('主推合約：暫無。' + reason)
-    lines.append('守則：21–45 DTE、|Delta|≤0.10、Margin/Premium≤10x；如開倉，盈利達原 Premium 50–70% 止盈，虧損>原 Premium 100%須平倉／減倉／合規 Roll。')
+    lines.append('原策略守則：21–45 DTE、|Delta|≤0.10、Margin/Premium≤10x；如開倉，盈利達原 Premium 50–70% 止盈，虧損>原 Premium 100%須平倉／減倉／合規 Roll。')
+    lines.append(overnight_line)
     if workflow_audit is not None:
         from trading_workflows import brief_lines
         workflow_lines = brief_lines(workflow_audit)
@@ -112,7 +119,7 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
             compact.append(kronos_line)
         if fincept_line:
             compact.append(fincept_line)
-        compact += workflow_lines + [lines[-1]]
+        compact += workflow_lines + [lines[-2], overnight_line]
         return '\n'.join(compact) + '\n'
     return '\n'.join(lines) + '\n'
 
