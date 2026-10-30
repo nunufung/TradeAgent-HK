@@ -178,7 +178,14 @@ def test_public_timeout_covers_waiting_for_provider_capacity(monkeypatch):
         monkeypatch.setattr(live_data,'_public_lock',lock)
         live_data._cache.clear()
         start=time.monotonic()
-        with pytest.raises(TimeoutError):
+        with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(live_data.public_quote('HK.00700'),timeout=.2)
         assert time.monotonic()-start<.1
     asyncio.run(run())
+
+
+def test_futu_async_timeout_uses_public_fallback_on_python310():
+    class Slow:
+        async def quote(self,code): raise asyncio.TimeoutError()
+    async def public(code): return packet('Yahoo Finance')
+    assert asyncio.run(resolve_quote('700',Slow(),private=True,public=public))['source']=='Yahoo Finance'
