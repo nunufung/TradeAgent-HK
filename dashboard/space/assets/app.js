@@ -279,18 +279,25 @@ function table(){
  text("table-count","Showing "+rows.length+" / "+data.stocks.length+" stocks · 公開研究資料，非富途即市報價");
 }
 async function load(){
+ if($("refresh").disabled)return;
+ const previous=data?.meta?.generated_at,controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),15000);
  $("refresh").disabled=true;
+ text("refresh","↻ 更新中…");
+ text("error","正在重新讀取已發布快照…");$("error").classList.remove("hidden");
  try{
- const r=await fetch("./data/dashboard.json?v="+Date.now(),{cache:"no-store"});
+ const r=await fetch("./data/dashboard.json?v="+Date.now(),{cache:"no-store",signal:controller.signal});
  if(!r.ok)throw new Error("Snapshot fetch failed");
  const payload=await r.json();
  if(payload.schema_version!==1||!Array.isArray(payload.stocks)||!payload.meta)throw Error("Invalid schema");
  data=payload;$("error").classList.add("hidden");text("snapshot-time",date(payload.meta.generated_at)+" HKT");
  health();models();ideas();commandCenter();spider();initStocks();table();if($("lookup-code").value.trim())lookup();
- }catch(e){
- text("error","Dashboard 資料未部署或暫時無法讀取。請檢查 GitHub Actions Dashboard Sync artifact。沒有資料時不會顯示模擬交易結果。");
+ text("error","已檢查："+date(Date.now())+" HKT · "+(previous===payload.meta.generated_at?"沒有更新快照":"已載入最新已發布快照")+"。資料時間："+date(payload.meta.generated_at)+" HKT。此按鈕不會重新執行分析或取得即市報價。");
  $("error").classList.remove("hidden");
- }finally{$("refresh").disabled=false}
+ }catch(e){
+ text("error",(e.name==="AbortError"?"更新逾時，請稍後重試。":"更新失敗，請稍後重試。")+(data?"保留上次快照："+date(data.meta.generated_at)+" HKT。":"尚未取得公開快照，請檢查 Dashboard Sync。"));
+ $("error").classList.remove("hidden");
+ }finally{clearTimeout(timeout);$("refresh").disabled=false;text("refresh","↻ Refresh")}
 }
 nav();load();
 })();
