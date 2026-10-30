@@ -1,4 +1,73 @@
-# Hugging Face: TradeAgent-HK Public Research Dashboard
+# Hugging Face: TradeAgent-HK Dashboard and Live Lookup
+
+## Live stock lookup (Futu first, public fallback)
+
+The existing snapshot views remain public and date-bound. The stock lookup now
+requests fresh available data from a Python backend in the same Space:
+
+1. The signed-in owner (`lewisf`) uses a paired Mac connector for Futu OpenD.
+2. The connector polls outbound HTTPS, reads 127.0.0.1:11111 locally and returns
+   only quote/history fields. No GitHub self-hosted runner is required.
+3. Offline, slow, unauthorized or stale Futu quotes fall back to public Yahoo
+   Finance data. Anonymous visitors use only public data. Provider, quote time,
+   retrieval time and fallback reason are displayed. Quotes can be delayed or
+   reflect a closed market; a successful fetch is not proof of real-time access.
+4. Immediate technical commentary is calculated from retrieved daily candles.
+   It is explicitly separate from the four-analyst DeepSeek research.
+5. Owner-only research runs the pinned existing TradingAgents team and shows
+   completion, missing reports or failure. It permits one concurrent job, six
+   new jobs per process/day and ten-minute reuse of completed same-stock jobs.
+
+### One-time Mac connection
+
+Open the deployed Space, choose the owner login / standalone analysis page link,
+and sign in as `lewisf`. Keep that standalone page open to avoid third-party
+cookie restrictions inside the Hugging Face iframe.
+
+On the Mac with OpenD signed in and Python 3.9 or newer installed:
+
+```bash
+git clone https://github.com/nunufung/TradeAgent-HK.git
+cd TradeAgent-HK
+bash scripts/install-futu-connector.sh
+```
+
+Choose **配對 Mac connector** on the signed-in dashboard. Enter the five-minute
+code at the installer's hidden prompt. Never post it in chat or GitHub. Keep the
+terminal and OpenD running and the Mac awake. If this repository is already
+cloned on the Mac, update that clone first instead of creating a second clone.
+
+Pairing survives routine restarts. After 30 days or publisher-credential rotation,
+renew with:
+
+```bash
+bash scripts/install-futu-connector.sh --pair
+```
+
+The connector does not collect an OpenD login or password. It never opens a
+trading context or queries holdings, account IDs, balances or order APIs.
+Device tokens are purpose-bound signatures valid for 30 days. Re-pairing does not
+revoke an older unexpired token. Rotating the publisher credential and republishing
+rotates the dedicated derived signing key and invalidates all device tokens.
+
+### Live backend deployment
+
+The existing Dashboard Sync workflow publishes only allowlisted snapshot and
+runtime source files. Its existing HF_TOKEN writes the intended Space. The
+approved deployment provisions the existing DEEPSEEK_API_KEY as a server-side
+Space secret; its value never enters HTML, JavaScript, snapshots or logs. OAuth
+uses only openid/profile; only lewisf can pair a Mac or start paid research.
+The Gradio Python SDK runs server.py (FastAPI/uvicorn) on port 7860 without
+requesting a higher hardware tier or exposing a public model-call endpoint.
+
+Run the live lookup Python tests, the two JavaScript test files and the existing
+public snapshot privacy tests. A simulated connector test does not establish
+that the user's Mac is paired. Claim Futu connection only after a genuine owner
+lookup returns an OpenD timestamp.
+
+The remainder describes the original daily snapshot export. Its static-source
+and no-live-quotes statements apply to those snapshot files; the live lookup
+uses the separate authenticated backend described above.
 
 ## Purpose
 
