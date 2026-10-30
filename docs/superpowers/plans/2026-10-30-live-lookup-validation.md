@@ -1,8 +1,16 @@
+# Final deployment outcome
+
+The live lookup is NOT enabled. The free Hugging Face ZeroGPU runtime rejected the CPU-only backend with `No @spaces.GPU function detected during startup`. The original static snapshot dashboard was restored and verified RUNNING in the browser. Backend-only secrets were removed before publishing as static. A suitable CPU backend host is required to activate Futu/public lookup and owner-only paid research. No paid hosting was purchased.
+
+The ZeroGPU Python 3.10 restriction was reproduced; an isolated managed Python 3.11 environment successfully installed the pinned TradingAgents v0.6. Twenty-eight backend/connector/research tests passed under Python 3.10. A timeout-class difference was caught and regression-tested there. The full live frontend/configuration is retained at d6c44a69dc949c7a3830f9d0c23c23754557ae36. No real Mac OpenD connection or paid DeepSeek research run was verified.
+
+---
+
 # Live lookup validation
 
 Plan: 2026-10-30-live-lookup.md. User approved Futu first with public-data fallback.
 
-- 36 focused Python checks pass, including existing public-data privacy tests.
+- 37 focused Python checks pass, including existing public-data privacy tests.
 - Six JavaScript checks pass, including unchanged Refresh behavior, source display and submitted-ticker race protection.
 - Source syntax, shell syntax, exported snapshot and exact publish allowlist checks pass.
 - A genuine Yahoo Finance HK.00700 request returned a provider timestamp and 126 daily candles. Public data is not called guaranteed real time.
