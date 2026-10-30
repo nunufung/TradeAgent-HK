@@ -1,6 +1,8 @@
 # Futu OpenD stock lookup connection
 
-Status: proposed design; not implemented or connected.
+Status: approved by the user on 2026-10-30, with explicit public-market-data fallback if Futu cannot connect. Implementation must distinguish deployed public lookup from a verified user-Mac connection.
+
+Implementation decisions: anonymous lookup uses public data and technical calculations. Owner OAuth protects private Futu packets and paid four-agent research. Purpose-bound device tokens survive normal daily backend rebuilds, expire after 30 days and are invalidated by publisher-key rotation. Mac installation and a real OpenD round trip remain required before claiming Futu works.
 
 ## Goal and agreed constraints
 Entering a Hong Kong stock code in the Hugging Face UI should request current Futu market data and return the existing four-analyst research. Use the user's macOS OpenD installation. Do not use a GitHub self-hosted runner. Keep the existing public snapshot dashboard available.
