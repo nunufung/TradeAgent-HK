@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import shutil
 import sys
 import time
 from urllib.parse import urlencode
@@ -28,6 +29,24 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parent
 OWNER = 'lewisf'
+RESEARCH_ENV=Path.home()/'.cache/tradeagent-hk-research'
+
+
+async def research_python():
+    python=RESEARCH_ENV/'bin/python'
+    ready=RESEARCH_ENV/'.ready-v06'
+    if python.is_file() and ready.is_file(): return str(python)
+    uv=shutil.which('uv')
+    if not uv: raise RuntimeError('Research environment manager unavailable')
+    for args in [(uv,'venv','--python','3.11',str(RESEARCH_ENV)),
+                 (uv,'pip','install','--python',str(python),'-r',str(ROOT/'research-requirements.txt'))]:
+        child=await asyncio.create_subprocess_exec(*args,stdout=asyncio.subprocess.DEVNULL,stderr=asyncio.subprocess.DEVNULL)
+        try: result=await asyncio.wait_for(child.wait(),timeout=240)
+        except BaseException:
+            child.kill(); await child.wait(); raise
+        if result: raise RuntimeError('Research environment installation failed')
+    ready.touch()
+    return str(python)
 
 
 def require_owner(request: Request):
@@ -237,16 +256,18 @@ def create_app():
         return {'accepted':True}
 
     async def run_research(job_id, quote):
-        job=research_jobs[job_id]; job['state']='RUNNING'
+        job=research_jobs[job_id]; job['state']='PREPARING'
         process=None
         try:
-            process=await asyncio.create_subprocess_exec(sys.executable,str(ROOT/'research_runner.py'),
+            python=await research_python()
+            job['state']='RUNNING'
+            process=await asyncio.create_subprocess_exec(python,str(ROOT/'research_runner.py'),
                 stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.DEVNULL)
             output,_=await asyncio.wait_for(process.communicate(json.dumps(quote).encode()),timeout=600)
             if process.returncode or len(output)>150000: raise RuntimeError('Research unavailable')
             result=json.loads(output)
             if not isinstance(result.get('reports'),dict): raise ValueError('Invalid research')
-            job.update(state='COMPLETED',result=result)
+            job.update(state='COMPLETED',result=result,completed=time.monotonic())
         except Exception:
             if process and process.returncode is None:
                 process.kill(); await process.wait()
@@ -260,10 +281,10 @@ def create_app():
             raise HTTPException(404,'Lookup expired; retrieve a new quote first.')
         quote=item['quote']
         for key,job in research_jobs.items():
-            if job['state'] in {'QUEUED','RUNNING'}:
+            if job['state'] in {'QUEUED','PREPARING','RUNNING'}:
                 if job['code']==quote['code']: return {'job_id':key,'state':job['state']}
                 raise HTTPException(429,'已有一項四分析員研究進行中，請稍後再試。')
-            if job['code']==quote['code'] and job['state']=='COMPLETED' and time.monotonic()-job['created']<600:
+            if job['code']==quote['code'] and job['state']=='COMPLETED' and time.monotonic()-job.get('completed',job['created'])<600:
                 return {'job_id':key,'state':job['state']}
         today=datetime.now(timezone.utc).date().isoformat()
         count=research_days.get(today,0)
@@ -280,7 +301,7 @@ def create_app():
     async def research_result(job_id: str,owner=Depends(require_owner)):
         item=research_jobs.get(job_id)
         if not item: raise HTTPException(404,'Research job expired')
-        return {key:value for key,value in item.items() if key!='created'}
+        return {key:value for key,value in item.items() if key not in {'created','completed'}}
 
     app.state.tasks=set()
     @app.get('/')
