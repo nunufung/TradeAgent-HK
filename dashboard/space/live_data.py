@@ -102,7 +102,7 @@ async def public_quote(code: str) -> dict:
     cached = _cache.get(code)
     if cached and time.monotonic()-cached[0] < 60:
         return dict(cached[1])
-    async with asyncio.timeout(PUBLIC_TIMEOUT_SECONDS):
+    async def retrieve():
         async with _public_lock:
             cached = _cache.get(code)
             if cached and time.monotonic()-cached[0] < 60:
@@ -111,6 +111,7 @@ async def public_quote(code: str) -> dict:
             if len(_cache) >= 200: _cache.clear()
             _cache[code] = (time.monotonic(), result)
             return dict(result)
+    return await asyncio.wait_for(retrieve(),timeout=PUBLIC_TIMEOUT_SECONDS)
 
 
 async def resolve_quote(raw: str, broker, *, private=False, public=None) -> dict:
