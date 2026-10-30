@@ -125,7 +125,7 @@ async def resolve_quote(raw: str, broker, *, private=False, public=None) -> dict
             result['source'] = 'Futu OpenD'
             result['fallback_reason'] = None
             return result
-        except (TimeoutError, ValueError, RuntimeError):
+        except (TimeoutError, asyncio.TimeoutError, ValueError, RuntimeError):
             reason = 'Futu 未連線、行情權限不足、報價逾時或超過15分鐘；已切換公開行情。'
     result = sanitize_quote(await (public or public_quote)(code),code)
     result['source'] = 'Yahoo Finance'
