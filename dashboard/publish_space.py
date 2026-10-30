@@ -8,6 +8,7 @@ import os
 import hashlib
 import hmac
 from huggingface_hub import HfApi
+from huggingface_hub.utils import HfHubHTTPError
 
 SPACE = "lewisf/tradeagent-hk-dashboard"
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,16 +30,26 @@ def main():
              and "__pycache__" not in x.parts}
     if files != ALLOWED:
         raise SystemExit("Unexpected Space files or missing allowlisted files: refusing upload.")
+    sdk=next(line.split(":",1)[1].strip() for line in (FOLDER/"README.md").read_text().splitlines() if line.startswith("sdk:"))
+    if sdk not in {"static","gradio"}:
+        raise SystemExit("Unexpected Space SDK")
     api = HfApi(token=token)
-    api.create_repo(repo_id=SPACE, repo_type="space", space_sdk="gradio",
+    api.create_repo(repo_id=SPACE, repo_type="space", space_sdk=sdk,
                     private=False, exist_ok=True)
-    # A dedicated stable key keeps the Mac paired across daily snapshot rebuilds.
-    connector_key=hmac.new(token.encode(),b"TradeAgent-HK/Futu-connector-signing/v1",hashlib.sha256).hexdigest()
-    api.add_space_secret(repo_id=SPACE,key="CONNECTOR_SIGNING_KEY",value=connector_key)
-    # Authorized backend credential provisioning; never print or embed the value.
-    deepseek = os.getenv("DEEPSEEK_API_KEY", "").strip()
-    if deepseek:
-        api.add_space_secret(repo_id=SPACE, key="DEEPSEEK_API_KEY", value=deepseek)
+    if sdk=="static":
+        # Clear backend-only secrets BEFORE exposing a static publication.
+        for key in ("CONNECTOR_SIGNING_KEY","DEEPSEEK_API_KEY"):
+            try:
+                api.delete_space_secret(repo_id=SPACE,key=key)
+            except HfHubHTTPError as exc:
+                if exc.response is None or exc.response.status_code!=404:
+                    raise
+    else:
+        connector_key=hmac.new(token.encode(),b"TradeAgent-HK/Futu-connector-signing/v1",hashlib.sha256).hexdigest()
+        api.add_space_secret(repo_id=SPACE,key="CONNECTOR_SIGNING_KEY",value=connector_key)
+        deepseek = os.getenv("DEEPSEEK_API_KEY", "").strip()
+        if deepseek:
+            api.add_space_secret(repo_id=SPACE, key="DEEPSEEK_API_KEY", value=deepseek)
     api.upload_folder(repo_id=SPACE, repo_type="space", folder_path=str(FOLDER),
                       allow_patterns=sorted(ALLOWED),
                       commit_message="Update TradeAgent-HK dashboard and Futu/public lookup")
