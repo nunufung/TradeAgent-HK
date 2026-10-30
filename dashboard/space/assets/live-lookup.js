@@ -31,11 +31,13 @@ async function research(packetId,seq,signal){
  const box=$('live-research');box.classList.remove('hidden');box.replaceChildren(node('h2','四分析員研究'),node('p','正在啟動 Market、Fundamental、News、Sentiment；完成前不視為研究結論。'));
  try{
   const started=await api('/api/research',{packet_id:packetId},signal);
-  for(let i=0;i<310;i++){
+  for(let i=0;i<900;i++){
    if(seq!==generation)return;
    const job=await api('/api/research/'+encodeURIComponent(started.job_id),null,signal);
    if(seq!==generation)return;
    if(job.state==='FAILED')throw Error(job.error);
+   if(job.state==='PREPARING')box.replaceChildren(node('h2','四分析員準備中'),node('p','首次使用正在準備 Python 3.11 研究環境，可能需數分鐘；行情查詢不受影響。'));
+   if(job.state==='RUNNING')box.replaceChildren(node('h2','四分析員研究中'),node('p','Market、Fundamental、News、Sentiment 正在分析；完成前不視為研究結論。'));
    if(job.state==='COMPLETED'){
     const result=job.result;box.replaceChildren(node('h2',result.complete?'四分析員研究已完成':'四分析員研究未齊備'));
     section(box,'行情及分析時間',result.quote_source+' · 報價 '+date(result.quote_at)+' · 分析 '+date(result.generated_at));
