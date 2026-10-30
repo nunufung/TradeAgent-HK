@@ -5,6 +5,7 @@ on:
     - cron: '25 0 * * *' # 08:25 HKT, after the 08:05 health audit
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'dashboard/**'
       - 'tests/test_public_dashboard.py'
@@ -32,7 +33,16 @@ jobs:
       - name: Test public-data privacy and contract
         run: python -m unittest discover -s tests -p test_public_dashboard.py -v
       - name: Syntax check browser interaction
-        run: node --check dashboard/space/assets/app.js
+        run: |
+          node --check dashboard/space/assets/app.js
+          node --check dashboard/space/assets/live-lookup.js
+          node --test --test-timeout=5000 tests/test_dashboard_refresh.js tests/test_live_lookup.js
+      - name: Test live lookup and private Futu bridge
+        run: |
+          python -m pip install 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'itsdangerous>=2.2,<3' 'yfinance>=1.7,<2' 'pytest>=8,<10'
+          python -m pytest tests/test_live_lookup.py tests/test_futu_connector.py tests/test_live_research.py -q
+          python -m compileall -q dashboard/space scripts/futu_lookup_connector.py
+          bash -n scripts/install-futu-connector.sh
       - name: Locate dated main-branch model and health artifacts
         id: sources
         uses: actions/github-script@v7
@@ -112,10 +122,11 @@ jobs:
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Publish to Hugging Face Static Space
+      - name: Publish dashboard and live lookup to Hugging Face
         if: ${{ github.ref == 'refs/heads/main' && steps.hf_auth.outputs.available == 'true' }}
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           python -m pip install "huggingface_hub>=0.34,<2"
           python dashboard/publish_space.py
