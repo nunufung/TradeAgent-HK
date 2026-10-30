@@ -8,7 +8,6 @@
   <title>TradeAgent-HK | Intelligence Dashboard</title>
   <link rel="stylesheet" href="./assets/style.css" />
   <script src="./assets/app.js" defer></script>
-  <script src="./assets/live-lookup.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -139,9 +138,9 @@
           </div>
         </section>
         <section id="lookup-view" class="view">
-          <div class="section-header"><div><div class="eyebrow muted">ON-DEMAND RESEARCH / LOOKUP</div><h2>股票／期權代號分析</h2></div><span class="chip neutral">FUTU → PUBLIC FALLBACK</span></div>
+          <div class="section-header"><div><div class="eyebrow muted">ON-DEMAND RESEARCH / LOOKUP</div><h2>股票／期權代號分析</h2></div><span class="chip neutral">SNAPSHOT · READ ONLY</span></div>
           <div class="panel pad lookup-panel">
-            <p class="lookup-intro">輸入港股代號取得最新可用行情及技術評論。擁有者登入後優先讀取 Mac 的 Futu OpenD；未能連線時使用公開行情，並標示實際來源與報價時間。四分析員研究需登入後執行。</p>
+            <p class="lookup-intro">輸入香港股票代號，查閱現有模型預測、四分析員研究及審慎投資評論。期權代號需要同時輸入相關正股，因為現有公開 Dashboard 未連接即時期權鏈。</p>
             <form id="lookup-form" class="lookup-form">
               <label>分析類型
                 <select id="lookup-type"><option value="stock">正股 Stock</option><option value="option">期權 Option</option></select>
@@ -152,24 +151,21 @@
               <label id="lookup-underlying-wrap" class="hidden">相關正股代號
                 <input id="lookup-underlying" type="text" maxlength="5" placeholder="例如 0700" autocomplete="off" />
               </label>
-              <button type="submit" class="outline-btn lookup-submit">取得行情及分析 →</button>
+              <button type="submit" class="outline-btn lookup-submit">查閱研究評論 →</button>
             </form>
-            <p class="lookup-hint" id="lookup-hint">只讀行情及研究；不會下單。公開行情可能延遲，報價時間與分析時間會分別顯示。</p>
-            <div class="lookup-actions"><a id="live-login" class="outline-btn" href="/auth/login" target="_blank" rel="noopener noreferrer">擁有者登入／開啟獨立分析頁 ↗</a><button id="pair-mac" class="outline-btn hidden" type="button">配對 Mac connector</button></div>
-            <p id="live-connection" class="lookup-hint">正在檢查行情連線……</p><p id="pair-code" class="lookup-hint hidden"></p>
+            <p class="lookup-hint" id="lookup-hint">不會發送代號去任何交易系統；輸入只在你嘅瀏覽器處理。</p>
           </div>
           <div class="panel pad lookup-result" id="lookup-result" aria-live="polite">
             <div class="eyebrow muted">INVESTMENT RESEARCH COMMENT</div>
             <h2 id="lookup-title">輸入代號以查看分析</h2>
             <div id="lookup-status" class="lookup-status">未查詢</div>
-            <div id="lookup-content" class="lookup-content">輸入正股代號後，會重新取得可用行情。期權合約仍須獨立核實即時期權鏈。</div>
+            <div id="lookup-content" class="lookup-content">現有資料為每日快照，唔係即時報價或買賣指令。</div>
             <div class="lookup-foot" id="lookup-source"></div>
           </div>
-          <div id="live-research" class="panel pad hidden" aria-live="polite"></div>
           <div class="panel pad lookup-request">
             <div class="eyebrow muted">REQUEST NEW ANALYSIS</div>
             <h2>需要重新執行四分析員？</h2>
-            <p>擁有者登入後，正股查詢可在後台執行 Market、Fundamental、News、Sentiment 四分析員。分析可能需數分鐘；未完成時不會顯示為完成。現有 GitHub 單股研究仍可使用。期權合約需另行核實即時鏈數據及風控。</p>
+            <p>目前 Hugging Face 係公開 Static Space，無法安全地直接啟動需要 GitHub 權限及 DeepSeek API 嘅工作流。你可以用現有 GitHub Actions 手動觸發指定股票分析，再查閱 GitHub／Telegram 結果。期權合約仍須 Futu OpenD 即時鏈數據及完整 HKEX 風控驗證。</p>
             <div class="lookup-actions"><button id="lookup-copy" class="outline-btn" type="button" disabled>複製正股代號</button><a class="outline-btn" href="https://github.com/nunufung/TradeAgent-HK/actions/workflows/telegram-stock-request.yml" target="_blank" rel="noopener noreferrer">開啟 GitHub 單股分析 ↗</a></div>
           </div>
         </section>
@@ -199,7 +195,7 @@
           <div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>股票</th><th>組別</th><th>Fincept 5日預測</th><th>Kronos 5日預測</th><th>Kronos 歷史MAE</th><th>資料截止</th></tr></thead><tbody id="stocks-body"><tr><td colspan="6">載入公開研究資料中……</td></tr></tbody></table></div><div id="table-count" class="table-footer">—</div></div>
           <div class="notice soft">藍籌組別係 TradeAgent-HK 研究分類，並非經認證的恒指成分股列表。預測、模型方向命中率及回測誤差都唔代表期權可盈利性。</div>
         </section>
-        <footer><span>© TradeAgent-HK · RESEARCH VIEW</span><span>TIMESTAMPED QUOTES · NO AUTO TRADING</span></footer>
+        <footer><span>© TradeAgent-HK · PUBLIC RESEARCH VIEW</span><span>NO BROKER LOGIN · NO LIVE QUOTES · NO AUTO TRADING</span></footer>
       </div>
     </main>
   </div>
