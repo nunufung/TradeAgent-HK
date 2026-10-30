@@ -5,7 +5,7 @@ colorFrom: blue
 colorTo: indigo
 sdk: gradio
 sdk_version: 6.31.0
-python_version: "3.11"
+python_version: "3.10"
 app_file: server.py
 hf_oauth: true
 pinned: false
@@ -25,6 +25,7 @@ Public, read-only research dashboard automatically exported from the official
 - **Owner-only private data**. Futu jobs, results, device pairing and paid four-agent research require owner authentication. Anonymous lookup uses only public market data and calculated technical commentary. Research is limited to one concurrent job and six new jobs per process/day, with ten-minute same-stock reuse.
 
 This Python Space serves the existing static dashboard and a FastAPI backend on port 7860. It does not invoke a public Gradio prediction endpoint. The existing public snapshot remains separate from on-demand quotes and research. No higher hardware tier is requested.
+The free ZeroGPU runtime uses Python 3.10. The first owner research request prepares an isolated managed Python 3.11 environment with the existing pinned TradingAgents v0.6; this preparation can take several minutes and is shown separately from research execution. Public quotes do not wait for that environment.
 
 Mac setup: clone the TradeAgent-HK repository, run `bash scripts/install-futu-connector.sh`, then enter the five-minute pairing code generated in the signed-in standalone dashboard. Do not put pairing/device credentials in chat or GitHub. To renew an expired pairing, run the installer with `--pair`.
 
