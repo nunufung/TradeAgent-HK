@@ -1,3 +1,13 @@
+# Current deployment status — 2026-10-30
+
+The live Space has been restored to the working STATIC snapshot dashboard. The Futu-first/public-fallback backend is implemented and passes focused tests, but is NOT running in the live UI. The account's free ZeroGPU runtime rejected startup with `No @spaces.GPU function detected during startup`; this CPU-only API needs CPU-capable hosting (for example an eligible Hugging Face subscription) or another backend host. No paid plan or hardware was purchased.
+
+The Python 3.10/3.11 compatibility problem was resolved and tested with an isolated managed Python 3.11 TradingAgents v0.6 runner. A real public Yahoo request and managed-environment preparation succeeded locally. Neither a genuine user-Mac OpenD round trip nor a paid four-agent request has been verified.
+
+Backend-only DeepSeek/signing secrets were removed before returning to static publishing. The tested live frontend/configuration is preserved at commit `d6c44a69dc949c7a3830f9d0c23c23754557ae36`; the backend and Mac connector sources remain in the repository. Restore the live frontend only after confirming a suitable backend runtime. Descriptions below document that implementation, not the current static publication.
+
+---
+
 # Hugging Face: TradeAgent-HK Dashboard and Live Lookup
 
 ## Live stock lookup (Futu first, public fallback)
