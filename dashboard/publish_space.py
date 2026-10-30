@@ -17,6 +17,7 @@ ALLOWED = {
     "data/dashboard.json",
     "server.py", "live_data.py", "research_runner.py", "requirements.txt",
     "assets/live-lookup.js",
+    "research-requirements.txt",
 }
 
 
