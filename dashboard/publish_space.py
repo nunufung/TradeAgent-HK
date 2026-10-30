@@ -34,8 +34,6 @@ def main():
     if sdk not in {"static","gradio"}:
         raise SystemExit("Unexpected Space SDK")
     api = HfApi(token=token)
-    api.create_repo(repo_id=SPACE, repo_type="space", space_sdk=sdk,
-                    private=False, exist_ok=True)
     if sdk=="static":
         # Clear backend-only secrets BEFORE exposing a static publication.
         for key in ("CONNECTOR_SIGNING_KEY","DEEPSEEK_API_KEY"):
@@ -44,7 +42,9 @@ def main():
             except HfHubHTTPError as exc:
                 if exc.response is None or exc.response.status_code!=404:
                     raise
-    else:
+    api.create_repo(repo_id=SPACE, repo_type="space", space_sdk=sdk,
+                    private=False, exist_ok=True)
+    if sdk=="gradio":
         connector_key=hmac.new(token.encode(),b"TradeAgent-HK/Futu-connector-signing/v1",hashlib.sha256).hexdigest()
         api.add_space_secret(repo_id=SPACE,key="CONNECTOR_SIGNING_KEY",value=connector_key)
         deepseek = os.getenv("DEEPSEEK_API_KEY", "").strip()
@@ -56,7 +56,8 @@ def main():
     details = api.repo_info(repo_id=SPACE, repo_type="space")
     if details.id != SPACE:
         raise RuntimeError("Hugging Face Space identity mismatch.")
-    print("Published dashboard and lookup backend: https://huggingface.co/spaces/" + SPACE)
+    print("Published SDK:",sdk)
+    print("Dashboard URL: https://huggingface.co/spaces/" + SPACE)
 
 
 if __name__ == "__main__":
