@@ -122,6 +122,32 @@ jobs:
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
+      - name: Inspect previous Space build failure
+        if: ${{ github.ref == 'refs/heads/main' && steps.hf_auth.outputs.available == 'true' }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os, json, urllib.request
+          token=os.environ['HF_TOKEN']
+          base='https://huggingface.co/api/spaces/lewisf/tradeagent-hk-dashboard'
+          headers={'Authorization':'Bearer '+token}
+          try:
+              with urllib.request.urlopen(urllib.request.Request(base,headers=headers),timeout=15) as response:
+                  stage=json.load(response).get('runtime',{}).get('stage')
+              print('Previous runtime stage:',stage)
+              if stage=='BUILD_ERROR':
+                  with urllib.request.urlopen(urllib.request.Request(base+'/logs/build',headers=headers),timeout=15) as response:
+                      count=0
+                      for line in response:
+                          value=line.decode(errors='replace').replace(token,'[REDACTED]')
+                          if any(word in value.lower() for word in ['error','failed','no matching','conflict','resolutionimpossible','requires-python']):
+                              print(value[:2000].strip())
+                          count+=1
+                          if count>=6000: break
+          except Exception as exc:
+              print('Build diagnostics unavailable:',type(exc).__name__)
+          PY
       - name: Publish dashboard and live lookup to Hugging Face
         if: ${{ github.ref == 'refs/heads/main' && steps.hf_auth.outputs.available == 'true' }}
         env:
