@@ -21,9 +21,10 @@ function nav(){
  });
  $("lookup-form").addEventListener("submit",e=>{e.preventDefault();lookup();});
  $("lookup-copy").addEventListener("click",()=>{
-   if(!data||!lookupUnderlying)return;
-   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(lookupUnderlying).then(()=>{text("lookup-hint","已複製 "+lookupUnderlying+"，可在 GitHub Run workflow 嘅 ticker 欄貼上。");}).catch(()=>{text("lookup-hint","請手動複製正股代號："+lookupUnderlying);});}
-   else{text("lookup-hint","請手動複製正股代號："+lookupUnderlying);}
+   const code=$("lookup-code").dataset.underlying||lookupUnderlying;
+   if(!code)return;
+   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(()=>{text("lookup-hint","已複製 "+code+"，可在 GitHub Run workflow 嘅 ticker 欄貼上。");}).catch(()=>{text("lookup-hint","請手動複製正股代號："+code);});}
+   else{text("lookup-hint","請手動複製正股代號："+code);}
  });
  $("fullscreen").addEventListener("click",()=>{if(document.fullscreenElement){document.exitFullscreen?.()}else{document.documentElement.requestFullscreen?.()}});
 
@@ -291,7 +292,7 @@ async function load(){
  const payload=await r.json();
  if(payload.schema_version!==1||!Array.isArray(payload.stocks)||!payload.meta)throw Error("Invalid schema");
  data=payload;$("error").classList.add("hidden");text("snapshot-time",date(payload.meta.generated_at)+" HKT");
- health();models();ideas();commandCenter();spider();initStocks();table();if($("lookup-code").value.trim())lookup();
+ health();models();ideas();commandCenter();spider();initStocks();table();if($("lookup-code").value.trim()&&$("lookup-type").value==="option")lookup();
  text("error","已檢查："+date(Date.now())+" HKT · "+(previous===payload.meta.generated_at?"沒有更新快照":"已載入最新已發布快照")+"。資料時間："+date(payload.meta.generated_at)+" HKT。此按鈕不會重新執行分析或取得即市報價。");
  $("error").classList.remove("hidden");
  }catch(e){
