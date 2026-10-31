@@ -1,6 +1,6 @@
 {
-  "request_id": "options-integration-20261031-01",
+  "request_id": "options-sample-20261031-1793434103186",
   "send_test": true,
   "requested_date_hkt": "2026-10-31",
-  "reason": "User requested real option data integration and an actual Telegram report delivery test"
+  "reason": "User explicitly requested a fresh sample option report sent to Telegram now"
 }
