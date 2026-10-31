@@ -19,6 +19,33 @@ NOW = datetime(2026, 10, 7, 10, 30, tzinfo=ZoneInfo('Asia/Hong_Kong'))
 
 
 class FinalSummaryTests(unittest.TestCase):
+    def test_morning_has_option_plan_and_does_not_hide_bearish_candidates(self):
+        payload = signals()
+        payload['signals']['HK.00388'] = signals('Underweight')['signals']['HK.00005']
+        text = summary.render_final_summary(payload, now=NOW.replace(hour=7))
+        self.assertIn('期權研究候選', text)
+        self.assertIn('Short Put', text)
+        self.assertIn('Short Call', text)
+        self.assertIn('00388', text)
+        self.assertIn('缺期權鏈', text)
+        self.assertIn('行使價', text)
+        self.assertLess(text.index('期權研究候選'), text.index('正股：'))
+        self.assertNotIn('主推合約：暫無。非交易時段', text)
+        self.assertLessEqual(len(text), 1200)
+
+    def test_compact_report_keeps_option_plan_and_data_blocker(self):
+        from trading_workflows import build_workflows
+        from market_recommendations import build_recommendations
+        payload = signals()
+        audit = build_workflows(payload, build_recommendations(payload, now=NOW), now=NOW)
+        text = summary.render_final_summary(payload, now=NOW, workflow_audit=audit,
+            market_audit={'watchlist': [{'code': '0005', 'name': '很長名稱'*300}]})
+        self.assertIn('期權研究候選', text)
+        self.assertIn('Short Put', text)
+        self.assertIn('缺期權鏈', text)
+        self.assertIn('止盈', text)
+        self.assertLessEqual(len(text), 1200)
+
     def setUp(self):
         self.assertIsNotNone(summary, 'Short Telegram final summary is missing')
 
@@ -31,7 +58,7 @@ class FinalSummaryTests(unittest.TestCase):
         self.assertIn('優先研究', text)
         self.assertIn('Short Put', text)
         self.assertEqual(sum(line.startswith('期權：') for line in text.splitlines()), 1)
-        self.assertIn('等待', text)
+        self.assertIn('資料不足', text)
         self.assertLess(len(text), 1000)
 
     def test_bearish_stocks_are_not_disguised_as_buy_recommendations(self):
@@ -64,7 +91,7 @@ class FinalSummaryTests(unittest.TestCase):
             text = summary.render_final_summary(signals(), option_audit={'generated_at': NOW.isoformat(), 'candidates': [row], 'errors': []}, now=NOW)
         self.assertIn('HK.TEST', text)
         self.assertIn('主候選', text)
-        self.assertIn('等待', text)
+        self.assertIn('主候選待核', text)
         self.assertIn('不開新倉', text)
 
     def test_after_close_does_not_reuse_an_intraday_option_candidate(self):
@@ -77,7 +104,7 @@ class FinalSummaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             write_recommendations(signals(), directory=Path(directory), now=NOW)
             self.assertIn('每日決策摘要', (Path(directory)/'final_summary.txt').read_text())
-            self.assertIn('期權：等待', (Path(directory)/'final_summary.txt').read_text())
+            self.assertIn('期權：資料不足', (Path(directory)/'final_summary.txt').read_text())
 
     def test_transport_posts_one_text_message_and_hides_sensitive_errors(self):
         class Response:

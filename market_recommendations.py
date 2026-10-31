@@ -121,9 +121,6 @@ def build_recommendations(payload: dict, *, option_audit: dict | None = None,
     if not directional:
         action = '不做'
         reasons.append('沒有同日、四份完整分析及明確方向通過正股閘門；不強行選期權。')
-    elif not _in_entry_window(now):
-        action = '等待'
-        reasons.append('只在香港交易日 10:00 後正常交易時段考慮；晨報只提供研究方向，不能開倉。交易日／半日市仍須核實。')
     elif option_audit is None:
         action = '等待'
         reasons.append('尚未收到 Mac OpenD 的即時 Bid/Ask、Delta、IV、OI、成交量及實際初始保證金；等待 Futu 更新。')
@@ -154,6 +151,8 @@ def build_recommendations(payload: dict, *, option_audit: dict | None = None,
                 action = '不做'
                 reasons.append('沒有合約通過正股方向及實際行情／保證金硬性條件。')
     if directional:
+        if not _in_entry_window(now):
+            reasons.append('只在香港交易日 10:00 後正常交易時段考慮開倉；時段外仍可評估研究候選。交易日／半日市仍須核實。')
         reasons.append('完整守則須另完成以下查核，不能只憑模型評級或數值篩選開倉。')
         reasons.extend(PENDING_RULES)
     return {'generated_at': now.isoformat(), 'analysis_date': payload.get('date'),

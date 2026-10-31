@@ -111,6 +111,22 @@ class BroadNewsContextTests(unittest.TestCase):
             self.assertEqual(selected[0]['title'], '匯豐業務更新')
 
 class LiveQuoteDecisionTests(unittest.TestCase):
+    def test_before_entry_window_still_evaluates_fresh_research_contract(self):
+        from unittest.mock import patch
+        from test_option_screen import candidate
+        morning = NOW.replace(hour=9, minute=50)
+        row = candidate(underlying='HK.00005', option_code='HK.PREOPEN',
+            expiry='2026-11-06', quote_time=morning.strftime('%Y-%m-%d %H:%M:%S'))
+        with patch('agents.screening_agent.datetime') as clock:
+            clock.strptime.side_effect = datetime.strptime
+            clock.now.return_value = morning
+            result = build_recommendations(signals(), option_audit={
+                'generated_at': morning.isoformat(), 'candidates': [row], 'errors': []}, now=morning)
+        self.assertIsNotNone(result['main_option'])
+        self.assertEqual(result['main_option']['option_code'], 'HK.PREOPEN')
+        self.assertNotEqual(result['action'], '做')
+        self.assertIn('10:00', ' '.join(result['reasons']))
+
     def test_two_numerically_qualified_quotes_produce_one_wait_candidate(self):
         from unittest.mock import patch
         from test_option_screen import candidate

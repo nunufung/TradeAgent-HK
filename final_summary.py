@@ -59,7 +59,28 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
         stamp += ' HKT（未提供時間）'
     eligible = sorted([row for row in result['stocks'] if row['complete'] and row['rating'] in RANK], key=lambda row: RANK[row['rating']])
     bullish = [row for row in eligible if row['rating'] in {'Buy', 'Overweight'}]
-    chosen = (bullish or eligible)[:3]
+    # Both directions matter for options; a bullish stock must not hide a call candidate.
+    chosen = eligible[:3]
+
+    plans = []
+    for row in chosen:
+        code = row['underlying']
+        if row['allowed_option_types'] == ['PUT']:
+            plans.append(f"{code}：Short Put；行使價須低於已核實支持，跌穿支持取消。")
+        elif row['allowed_option_types'] == ['CALL']:
+            plans.append(f"{code}：Short Call；行使價須高於已核實阻力，突破取消；先核對持股覆蓋／風險。")
+    plan_lines = ['期權研究候選（方向，非開倉指令）：'] + plans if plans else [
+        '期權研究候選：未有同日四分析員完整研究及明確方向；不強行配合約。']
+    opt = result['main_option']
+    if option_audit is None:
+        blocker = '資料缺口：缺期權鏈；行使價、到期日、Bid/Ask、IV、Delta、成交量／OI及保證金未取得，不能判定無機會。'
+    elif opt:
+        blocker = '待核實：支持／阻力、相對IV、事件及帳戶資金；數值合格未代表可開倉。'
+    else:
+        blocker = '合約篩選：' + result['reasons'][0][:100]
+        if not _in_entry_window(now):
+            blocker += '；盤前合約尚未完成即時覆核，不代表市場無機會。'
+    plan_lines += [blocker, '入場準備：21–45 DTE、|Delta|≤0.10；10:00後覆核報價、事件、支持／阻力及資金，才判斷開倉。']
 
     def label(row):
         code = row['underlying']
@@ -71,7 +92,12 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
     if fincept_line:
         lines.append(fincept_line)
     extra = '（交易時段外）' if result['action'] == '等待' and not _in_entry_window(now) else ''
-    lines.append(f"期權：{result['action']}{extra}，目前不開新倉。")
+    status = ('無方向候選' if not any(row['allowed_option_types'] for row in result['stocks']) else
+              '資料不足（缺期權鏈）' if option_audit is None else
+              '主候選待核' if opt else '合約待覆核／未合格')
+    lines.append(f"期權：{status}{extra}，目前不開新倉。")
+    lines += plan_lines
+    lines.append('持倉處理：先檢查止盈／止蝕及DTE；未取得當前持倉、成本及平倉報價，不能判定持有、減倉或平倉。')
     lines.append('')
     if any(stock.get('book_skills') for stock in payload.get('signals', {}).values()):
         lines.append('書籍風控：已加入 Psychology of Money 原則；期權硬性守則優先。')
@@ -88,17 +114,16 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
     if any(row['allowed_option_types'] == ['CALL'] for row in chosen):
         lines.append('期權研究方向：Short Call；正股減持評級不構成開倉指令，須核實持股覆蓋及合約風控。')
     lines.append('')
-    opt = result['main_option']
     if opt:
         strategy = 'Short Put' if opt['option_type'] == 'PUT' else 'Short Call'
         premium = float(opt['bid']) * float(opt['lot_size'])
         ratio = float(opt['short_required_im']) / premium
         lines += [f"唯一主候選（未通過完整守則）：{opt['underlying']} {strategy}｜{opt['option_code']}｜行使價 {opt['strike']}｜到期 {opt['expiry']}（{opt['dte']} DTE）",
                   f"Bid/Ask {opt['bid']}/{opt['ask']}｜Delta {opt['delta']}｜Margin/Premium {ratio:.1f}x｜報價 {opt['quote_time']} HKT",
+                  f"IV {opt['iv']}｜成交量 {opt.get('volume', opt.get('vol', '待核'))}｜OI {opt.get('open_interest', opt.get('oi', '待核'))}；低Delta不代表損失有限，須核對Gamma／Vega。",
                   '數值閘門通過；支持／阻力、相對 IV、事件日曆及帳戶資金風控仍待核實。']
     else:
-        reason = '非交易時段，等待最新報價及完整風控覆核。' if not _in_entry_window(now) else (
-            '尚欠即時 Futu 報價及完整風控查核。' if option_audit is None else result['reasons'][0][:75])
+        reason = '缺期權鏈，未能選定實際合約。' if option_audit is None else result['reasons'][0][:75]
         lines.append('主推合約：暫無。' + reason)
     lines.append('原策略守則：21–45 DTE、|Delta|≤0.10、Margin/Premium≤10x；如開倉，盈利達原 Premium 50–70% 止盈，虧損>原 Premium 100%須平倉／減倉／合規 Roll。')
     lines.append(overnight_line)
@@ -110,16 +135,17 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
             return combined
         # Keep the action, contract identifier, gates and all six modules within
         # the delivery limit. Full evidence remains in recommendations.md.
-        compact = [lines[0], lines[1], f"期權：{result['action']}；目前不開新倉。"]
+        compact = [lines[0], lines[1], f"期權：{status}{extra}；目前不開新倉。"] + plan_lines
+        compact.append('持倉處理：缺當前持倉、成本及平倉報價，未能判定退出觸發。')
         if opt:
             compact.append(f"主候選（待核）：{str(opt['option_code'])[:40]}｜{opt['strike']}｜{opt['expiry']}｜{opt['dte']} DTE")
         else:
-            compact.append('主推合約：暫無；等待報價及完整風控。')
+            compact.append('主推合約：暫無；詳見上述資料缺口／篩選原因。')
         if kronos_line:
             compact.append(kronos_line)
         if fincept_line:
             compact.append(fincept_line)
-        compact += workflow_lines + [lines[-2], overnight_line]
+        compact += [line[:42] + ('…' if len(line) > 42 else '') for line in workflow_lines] + [lines[-2], overnight_line]
         return '\n'.join(compact) + '\n'
     return '\n'.join(lines) + '\n'
 
