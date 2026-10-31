@@ -36,6 +36,11 @@ def temporary_cwd():
         finally: os.chdir(old)
 
 class DailyTransportTests(unittest.TestCase):
+    def setUp(self):
+        feed = patch('daily_runner.refresh_public_options', return_value={'status': 'UNAVAILABLE', 'contracts': []})
+        feed.start()
+        self.addCleanup(feed.stop)
+
     def post(self, url, payload):
         from urllib.parse import urlsplit
         parsed = urlsplit(url)

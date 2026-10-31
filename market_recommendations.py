@@ -235,7 +235,8 @@ def write_recommendations(payload: dict, *, directory: Path = Path('.'), option_
     from final_summary import render_final_summary
     from kronos_report import brief
     from fincept_report import brief as fincept_brief
-    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now, workflow_audit=workflows, overnight_audit=overnight, kronos_line=brief(directory/'kronos_forecast.json', now=now), fincept_line=fincept_brief(directory/'fincept_forecast.json', now=now)), encoding='utf-8')
+    from public_option_data import load_public_options
+    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now, workflow_audit=workflows, overnight_audit=overnight, kronos_line=brief(directory/'kronos_forecast.json', now=now), fincept_line=fincept_brief(directory/'fincept_forecast.json', now=now), public_option_audit=load_public_options(directory)), encoding='utf-8')
     return result
 
 

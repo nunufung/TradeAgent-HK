@@ -6,10 +6,12 @@ import signal
 import subprocess
 from daily_budget import Budget, gateway, HKT
 from daily_delivery import fallback_summary, validate_summary
+from public_option_data import refresh_public_options
 
 
 def run():
     now = datetime.now(HKT)
+    public_options = refresh_public_options(now=now)
     ledger = Path('daily_token_usage.json')
     budget = Budget(ledger, now.date().isoformat())
     deadline = datetime.combine(now.date(), time(7, 15), HKT)
@@ -36,7 +38,7 @@ def run():
             except (OSError, ValueError):
                 pass
     if status != 'complete':
-        Path('final_summary.txt').write_text(fallback_summary())
+        Path('final_summary.txt').write_text(fallback_summary(now=datetime.now(HKT), public_option_audit=public_options))
     # Independent research-only option scan; never authorizes a live trade.
     # Missing manual/verified chain leaves an explicit NO_CHAIN_DATA audit artifact.
     try:

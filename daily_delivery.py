@@ -8,8 +8,18 @@ from zoneinfo import ZoneInfo
 
 HKT = ZoneInfo('Asia/Hong_Kong')
 
-def fallback_summary(now=None):
+def fallback_summary(now=None, public_option_audit=None):
     now = (now or datetime.now(HKT)).astimezone(HKT)
+    if public_option_audit and public_option_audit.get('status') == 'EOD_RESEARCH_ONLY':
+        from public_option_data import brief_lines
+        return (f'TradeAgent-HK｜每日期權決策摘要\n研究截至：{now:%Y-%m-%d %H:%M HKT}\n\n'
+                '期權結論：收市合約研究；四分析員研究未完成，暫不開新倉。\n' +
+                '\n'.join(brief_lines(public_option_audit, now=now)) + '\n'
+                '策略條件：偏多先研究Short Put；偏淡先研究Short Call，須另核對覆蓋／風險；不能單憑成交量決定買賣方向。\n'
+                '入場：10:00後核對即時報價、|Delta|≤0.10、Margin/Premium≤10x、支持／阻力及事件。\n'
+                '持倉：欠當前成本及平倉報價，未能判定止盈／止蝕；一般盈利50–70%止盈、虧損>原權利金100%處理；DTE<21日優先檢查退出。\n'
+                '隔夜急升賣Call參考：翌日20–30%止盈，非硬性；須先訂止蝕及時間退出。\n'
+                '連線狀態：雲端未連接Mac OpenD，已使用官方公開期權日報後備。\n')
     return (f'TradeAgent-HK｜每日決策摘要\n研究截至：{now:%Y-%m-%d %H:%M HKT}\n\n'
             '今日結論：等待，不新增期權倉位。\n'
             '本次研究未能在預算或時限內完成，未形成可靠股票及期權推薦。\n'

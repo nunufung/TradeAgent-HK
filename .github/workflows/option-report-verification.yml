@@ -1,0 +1,82 @@
+name: Option Report Integration Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/option-report-request.json']
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: option-report-verification
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check explicit request and prevent duplicate test messages
+        id: request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const request = JSON.parse(fs.readFileSync('.github/option-report-request.json', 'utf8'));
+            if (request.send_test !== true || !/^[a-zA-Z0-9-]{1,60}$/.test(request.request_id)) {
+              throw new Error('A valid explicit test request is required.');
+            }
+            const name = 'option-report-test-claim-' + request.request_id;
+            const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
+            core.setOutput('skip', all.some(a => !a.expired && a.name === name) ? 'true' : 'false');
+            core.setOutput('claim', name);
+            const day = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+            const research = all.filter(a => !a.expired && a.name === 'hk-market-research-' + day && a.workflow_run?.head_branch === 'main').sort((a,b)=>b.id-a.id)[0];
+            if (research) { core.setOutput('research_name',research.name); core.setOutput('research_run',String(research.workflow_run.id)); }
+      - name: Verify report regression tests
+        if: steps.request.outputs.skip != 'true'
+        run: PYTHONPATH=.:tests python -m unittest test_public_option_data test_final_summary test_trading_workflows test_overnight_call test_option_screen test_recommendations.RecommendationTests test_recommendations.LiveQuoteDecisionTests
+      - name: Reuse same-day analyst evidence if available
+        if: steps.request.outputs.skip != 'true' && steps.request.outputs.research_name != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.request.outputs.research_name }}
+          run-id: ${{ steps.request.outputs.research_run }}
+          github-token: ${{ github.token }}
+          path: .
+      - name: Prepare test delivery claim
+        if: steps.request.outputs.skip != 'true'
+        run: python -c "from pathlib import Path; Path('option_test_claim.txt').write_text('One explicitly requested test send; no automatic retry.')"
+      - name: Persist test claim before Telegram contact
+        if: steps.request.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.request.outputs.claim }}
+          path: option_test_claim.txt
+          retention-days: 30
+      - name: Fetch real public options and send the new report once
+        if: steps.request.outputs.skip != 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TAHK_RESEARCH_INPUT_JSON: ${{ secrets.TAHK_RESEARCH_INPUT_JSON }}
+        run: python scripts/verify-option-report.py --send
+      - name: Save report and verified Telegram receipt
+        if: always() && steps.request.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: option-report-verification-${{ github.run_id }}
+          path: |
+            final_summary.txt
+            option_test_receipt.json
+            option_integration_check.json
+            public_option_data.json
+          if-no-files-found: warn
+          retention-days: 7

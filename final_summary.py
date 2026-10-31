@@ -35,7 +35,8 @@ def _reason(stock: dict) -> str:
 
 def render_final_summary(payload: dict, *, market_audit: dict | None = None,
                          option_audit: dict | None = None, now: datetime | None = None,
-                         workflow_audit: dict | None = None, overnight_audit: dict | None = None, kronos_line: str | None = None, fincept_line: str | None = None) -> str:
+                         workflow_audit: dict | None = None, overnight_audit: dict | None = None, kronos_line: str | None = None, fincept_line: str | None = None,
+                         public_option_audit: dict | None = None) -> str:
     from market_recommendations import build_recommendations, _in_entry_window
     now = (now or datetime.now(HKT)).astimezone(HKT)
     result = build_recommendations(payload, option_audit=option_audit, now=now)
@@ -81,6 +82,14 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
         if not _in_entry_window(now):
             blocker += '；盤前合約尚未完成即時覆核，不代表市場無機會。'
     plan_lines += [blocker, '入場準備：21–45 DTE、|Delta|≤0.10；10:00後覆核報價、事件、支持／阻力及資金，才判斷開倉。']
+    public_lines = []
+    if not opt and public_option_audit:
+        from public_option_data import brief_lines as public_brief
+        public_lines = public_brief(public_option_audit, now=now, underlyings=[r['underlying'] for r in chosen])
+        if public_lines[0].startswith('公開期權｜'):
+            plan_lines = public_lines + plans[:2]
+        else:
+            public_lines = []
 
     def label(row):
         code = row['underlying']
@@ -95,6 +104,8 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
     status = ('無方向候選' if not any(row['allowed_option_types'] for row in result['stocks']) else
               '資料不足（缺期權鏈）' if option_audit is None else
               '主候選待核' if opt else '合約待覆核／未合格')
+    if public_lines:
+        status = '收市合約研究，待盤中覆核'
     lines.append(f"期權：{status}{extra}，目前不開新倉。")
     lines += plan_lines
     lines.append('持倉處理：先檢查止盈／止蝕及DTE；未取得當前持倉、成本及平倉報價，不能判定持有、減倉或平倉。')
@@ -146,11 +157,14 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
         if fincept_line:
             compact.append(fincept_line)
         compact += [line[:42] + ('…' if len(line) > 42 else '') for line in workflow_lines] + [lines[-2], overnight_line]
+        if len('\n'.join(compact)) + 1 > 1200:
+            # Preserve source contracts and exit rules ahead of secondary modules.
+            compact = compact[:3] + plan_lines + [lines[-2], overnight_line] + [line.split('：', 1)[0] + '：詳見完整研究。' for line in workflow_lines]
         return '\n'.join(compact) + '\n'
     return '\n'.join(lines) + '\n'
 
 
-def send_text(text: str, *, token: str | None = None, chat: str | None = None) -> None:
+def send_text(text: str, *, token: str | None = None, chat: str | None = None) -> dict:
     token = token if token is not None else os.getenv('TELEGRAM_BOT_TOKEN', '').strip()
     chat = chat if chat is not None else os.getenv('TELEGRAM_CHAT_ID', '').strip()
     if not token or not chat:
@@ -165,6 +179,7 @@ def send_text(text: str, *, token: str | None = None, chat: str | None = None) -
             result = json.loads(response.read(100_000))
         if result.get('ok') is not True:
             raise ValueError('Telegram rejected message')
+        return result
     except Exception:
         raise RuntimeError('Telegram delivery failed; sensitive details omitted.') from None
 

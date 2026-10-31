@@ -221,6 +221,7 @@ jobs:
             stock_signals.json
             stock_analysis.md
             recommendations.*
+            public_option_data.json
             kronos_forecast.json
             fincept_forecast.json
             trading_workflows.json
