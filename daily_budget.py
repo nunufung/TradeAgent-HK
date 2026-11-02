@@ -157,7 +157,10 @@ def gateway(budget: Budget):
 def attach_daily_context(graph):
     """Request concise independent reports before generation, without replacing evidence."""
     original = graph.resolve_instrument_context
-    instruction = ('Daily research budget: respond in concise Traditional Chinese. '
+    instruction = (f'Current user schedule: start daily analysis at {RESEARCH_START:%H:%M} HKT after market opening; '
+                   f'deliver the single report after completion, targeting before {DELIVERY_DEADLINE:%H:%M} HKT. '
+                   'Older premarket preparation and pre-open delivery instructions in book skills are superseded. '
+                   'Daily research budget: respond in concise Traditional Chinese. '
                    'Each analyst report should use at most 180 Chinese characters, covering conclusion, '
                    'key evidence and missing data. Debate and risk responses should use at most 120 Chinese characters. '
                    'Retain required final rating/schema and all risk gates. Do not repeat company introductions, '

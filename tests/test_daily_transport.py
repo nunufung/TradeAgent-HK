@@ -182,6 +182,8 @@ class DailyTransportTests(unittest.TestCase):
         context=graph.resolve_instrument_context('0700.HK')
         self.assertIn('Dated evidence; unknown margin',context)
         self.assertIn('never conceal missing evidence',context)
+        self.assertIn('start daily analysis at 10:00 HKT', context)
+        self.assertIn('premarket preparation and pre-open delivery instructions in book skills are superseded', context)
 
     def test_1040_start_reviews_one_stock_instead_of_skipping_all_experts(self):
         clock = Mock()
