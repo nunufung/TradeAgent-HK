@@ -173,7 +173,7 @@ def render_recommendations(result: dict, *, market_audit: dict | None = None,
         stamp = datetime.fromisoformat(result['generated_at']).astimezone(HKT).strftime('%Y-%m-%d %H:%M HKT')
     except (ValueError, TypeError):
         stamp = '研究時間未確認'
-    lines = ['# 港股及期權每日研究簡報', f'研究截至：{stamp}']
+    lines = ['# 港股及期權每日研究簡報', f'研究截至：{stamp}', '## 決策摘要']
     if result.get('option_reviews'):
         from option_review import render_review_lines
         lines += ['## 短線期權綜合判斷'] + render_review_lines(result, public_option_audit=public_option_audit, now=datetime.fromisoformat(result['generated_at']))

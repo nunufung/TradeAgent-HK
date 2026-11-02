@@ -35,7 +35,7 @@
 - [x] Add failing late-start test and update cutoff tests to 07:50.
 - [x] Share the cutoff, use a one-stock shortlist in the last 20 minutes, and disclose fallback reasons. Add two premarket research slots.
 - [x] Update existing stale 800-token assertions to the already deployed 1,600-token limit; run morning regression tests.
-- [x] Wire tactical tests into the same push regression; published-commit validation follows the atomic update.
+- [x] Wire tactical tests into the same push regression; the published commit passed all 48 configured checks in GitHub Actions.
 
 ## Execution record
 
@@ -46,3 +46,4 @@
 - Local validation: 98 relevant transport, tactical, summary, stock/option-screen, spread, overnight, public-data and workflow tests passed; 4 book-context tests passed. Python compilation and both workflow YAML checks passed. The book-context fixture was updated for the already deployed traced graph seam; it also confirms the new tactical instruction reaches the graph.
 - The pinned upstream graph dynamically injects instrument_context; its PortfolioDecision renderer preserves investment_thesis verbatim. Review verified that path. Model compliance, investment merit, live account/quote verification, scheduler punctuality and new Telegram delivery remain outside this local validation; no live run is claimed.
 - Broader downloaded-suite PDF checks require a Chinese font unavailable in this environment; no PDF code was changed.
+- Post-publication full CI exposed a removed legacy decision heading; restored it and passed the three text-format compatibility tests locally. The existing broad CI environment also lacked pytest and dashboard dependencies, so it now installs pytest plus the project's existing dashboard requirements before discovery. Cloud PDF verification follows in that workflow, where Chinese fonts are installed.
