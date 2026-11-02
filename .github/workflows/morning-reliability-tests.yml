@@ -6,6 +6,13 @@ on:
       - daily_budget.py
       - daily_runner.py
       - daily_delivery.py
+      - option_review.py
+      - book_skill_context.py
+      - tests/test_book_skill_context.py
+      - linked_stock_analysis.py
+      - market_recommendations.py
+      - final_summary.py
+      - tests/test_tactical_options.py
       - tests/test_daily_budget.py
       - tests/test_daily_transport.py
       - .github/workflows/hk-daily.yml
@@ -15,6 +22,13 @@ on:
       - daily_budget.py
       - daily_runner.py
       - daily_delivery.py
+      - option_review.py
+      - book_skill_context.py
+      - tests/test_book_skill_context.py
+      - linked_stock_analysis.py
+      - market_recommendations.py
+      - final_summary.py
+      - tests/test_tactical_options.py
       - tests/test_daily_budget.py
       - tests/test_daily_transport.py
       - .github/workflows/hk-daily.yml
@@ -35,3 +49,7 @@ jobs:
           python-version: '3.11'
       - run: python -m unittest discover -s tests -p test_daily_budget.py -v
       - run: python -m unittest discover -s tests -p test_daily_transport.py -v
+      - run: python -m unittest discover -s tests -p test_tactical_options.py -v
+      - run: python -m unittest discover -s tests -p test_final_summary.py -v
+      - run: python -m unittest discover -s tests -p test_book_skill_context.py -v
+

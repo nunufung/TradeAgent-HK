@@ -1,4 +1,5 @@
 import hashlib
+from contextlib import nullcontext
 import json
 from pathlib import Path
 import tempfile
@@ -54,6 +55,8 @@ class BookSkillTests(unittest.TestCase):
                 self_test.assertIn('Dated news context', context)
                 self_test.assertIn('Daily six-workflow policy', context)
                 self_test.assertIn('Journal:', context)
+                self_test.assertIn('User-authorized short-term option policy', context)
+                self_test.assertIn('investment_thesis STRING', context)
                 return {key: 'Actual test analyst report' for key in
                         ('market_report', 'sentiment_report', 'news_report', 'fundamentals_report')}, 'Buy'
 
@@ -61,6 +64,7 @@ class BookSkillTests(unittest.TestCase):
         modules = {
             'tradingagents.default_config': types.SimpleNamespace(DEFAULT_CONFIG={}),
             'tradingagents.graph.trading_graph': types.SimpleNamespace(TradingAgentsGraph=Graph),
+            'tradingagents.dataflows.config': types.SimpleNamespace(run_config=lambda *_: nullcontext()),
         }
 
         def attach_news(graph, batch):
@@ -71,6 +75,7 @@ class BookSkillTests(unittest.TestCase):
                 patch.dict('os.environ', {'DEEPSEEK_API_KEY': 'fake-test-key'}), \
                 patch.object(linked, 'configure_free_news'), \
                 patch.object(linked, 'attach_news_context', side_effect=attach_news), \
+                patch('traced_propagation.propagate_traced', side_effect=lambda graph, ticker, day, *_: graph.propagate(ticker, day)), \
                 patch.object(linked, 'write_news_audit'):
             root = Path(directory)
             payload = linked.analyze(['700'], signal_path=root/'signals.json', report_path=root/'report.md', news_batch={})
@@ -96,4 +101,5 @@ class BookSkillTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
 

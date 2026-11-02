@@ -8,22 +8,28 @@ from zoneinfo import ZoneInfo
 
 HKT = ZoneInfo('Asia/Hong_Kong')
 
-def fallback_summary(now=None, public_option_audit=None):
+def fallback_summary(now=None, public_option_audit=None, reason=None):
     now = (now or datetime.now(HKT)).astimezone(HKT)
+    causes = {'STARTED_AFTER_CUTOFF': '啟動已過研究截止，四專家未運行',
+              'INSUFFICIENT_RESEARCH_WINDOW': '剩餘研究時間不足，四專家未運行',
+              'MISSING_API_KEY': '研究API未配置，四專家未運行',
+              'RESEARCH_INCOMPLETE': '研究未完成，未形成四專家結論',
+              'TACTICAL_REVIEW_INCOMPLETE': '四份分析或短線綜合覆核未齊，未形成有效期權判斷'}
+    diagnostic = '研究狀態：' + causes[reason] + '。\n' if reason in causes else ''
     if public_option_audit and public_option_audit.get('status') == 'EOD_RESEARCH_ONLY':
         from public_option_data import brief_lines
-        return (f'TradeAgent-HK｜每日期權決策摘要\n研究截至：{now:%Y-%m-%d %H:%M HKT}\n\n'
-                '期權結論：收市合約研究；四分析員研究未完成，暫不開新倉。\n' +
+        return (f'TradeAgent-HK｜每日期權決策摘要\n研究截至：{now:%Y-%m-%d %H:%M HKT}\n\n' +
+                diagnostic + '期權結論：收市合約研究；四分析員研究未完成，暫不開新倉。\n' +
                 '\n'.join(brief_lines(public_option_audit, now=now)) + '\n'
                 '策略條件：偏多先研究Short Put；偏淡先研究Short Call，須另核對覆蓋／風險；不能單憑成交量決定買賣方向。\n'
-                '入場：10:00後核對即時報價、|Delta|≤0.10、Margin/Premium≤10x、支持／阻力及事件。\n'
+                '策略分開：收息21–45 DTE；短線可研究7–30 DTE價差，持倉1–3日。10:00後須核實兩腿報價、費用、最大虧損、事件及資金。\n'
                 '持倉：欠當前成本及平倉報價，未能判定止盈／止蝕；一般盈利50–70%止盈、虧損>原權利金100%處理；DTE<21日優先檢查退出。\n'
                 '隔夜急升賣Call參考：翌日20–30%止盈，非硬性；須先訂止蝕及時間退出。\n'
                 '連線狀態：雲端未連接Mac OpenD，已使用官方公開期權日報後備。\n')
-    return (f'TradeAgent-HK｜每日決策摘要\n研究截至：{now:%Y-%m-%d %H:%M HKT}\n\n'
-            '今日結論：等待，不新增期權倉位。\n'
+    return (f'TradeAgent-HK｜每日決策摘要\n研究截至：{now:%Y-%m-%d %H:%M HKT}\n\n' +
+            diagnostic + '期權結論：研究未完成，未形成四專家交易判斷。\n'
             '本次研究未能在預算或時限內完成，未形成可靠股票及期權推薦。\n'
-            '執行原則：10:00 後才評估開倉；DTE 優先 21–45 日，|Delta|≤0.10，保證金／權利金≤10x。\n'
+            '執行原則：香港交易日10:00後覆核報價及資金；收息21–45 DTE，短線7–30 DTE價差另作1–3日判斷，不能把研究故障當成Hold。\n'
             '原策略持倉管理：盈利達原收權利金 50–70% 優先止盈；虧損超過原收權利金 100% 必須處理。\n'
             '急升隔夜Call（候選研究）：Delta<0.10，翌日20–30%止盈；研究未完成，止蝕／時間退出待定，不開新倉。\n'
             '資料狀態：缺失資料未以舊報告或模型推測補足。\n'
@@ -73,4 +79,5 @@ if __name__=='__main__':
     import sys
     sys.excepthook=lambda *_:print('Daily delivery stopped; sensitive details omitted.')
     main()
+
 

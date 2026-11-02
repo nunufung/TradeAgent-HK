@@ -108,6 +108,8 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
         if os.environ.get('TAHK_BUDGETED_DAILY') == '1':
             from daily_budget import attach_daily_context
             attach_daily_context(graph)
+        from option_review import attach_option_context
+        attach_option_context(graph)
 
         try:
             emit_agent_event("GRAPH_STARTED", ticker=underlying, state="STARTED")
@@ -130,7 +132,7 @@ def analyze(tickers: list[str], *, signal_path: Path, report_path: Path, news_ba
             for name in ANALYSTS:
                 report_sections.append(f"### {name}\n\n{reports[name] or '分析報告缺失；方向閘門已封鎖。'}\n")
             report_sections.append(
-                f"\n期權連動：{', '.join(signal['allowed_option_types']) or '不篩選（中性／需覆核）'}\n"
+                f"\n原有收息期權連動：{', '.join(signal['allowed_option_types']) or '中性／需覆核'}；短線期權另見最終綜合覆核。\n"
             )
         except Exception as exc:  # A failed stock run must never open the options gate.
             emit_agent_event("GRAPH_FAILED", ticker=underlying, state="FAILED")
@@ -180,4 +182,5 @@ def load_market_news(path: Path) -> dict:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 

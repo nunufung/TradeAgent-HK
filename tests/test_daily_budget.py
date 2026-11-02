@@ -61,6 +61,7 @@ class DailyBudgetTests(unittest.TestCase):
         self.assertEqual(c['quick_think_llm'],'deepseek-chat')
         self.assertEqual(c['max_tool_rounds'],2)
         self.assertEqual(c['llm_max_retries'],0)
-        self.assertEqual(c['max_tokens'],800)
+        self.assertEqual(c['max_tokens'],1600)
 
 if __name__=='__main__':unittest.main()
+

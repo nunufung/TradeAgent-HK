@@ -61,6 +61,7 @@ def research_summary(value: object, limit: int = 180) -> str:
     if not isinstance(value, str) or not value.strip():
         return '研究資料不足，未能形成可靠判斷。'
     text = value.strip()
+    text = re.sub(r'<option_review>.*?</option_review>', '', text, flags=re.S).strip()
     # Prefer the author's conclusion over introductions and company profiles.
     match = re.search(r'(?:Executive Summary|執行摘要|核心結論摘要|結論摘要)\*{0,2}\s*[:：]?\s*', text, re.I)
     if match:
@@ -155,20 +156,28 @@ def build_recommendations(payload: dict, *, option_audit: dict | None = None,
             reasons.append('只在香港交易日 10:00 後正常交易時段考慮開倉；時段外仍可評估研究候選。交易日／半日市仍須核實。')
         reasons.append('完整守則須另完成以下查核，不能只憑模型評級或數值篩選開倉。')
         reasons.extend(PENDING_RULES)
+    from option_review import build_reviews
+    reviews = build_reviews(payload, now=now)
+    option_action = ('條件式提議' if any(r['status'] == 'CONDITIONAL' for r in reviews) else '未見短線優勢') if reviews else action
     return {'generated_at': now.isoformat(), 'analysis_date': payload.get('date'),
-            'action': action, 'stocks': stocks, 'main_option': main_option, 'reasons': reasons,
+            'action': option_action, 'income_action': action, 'option_reviews': reviews,
+            'stocks': stocks, 'main_option': main_option, 'reasons': reasons,
             'risk_review_complete': False, 'rule_source': '02-HKEX-Options-Trading-Rules.docx'}
 
 
-def render_recommendations(result: dict, *, market_audit: dict | None = None) -> str:
+def render_recommendations(result: dict, *, market_audit: dict | None = None,
+                           public_option_audit: dict | None = None) -> str:
     audit = market_audit or {}
     names = {f"HK.{int(row['code']):05d}": row.get('name', '') for row in audit.get('watchlist', [])}
     try:
         stamp = datetime.fromisoformat(result['generated_at']).astimezone(HKT).strftime('%Y-%m-%d %H:%M HKT')
     except (ValueError, TypeError):
         stamp = '研究時間未確認'
-    lines = ['# 港股及期權每日研究簡報', f'研究截至：{stamp}',
-             '## 決策摘要', f"今日結論：{result['action']}｜暫不新增期權倉位。",
+    lines = ['# 港股及期權每日研究簡報', f'研究截至：{stamp}']
+    if result.get('option_reviews'):
+        from option_review import render_review_lines
+        lines += ['## 短線期權綜合判斷'] + render_review_lines(result, public_option_audit=public_option_audit, now=datetime.fromisoformat(result['generated_at']))
+    lines += ['## 原有收息策略評估', f"收息策略結論：{result.get('income_action', result['action'])}｜暫不新增收息期權倉位。",
              '主推合約：暫無；以下如列候選，僅供研究覆核。',
              f"決策依據：{result['reasons'][0]}" if result.get('reasons') else '決策依據：資料待核實。',
              '正股評級與期權交易分開評估；研究方向不構成開倉指令。',
@@ -231,12 +240,13 @@ def write_recommendations(payload: dict, *, directory: Path = Path('.'), option_
     (directory/'trading_workflows.json').write_text(json.dumps(workflows, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
     (directory/'trading_workflows.md').write_text(render_workflows(workflows), encoding='utf-8')
     (directory/'recommendations.json').write_text(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
-    (directory/'recommendations.md').write_text(render_recommendations(result, market_audit=market_audit) + '\n' + render_workflows(workflows), encoding='utf-8')
+    from public_option_data import load_public_options
+    public_options = load_public_options(directory)
+    (directory/'recommendations.md').write_text(render_recommendations(result, market_audit=market_audit, public_option_audit=public_options) + '\n' + render_workflows(workflows), encoding='utf-8')
     from final_summary import render_final_summary
     from kronos_report import brief
     from fincept_report import brief as fincept_brief
-    from public_option_data import load_public_options
-    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now, workflow_audit=workflows, overnight_audit=overnight, kronos_line=brief(directory/'kronos_forecast.json', now=now), fincept_line=fincept_brief(directory/'fincept_forecast.json', now=now), public_option_audit=load_public_options(directory)), encoding='utf-8')
+    (directory/'final_summary.txt').write_text(render_final_summary(payload, market_audit=market_audit, option_audit=option_audit, now=now, workflow_audit=workflows, overnight_audit=overnight, kronos_line=brief(directory/'kronos_forecast.json', now=now), fincept_line=fincept_brief(directory/'fincept_forecast.json', now=now), public_option_audit=public_options), encoding='utf-8')
     return result
 
 
@@ -265,5 +275,6 @@ if __name__ == '__main__':
     import sys
     sys.excepthook = lambda exc_type, *_: print(f'Recommendations unavailable ({exc_type.__name__}); sensitive details omitted.')
     main()
+
 
 

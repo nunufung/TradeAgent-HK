@@ -40,6 +40,13 @@ def render_final_summary(payload: dict, *, market_audit: dict | None = None,
     from market_recommendations import build_recommendations, _in_entry_window
     now = (now or datetime.now(HKT)).astimezone(HKT)
     result = build_recommendations(payload, option_audit=option_audit, now=now)
+    if result.get('option_reviews'):
+        from option_review import render_summary
+        text = render_summary(result, public_option_audit=public_option_audit, now=now)
+        for extra in (kronos_line, fincept_line):
+            if extra and len(text) + len(extra) + 1 <= 1200:
+                text += extra + '\n'
+        return text
     from overnight_call import build as build_overnight, brief as overnight_brief
     if overnight_audit is None:
         from trading_workflows import load_inputs
@@ -211,5 +218,6 @@ if __name__ == '__main__':
     import sys
     sys.excepthook = lambda exc_type, *_: print(f'Final summary failed ({exc_type.__name__}); sensitive details omitted.')
     main()
+
 
 

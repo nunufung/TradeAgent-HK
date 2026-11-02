@@ -2,11 +2,14 @@ name: HK Daily Report
 
 on:
   schedule:
-    - cron: '17 20 * * *'  # 04:17 HKT: budgeted research; delayed-start grace through 07:15
+    - cron: '17 20 * * *'  # 04:17 HKT: budgeted research; bounded late starts until 07:50
+    - cron: '13 21 * * *'  # 05:13 HKT: research backup; existing claim prevents duplicate API sessions
+    - cron: '11 22 * * *'  # 06:11 HKT: research backup
     - cron: '47 22 * * *'  # 06:47 HKT: one concise message
     - cron: '17 23 * * *'  # 07:17 HKT: backup if delivery has not been claimed
     - cron: '37 23 * * *' # 07:37 HKT: backup if receipt missing
-    - cron: '47 23 * * *' # 07:47 HKT: final chance, no duplicate sends
+    - cron: '47 23 * * *' # 07:47 HKT: send completed research if available
+    - cron: '53 23 * * *' # 07:53 HKT: final delivery after the 07:50 research cutoff
   workflow_dispatch:
     inputs:
       ticker:
@@ -39,7 +42,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: hk-daily-${{ inputs.ticker != '' && 'stock' || inputs.recover_daily && 'recovery' || github.event.schedule == '17 20 * * *' && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
+  group: hk-daily-${{ inputs.ticker != '' && 'stock' || inputs.recover_daily && 'recovery' || contains(fromJSON('["17 20 * * *","13 21 * * *","11 22 * * *"]'), github.event.schedule) && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
   cancel-in-progress: false
 
 jobs:
@@ -51,7 +54,7 @@ jobs:
     secrets: inherit
 
   report:
-    if: inputs.ticker == '' && !inputs.recover_daily && (github.event_name == 'workflow_dispatch' || github.event.schedule == '17 20 * * *')
+    if: inputs.ticker == '' && !inputs.recover_daily && (github.event_name == 'workflow_dispatch' || contains(fromJSON('["17 20 * * *","13 21 * * *","11 22 * * *"]'), github.event.schedule))
     runs-on: ubuntu-latest
     timeout-minutes: 70
     env:
@@ -188,6 +191,7 @@ jobs:
           path: |
             final_summary.txt
             daily_research_status.txt
+            daily_research_status.json
           if-no-files-found: error
           retention-days: 3
       - name: Save market research for the Mac option update
@@ -228,6 +232,7 @@ jobs:
             trading_workflows.md
             final_summary.txt
             daily_token_usage.json
+            daily_research_status.json
             run_*.log
           if-no-files-found: warn
 
@@ -274,9 +279,9 @@ jobs:
               return;
             }
             const report = artifacts.filter(a => !a.expired && a.name.startsWith('hk-morning-' + day + '-')).sort((a,b) => b.id-a.id)[0];
-            // Do not send a waiting-only fallback while delayed research may still
-            // finish. Later 07:37/07:47 backups can safely send if no artifact arrives.
-            if (!report && clock < '07:25' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
+            // Let bounded late research finish and upload before claiming delivery.
+            // The 07:53 slot sends the final fallback if no valid artifact arrives.
+            if (!report && clock < '07:52' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
               core.setOutput('skip','true');
               core.info('Morning research not yet saved; defer delivery until a later backup slot.');
               return;
@@ -329,5 +334,6 @@ jobs:
           path: delivery_receipt.json
           if-no-files-found: error
           retention-days: 30
+
 
 
