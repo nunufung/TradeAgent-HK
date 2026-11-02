@@ -103,10 +103,10 @@ class OvernightCallTests(unittest.TestCase):
             self.assertIn('HK.SYNTHETIC', compact)
             self.assertIn('交易日誌：', compact)
 
-    def test_morning_strategy_survives_the_single_message_telegram_transport(self):
+    def test_after_open_strategy_survives_the_single_message_telegram_transport(self):
         import daily_delivery
         from market_recommendations import write_recommendations
-        morning = NOW.replace(hour=7)
+        morning = NOW
         class Response:
             def __enter__(self): return self
             def __exit__(self, *args): pass
@@ -139,3 +139,4 @@ class OvernightCallTests(unittest.TestCase):
         self.assertIn('急升隔夜Call', text)
         self.assertIn('20–30%', text)
         self.assertNotIn('HK.SYNTHETIC', text)
+
