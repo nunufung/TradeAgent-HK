@@ -12,7 +12,10 @@ import urllib.request
 from zoneinfo import ZoneInfo
 
 HKT = ZoneInfo('Asia/Hong_Kong')
-RESEARCH_CUTOFF = time(7, 50)
+RESEARCH_START = time(10)
+RESEARCH_CUTOFF = time(10, 50)
+DELIVERY_DEADLINE = time(11)
+DELIVERY_LAST_START = time(10, 59, 30)
 
 class BudgetExceeded(RuntimeError):
     pass
@@ -112,8 +115,8 @@ def gateway(budget: Budget):
             ticket = None
             try:
                 now = datetime.now(HKT)
-                if now.date().isoformat() != budget.day or now.time() >= RESEARCH_CUTOFF:
-                    raise BudgetExceeded('Morning research cutoff reached.')
+                if now.date().isoformat() != budget.day or not RESEARCH_START <= now.time() < RESEARCH_CUTOFF:
+                    raise BudgetExceeded('Outside the 10:00–10:50 HKT daily research window.')
                 if self.path not in ('/chat/completions','/v1/chat/completions'):
                     raise BudgetExceeded('Unsupported API route.')
                 size = int(self.headers.get('Content-Length','0'))

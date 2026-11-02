@@ -1,16 +1,18 @@
-"""One concise, current-day Telegram message, strictly before 08:00 HKT."""
-from datetime import datetime, time
+"""One concise daily Telegram message after 10:00 HKT analysis, before 11:00."""
+from datetime import datetime
 import json
 import os
 from pathlib import Path
 import urllib.request
 from zoneinfo import ZoneInfo
+from daily_budget import RESEARCH_START, DELIVERY_DEADLINE, DELIVERY_LAST_START
 
 HKT = ZoneInfo('Asia/Hong_Kong')
 
 def fallback_summary(now=None, public_option_audit=None, reason=None):
     now = (now or datetime.now(HKT)).astimezone(HKT)
-    causes = {'STARTED_AFTER_CUTOFF': '啟動已過研究截止，四專家未運行',
+    causes = {'BEFORE_RESEARCH_START': '未到10:00分析時間，四專家未運行',
+              'STARTED_AFTER_CUTOFF': '啟動已過研究截止，四專家未運行',
               'INSUFFICIENT_RESEARCH_WINDOW': '剩餘研究時間不足，四專家未運行',
               'MISSING_API_KEY': '研究API未配置，四專家未運行',
               'RESEARCH_INCOMPLETE': '研究未完成，未形成四專家結論',
@@ -39,8 +41,8 @@ def fallback_summary(now=None, public_option_audit=None, reason=None):
 
 def validate_summary(text, *, now=None, recovery=False):
     now = (now or datetime.now(HKT)).astimezone(HKT)
-    if not recovery and now.time() >= time(8):
-        raise ValueError('08:00 HKT deadline passed; no late morning report.')
+    if not recovery and now.time() >= DELIVERY_DEADLINE:
+        raise ValueError('11:00 HKT deadline passed; no automatic late report.')
     if f'研究截至：{now:%Y-%m-%d}' not in text or len(text) > 1200:
         raise ValueError('Report is stale or exceeds the concise report limit.')
     if recovery:
@@ -54,17 +56,19 @@ def main():
         raise RuntimeError('A durable daily delivery claim is required.')
     now = datetime.now(HKT)
     recovery = os.environ.get('DAILY_MANUAL_RECOVERY') == 'true'
+    if not recovery and now.time() < RESEARCH_START:
+        raise ValueError('Daily analysis starts at 10:00 HKT; no earlier report.')
     paths = list(Path('morning_report').rglob('final_summary.txt'))
     text = paths[0].read_text() if len(paths) == 1 else fallback_summary(now)
     try:
         text = validate_summary(text,now=now,recovery=recovery)
     except ValueError:
-        if not recovery and now.time() >= time(8):
+        if not recovery and now.time() >= DELIVERY_DEADLINE:
             raise
         text = validate_summary(fallback_summary(now),now=now,recovery=recovery)
     token, chat = os.environ['TELEGRAM_BOT_TOKEN'].strip(), os.environ['TELEGRAM_CHAT_ID'].strip()
-    if not recovery and datetime.now(HKT).time() >= time(7, 59, 30):
-        raise RuntimeError('Insufficient time for delivery before 08:00 HKT.')
+    if not recovery and datetime.now(HKT).time() >= DELIVERY_LAST_START:
+        raise RuntimeError('Insufficient time for delivery before 11:00 HKT.')
     request = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage',
         data=json.dumps({'chat_id':chat,'text':text,'disable_web_page_preview':True}).encode(),
         headers={'Content-Type':'application/json'},method='POST')

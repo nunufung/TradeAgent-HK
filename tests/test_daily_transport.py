@@ -14,7 +14,7 @@ from daily_budget import Budget, gateway, HKT
 import daily_delivery
 import daily_runner
 
-NOW = datetime(2026, 10, 10, 6, 15, tzinfo=HKT)
+NOW = datetime(2026, 10, 10, 10, 5, tzinfo=HKT)
 
 class Frozen(datetime):
     @classmethod
@@ -89,24 +89,24 @@ class DailyTransportTests(unittest.TestCase):
             self.assertEqual(budget.snapshot()['actual_tokens'],820)
             self.assertEqual(budget.snapshot()['unconfirmed_calls'],0)
 
-    def test_delayed_0633_research_remains_capped_at_45_minutes(self):
-        now = NOW.replace(hour=6, minute=33)
+    def test_delayed_1010_research_respects_the_1050_cutoff(self):
+        now = NOW.replace(hour=10, minute=10)
         clock = Mock()
         clock.now.return_value = now
         clock.combine = datetime.combine
         with temporary_cwd() as root, patch('daily_runner.datetime', clock), patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test'}), patch('daily_runner.gateway') as gate, patch('daily_runner.subprocess.Popen') as spawn:
-            (root / 'final_summary.txt').write_text('研究截至：2026-10-10 06:45 HKT\\n期權：等待')
+            (root / 'final_summary.txt').write_text('研究截至：2026-10-10 10:15 HKT\n期權：等待')
             self.save_reviewed_payload(root)
             gate.return_value.__enter__.return_value = 'http://localhost:1234/v1'
             spawn.return_value.wait.return_value = 0
             daily_runner.run()
             spawn.assert_called_once()
-            spawn.return_value.wait.assert_called_once_with(timeout=45 * 60)
+            spawn.return_value.wait.assert_called_once_with(timeout=40 * 60)
             self.assertEqual((root / 'daily_research_status.txt').read_text(), 'complete')
 
     def test_gateway_late_calls_never_reach_deepseek(self):
         clock = Mock()
-        clock.now.return_value = NOW.replace(hour=7,minute=50)
+        clock.now.return_value = NOW.replace(hour=10,minute=50)
         with temporary_cwd() as root, patch('daily_budget.datetime', clock):
             budget = Budget(root/'usage.json', NOW.date().isoformat())
             with patch('daily_budget.urllib.request.urlopen') as upstream, gateway(budget) as url:
@@ -114,17 +114,17 @@ class DailyTransportTests(unittest.TestCase):
                 upstream.assert_not_called()
             self.assertEqual(budget.snapshot()['calls'],0)
 
-    def test_delivery_rejects_8am_and_does_not_contact_telegram(self):
+    def test_delivery_rejects_11am_and_does_not_contact_telegram(self):
         clock = Mock()
-        clock.now.return_value = NOW.replace(hour=8, minute=0)
+        clock.now.return_value = NOW.replace(hour=11, minute=0)
         with temporary_cwd(), patch('daily_delivery.datetime', clock), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED':'true','TELEGRAM_BOT_TOKEN':'test','TELEGRAM_CHAT_ID':'test'}), patch('daily_delivery.urllib.request.urlopen', return_value=Response({'ok':True,'result':{'message_id':999}})) as send:
             with self.assertRaises(ValueError):
                 daily_delivery.main()
             send.assert_not_called()
 
-    def test_delivery_leaves_30_seconds_for_telegram_before_8am(self):
+    def test_delivery_leaves_30_seconds_for_telegram_before_11am(self):
         clock = Mock()
-        clock.now.return_value = NOW.replace(hour=7, minute=59, second=30)
+        clock.now.return_value = NOW.replace(hour=10, minute=59, second=30)
         with temporary_cwd(), patch('daily_delivery.datetime', clock), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED':'true','TELEGRAM_BOT_TOKEN':'test','TELEGRAM_CHAT_ID':'test'}), patch('daily_delivery.urllib.request.urlopen', return_value=Response({'ok':True,'result':{'message_id':999}})) as send:
             with self.assertRaises(RuntimeError):
                 daily_delivery.main()
@@ -183,12 +183,12 @@ class DailyTransportTests(unittest.TestCase):
         self.assertIn('Dated evidence; unknown margin',context)
         self.assertIn('never conceal missing evidence',context)
 
-    def test_0740_start_reviews_one_stock_instead_of_skipping_all_experts(self):
+    def test_1040_start_reviews_one_stock_instead_of_skipping_all_experts(self):
         clock = Mock()
-        clock.now.return_value = NOW.replace(hour=7, minute=40)
+        clock.now.return_value = NOW.replace(hour=10, minute=40)
         clock.combine = datetime.combine
         with temporary_cwd() as root, patch('daily_runner.datetime', clock), patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test'}), patch('daily_runner.gateway') as gate, patch('daily_runner.subprocess.Popen') as spawn:
-            (root / 'final_summary.txt').write_text('研究截至：2026-10-10 07:45 HKT\n期權：條件式提議')
+            (root / 'final_summary.txt').write_text('研究截至：2026-10-10 10:45 HKT\n期權：條件式提議')
             self.save_reviewed_payload(root)
             gate.return_value.__enter__.return_value = 'http://localhost:1234/v1'
             spawn.return_value.wait.return_value = 0
@@ -198,9 +198,9 @@ class DailyTransportTests(unittest.TestCase):
             spawn.return_value.wait.assert_called_once_with(timeout=10 * 60)
             self.assertEqual((root / 'daily_research_status.txt').read_text(), 'complete')
 
-    def test_gateway_0740_can_use_the_remaining_research_window(self):
+    def test_gateway_1040_can_use_the_remaining_research_window(self):
         clock = Mock()
-        clock.now.return_value = NOW.replace(hour=7, minute=40)
+        clock.now.return_value = NOW.replace(hour=10, minute=40)
         with temporary_cwd() as root, patch('daily_budget.datetime', clock), patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test'}):
             budget = Budget(root/'usage.json', NOW.date().isoformat())
             result = {'choices': [{'finish_reason': 'stop'}], 'usage': {'prompt_tokens': 20, 'completion_tokens': 10}}
@@ -210,7 +210,7 @@ class DailyTransportTests(unittest.TestCase):
 
     def test_late_start_reports_an_operational_failure_not_expert_hold(self):
         clock = Mock()
-        clock.now.return_value = NOW.replace(hour=7, minute=55)
+        clock.now.return_value = NOW.replace(hour=10, minute=55)
         clock.combine = datetime.combine
         with temporary_cwd() as root, patch('daily_runner.datetime', clock), patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test'}), patch('daily_runner.subprocess.Popen') as spawn:
             daily_runner.run()
@@ -222,7 +222,7 @@ class DailyTransportTests(unittest.TestCase):
 
     def test_dated_text_without_actual_expert_review_is_not_complete(self):
         with temporary_cwd() as root, patch('daily_runner.datetime', Frozen), patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test'}), patch('daily_runner.gateway') as gate, patch('daily_runner.subprocess.Popen') as spawn:
-            (root/'final_summary.txt').write_text('研究截至：2026-10-10 06:45 HKT\n期權：等待')
+            (root/'final_summary.txt').write_text('研究截至：2026-10-10 10:15 HKT\n期權：等待')
             gate.return_value.__enter__.return_value = 'http://localhost:1234/v1'
             spawn.return_value.wait.return_value = 0
             daily_runner.run()
@@ -236,23 +236,61 @@ class DailyTransportTests(unittest.TestCase):
         if not shutil.which('node'):
             self.skipTest('Node is required to execute the actual GitHub delivery script')
         source = Path('.github/workflows/hk-daily.yml').read_text()
-        step = source.split('      - name: Check deadline, daily delivery claim and current report', 1)[1]
-        script = textwrap.dedent(step.split('          script: |\n', 1)[1].split('      - name:', 1)[0])
-        for clock, skip in [('07:37', 'true'), ('07:47', 'true'), ('07:53', 'false')]:
-            harness = '''
+        cases = {
+            'Check deadline, daily delivery claim and current report': [('09:59', 'true'), ('10:47', 'true'), ('10:53', 'false')],
+            "Inspect today's saved research and budget": [('09:59', 'true'), ('10:00', 'false'), ('10:40', 'false'), ('10:50', 'true')],
+        }
+        for step_name, clocks in cases.items():
+            step = source.split('      - name: ' + step_name, 1)[1]
+            script = textwrap.dedent(step.split('          script: |\n', 1)[1].split('\n      - ', 1)[0])
+            for clock, skip in clocks:
+                harness = '''
 const outputs = {};
 const core = {setOutput: (k,v) => outputs[k]=v, info: () => {}, setFailed: (v) => outputs.error=v};
 const Intl = {DateTimeFormat: function(_,options) {return {format: () => options.hour ? CLOCK : '2026-10-10'};}};
-const github = {paginate: async () => [], rest: {actions: {listArtifactsForRepo: () => {}}}};
+const github = {paginate: async () => {outputs.artifacts_queried=true; return [];}, rest: {actions: {listArtifactsForRepo: () => {}}}};
 const context = {repo: {owner: 'test', repo: 'test'}};
 process.env.TELEGRAM_BOT_TOKEN = 'test'; process.env.TELEGRAM_CHAT_ID = 'test';
 process.env.DAILY_MANUAL_RECOVERY = 'false';
 await (async () => { BODY })();
 console.log(JSON.stringify(outputs));
 '''.replace('CLOCK', json.dumps(clock)).replace('BODY', script)
-            result = subprocess.run(['node', '--input-type=module'], input=harness, text=True, capture_output=True, check=True)
-            self.assertEqual(json.loads(result.stdout)['skip'], skip, clock)
-        self.assertIn("cron: '53 23 * * *'", source)
+                result = subprocess.run(['node', '--input-type=module'], input=harness, text=True, capture_output=True, check=True)
+                outputs = json.loads(result.stdout)
+                self.assertEqual(outputs['skip'], skip, (step_name, clock))
+                if clock < '10:00':
+                    self.assertNotIn('artifacts_queried', outputs)
+        self.assertIn("cron: '0 2 * * *'", source)
+        self.assertIn("cron: '53 2 * * *'", source)
+
+    def test_runner_does_not_fetch_or_analyze_before_1000(self):
+        clock = Mock()
+        clock.now.return_value = NOW.replace(hour=9, minute=59)
+        clock.combine = datetime.combine
+        with temporary_cwd() as root, patch('daily_runner.datetime', clock), patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test'}), patch('daily_runner.refresh_public_options') as refresh, patch('daily_runner.subprocess.Popen') as spawn, patch('agents.opportunity_selector.generate') as options:
+            daily_runner.run()
+            refresh.assert_not_called()
+            spawn.assert_not_called()
+            options.assert_not_called()
+            self.assertEqual(json.loads((root/'daily_research_status.json').read_text())['reason'], 'BEFORE_RESEARCH_START')
+
+    def test_gateway_blocks_pre_1000_calls_without_charging(self):
+        clock = Mock()
+        clock.now.return_value = NOW.replace(hour=9, minute=59)
+        with temporary_cwd() as root, patch('daily_budget.datetime', clock), patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test'}):
+            budget = Budget(root/'usage.json', NOW.date().isoformat())
+            with patch('daily_budget.urllib.request.urlopen') as upstream, gateway(budget) as url:
+                self.assertEqual(self.post(url, {'model': 'deepseek-chat', 'messages': []})[0], 422)
+                upstream.assert_not_called()
+            self.assertEqual(budget.snapshot()['calls'], 0)
+
+    def test_delivery_does_not_contact_telegram_before_1000(self):
+        clock = Mock()
+        clock.now.return_value = NOW.replace(hour=9, minute=59)
+        with temporary_cwd(), patch('daily_delivery.datetime', clock), patch.dict(os.environ, {'DAILY_DELIVERY_CLAIMED': 'true', 'TELEGRAM_BOT_TOKEN': 'test', 'TELEGRAM_CHAT_ID': 'test'}), patch('daily_delivery.urllib.request.urlopen') as send:
+            with self.assertRaises(ValueError):
+                daily_delivery.main()
+            send.assert_not_called()
 
 if __name__=='__main__': unittest.main()
 

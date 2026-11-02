@@ -2,14 +2,11 @@ name: HK Daily Report
 
 on:
   schedule:
-    - cron: '17 20 * * *'  # 04:17 HKT: budgeted research; bounded late starts until 07:50
-    - cron: '13 21 * * *'  # 05:13 HKT: research backup; existing claim prevents duplicate API sessions
-    - cron: '11 22 * * *'  # 06:11 HKT: research backup
-    - cron: '47 22 * * *'  # 06:47 HKT: one concise message
-    - cron: '17 23 * * *'  # 07:17 HKT: backup if delivery has not been claimed
-    - cron: '37 23 * * *' # 07:37 HKT: backup if receipt missing
-    - cron: '47 23 * * *' # 07:47 HKT: send completed research if available
-    - cron: '53 23 * * *' # 07:53 HKT: final delivery after the 07:50 research cutoff
+    - cron: '0 2 * * *'   # 10:00 HKT: start analysis after the market opens
+    - cron: '10 2 * * *'  # 10:10 HKT: research backup; existing claim prevents duplicate API sessions
+    - cron: '20 2 * * *'  # 10:20 HKT: research backup
+    - cron: '47 2 * * *'  # 10:47 HKT: send completed research if available
+    - cron: '53 2 * * *'  # 10:53 HKT: final delivery after the 10:50 research cutoff
   workflow_dispatch:
     inputs:
       ticker:
@@ -25,7 +22,7 @@ on:
         type: string
         default: stock
       recover_daily:
-        description: 'Explicitly send today’s saved report now, including after 08:00'
+        description: 'Explicitly send today’s saved report now, including after 11:00'
         type: boolean
         default: false
   workflow_call:
@@ -42,7 +39,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: hk-daily-${{ inputs.ticker != '' && 'stock' || inputs.recover_daily && 'recovery' || contains(fromJSON('["17 20 * * *","13 21 * * *","11 22 * * *"]'), github.event.schedule) && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
+  group: hk-daily-${{ inputs.ticker != '' && 'stock' || inputs.recover_daily && 'recovery' || contains(fromJSON('["0 2 * * *","10 2 * * *","20 2 * * *"]'), github.event.schedule) && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
   cancel-in-progress: false
 
 jobs:
@@ -54,7 +51,7 @@ jobs:
     secrets: inherit
 
   report:
-    if: inputs.ticker == '' && !inputs.recover_daily && (github.event_name == 'workflow_dispatch' || contains(fromJSON('["17 20 * * *","13 21 * * *","11 22 * * *"]'), github.event.schedule))
+    if: inputs.ticker == '' && !inputs.recover_daily && (github.event_name == 'workflow_dispatch' || contains(fromJSON('["0 2 * * *","10 2 * * *","20 2 * * *"]'), github.event.schedule))
     runs-on: ubuntu-latest
     timeout-minutes: 70
     env:
@@ -69,6 +66,12 @@ jobs:
           script: |
             const day = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Hong_Kong', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date());
             core.setOutput('date', day);
+            const clock = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Hong_Kong', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).format(new Date());
+            if (clock < '10:00' || clock >= '10:50') {
+              core.setOutput('skip', 'true');
+              core.info('Daily analysis starts at 10:00 HKT and stops at 10:50; no research claim created.');
+              return;
+            }
             const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
             const current = artifacts.filter(a => !a.expired && a.name.startsWith('hk-morning-' + day + '-')).sort((a,b) => b.id-a.id);
             const claimed = artifacts.some(a => !a.expired && a.name === 'hk-daily-research-claim-' + day);
@@ -261,6 +264,11 @@ jobs:
             const claim = 'hk-daily-delivery-claim-' + day;
             core.setOutput('date',day);
             core.setOutput('claim',claim);
+            if (clock < '10:00' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
+              core.setOutput('skip','true');
+              core.info('Daily analysis starts at 10:00 HKT; no earlier report.');
+              return;
+            }
             if (!process.env.TELEGRAM_BOT_TOKEN?.trim() || !process.env.TELEGRAM_CHAT_ID?.trim()) {
               core.setOutput('skip','true');
               core.setFailed('Telegram delivery credentials are missing. No report sent.');
@@ -273,15 +281,15 @@ jobs:
               if (!confirmed) core.setFailed('A previous send attempt has no confirmed receipt; inspect it before retrying.');
               return;
             }
-            if (clock >= '07:59' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
+            if (clock >= '10:59' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
               core.setOutput('skip','true');
-              core.setFailed('Missed 08:00 HKT delivery deadline. No Telegram report sent. Use recover_daily for an explicit catch-up.');
+              core.setFailed('Missed 11:00 HKT delivery deadline. No Telegram report sent. Use recover_daily for an explicit catch-up.');
               return;
             }
             const report = artifacts.filter(a => !a.expired && a.name.startsWith('hk-morning-' + day + '-')).sort((a,b) => b.id-a.id)[0];
             // Let bounded late research finish and upload before claiming delivery.
-            // The 07:53 slot sends the final fallback if no valid artifact arrives.
-            if (!report && clock < '07:52' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
+            // The 10:53 slot sends the final fallback if no valid artifact arrives.
+            if (!report && clock < '10:52' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
               core.setOutput('skip','true');
               core.info('Morning research not yet saved; defer delivery until a later backup slot.');
               return;
@@ -304,13 +312,14 @@ jobs:
         if: steps.locate.outputs.skip == 'false'
         run: |
           python - <<'PY'
-          from datetime import datetime, time
+          from datetime import datetime
           import os
           from pathlib import Path
           from daily_delivery import HKT
+          from daily_budget import RESEARCH_START, DELIVERY_LAST_START
           now = datetime.now(HKT)
-          if os.getenv('DAILY_MANUAL_RECOVERY') != 'true' and now.time() >= time(7, 59):
-              raise SystemExit('Delivery deadline reached.')
+          if os.getenv('DAILY_MANUAL_RECOVERY') != 'true' and not RESEARCH_START <= now.time() < DELIVERY_LAST_START:
+              raise SystemExit('Outside the daily delivery window.')
           Path('delivery_claim.txt').write_text(now.isoformat())
           PY
       - name: Claim the day's single send attempt before contacting Telegram
