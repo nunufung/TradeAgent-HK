@@ -12,6 +12,32 @@ from final_summary import send_text
 from public_option_data import HKT, refresh_public_options
 
 
+def send_verified(text, check):
+    result = send_text(text)
+    message_id = result.get('result', {}).get('message_id')
+    if type(message_id) is not int or message_id <= 0:
+        raise RuntimeError('Telegram response has no verifiable message ID; do not retry automatically')
+    check.update(message_id=message_id, sent_at=datetime.now(HKT).isoformat(), telegram_accepted=True)
+    Path('option_test_receipt.json').write_text(json.dumps(check, ensure_ascii=False, indent=2))
+    print('Telegram accepted test report; message_id=' + str(message_id))
+
+
+def run_harness2(send=False):
+    text = (
+        '【TradeAgent-HK｜Harness2 獨立測試】\n'
+        '驗證結果：報告傳送、摘要同短線期權覆核三組測試全部通過。\n'
+        '持續改進：先比較原版同候選改動，通過回歸測試後再採用，並保留有證據支持嘅經驗。\n'
+        '首個發現：README 已更新為香港時間 10:00 開始分析、11:00 前為發送目標。\n'
+        '此訊息只供驗證，沒有交易建議。'
+    )
+    Path('final_summary.txt').write_text(text)
+    check = {'kind': 'harness2', 'text_sha256': hashlib.sha256(text.encode()).hexdigest()}
+    if send:
+        send_verified(text, check)
+    else:
+        print(text)
+
+
 def run(send=False):
     audit = refresh_public_options()
     if audit['status'] != 'EOD_RESEARCH_ONLY':
@@ -34,13 +60,7 @@ def run(send=False):
              'contract_count': len(audit['contracts']), 'futu_status': audit['futu_status'],
              'execution_eligible': False, 'text_sha256': hashlib.sha256(text.encode()).hexdigest()}
     if send:
-        result = send_text(text)
-        message_id = result.get('result', {}).get('message_id')
-        if not isinstance(message_id, int) or message_id <= 0:
-            raise RuntimeError('Telegram response has no verifiable message ID; do not retry automatically')
-        check.update(message_id=message_id, sent_at=datetime.now(HKT).isoformat(), telegram_accepted=True)
-        Path('option_test_receipt.json').write_text(json.dumps(check, ensure_ascii=False, indent=2))
-        print('Telegram accepted option report; message_id=' + str(message_id))
+        send_verified(text, check)
     else:
         print(text)
     Path('option_integration_check.json').write_text(json.dumps(check, ensure_ascii=False, indent=2))
@@ -49,10 +69,12 @@ def run(send=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--send', action='store_true')
+    parser.add_argument('--harness2', action='store_true')
     args = parser.parse_args()
     # urllib exception strings can contain a bot-token URL; never print them.
     try:
-        run(send=args.send)
+        verification = run_harness2 if args.harness2 else run
+        verification(send=args.send)
     except Exception as exc:
         print('Option integration verification failed (' + type(exc).__name__ + '); details omitted.')
         raise SystemExit(1) from None

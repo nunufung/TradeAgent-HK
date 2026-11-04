@@ -33,15 +33,27 @@ jobs:
             if (request.send_test !== true || !/^[a-zA-Z0-9-]{1,60}$/.test(request.request_id)) {
               throw new Error('A valid explicit test request is required.');
             }
+            const kind = request.kind ?? 'options';
+            if (!['options', 'harness2'].includes(kind)) {
+              throw new Error('Unknown verification request kind.');
+            }
+            core.setOutput('kind', kind);
             const name = 'option-report-test-claim-' + request.request_id;
             const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
             core.setOutput('skip', all.some(a => !a.expired && a.name === name) ? 'true' : 'false');
             core.setOutput('claim', name);
             const day = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+            if (kind === 'harness2') {
+              if (request.requested_date_hkt !== day) core.setOutput('skip', 'true');
+              return;
+            }
             const research = all.filter(a => !a.expired && a.name === 'hk-market-research-' + day && a.workflow_run?.head_branch === 'main').sort((a,b)=>b.id-a.id)[0];
             if (research) { core.setOutput('research_name',research.name); core.setOutput('research_run',String(research.workflow_run.id)); }
+      - name: Verify Harness2 report safeguards
+        if: steps.request.outputs.skip != 'true' && steps.request.outputs.kind == 'harness2'
+        run: PYTHONPATH=.:tests python -m unittest test_daily_transport test_final_summary test_tactical_options
       - name: Verify report regression tests
-        if: steps.request.outputs.skip != 'true'
+        if: steps.request.outputs.skip != 'true' && steps.request.outputs.kind == 'options'
         run: PYTHONPATH=.:tests python -m unittest test_public_option_data test_final_summary test_trading_workflows test_overnight_call test_option_screen test_recommendations.RecommendationTests test_recommendations.LiveQuoteDecisionTests
       - name: Reuse same-day analyst evidence if available
         if: steps.request.outputs.skip != 'true' && steps.request.outputs.research_name != ''
@@ -61,8 +73,14 @@ jobs:
           name: ${{ steps.request.outputs.claim }}
           path: option_test_claim.txt
           retention-days: 30
+      - name: Send the Harness2 verification result once
+        if: steps.request.outputs.skip != 'true' && steps.request.outputs.kind == 'harness2'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/verify-option-report.py --send --harness2
       - name: Fetch real public options and send the new report once
-        if: steps.request.outputs.skip != 'true'
+        if: steps.request.outputs.skip != 'true' && steps.request.outputs.kind == 'options'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

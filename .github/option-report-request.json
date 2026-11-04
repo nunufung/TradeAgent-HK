@@ -1,6 +1,7 @@
 {
-  "request_id": "options-sample-20261031-1793434103186",
+  "request_id": "harness2-test-20261104-75aaebd",
   "send_test": true,
-  "requested_date_hkt": "2026-10-31",
-  "reason": "User explicitly requested a fresh sample option report sent to Telegram now"
+  "requested_date_hkt": "2026-11-04",
+  "kind": "harness2",
+  "reason": "User requested the Harness2 verification result by Telegram"
 }
