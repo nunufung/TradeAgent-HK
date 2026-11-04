@@ -4,11 +4,11 @@ Hong Kong equity and options research using four independent TradingAgents analy
 
 ## Daily operation
 
-- Prepare at 04:17 Hong Kong time using the DeepSeek API; the automatic run uses `deepseek-chat` for both model tiers.
+- Start analysis at 10:00 Hong Kong time, with 10:10 and 10:20 research backups. The automatic run uses DeepSeek’s `deepseek-chat` for both model tiers.
 - Research up to two dynamically selected stocks, retaining technical, sentiment, news and fundamental analysts, investment debate and risk review.
-- Attempt one concise Telegram text report immediately after scheduled research finishes, with independent 06:47, 07:17, 07:37 and 07:47 HKT backup runs. A durable claim and confirmed receipt prevent repeat sends.
+- Attempt one concise Telegram text report immediately after scheduled research finishes, with 10:47 and 10:53 HKT delivery backups. A durable claim and confirmed receipt prevent repeat sends.
 - Each date permits one scheduled paid morning session (not an intraday API quota): at most 300 calls, a 1,000,000-token accounting budget and 1,600 output tokens per call. Record DeepSeek-reported input/output/cache-hit usage in the Actions ledger.
-- Stop automatic research by 07:15 and refuse automatic delivery after the 08:00 deadline. Missed sends fail visibly. GitHub schedules can be delayed or dropped, so this cannot guarantee arrival before 08:00.
+- Stop automatic research at 10:50 and target delivery before 11:00 HKT. Missed sends fail visibly. GitHub schedule delays can affect arrival.
 - Explicit Telegram stock requests are supported through the existing bridge: `hk-daily.yml` accepts `ticker`, `request_source` and `scope`, and routes a supplied ticker to the stock PDF workflow. Automatic polling remains disabled.
 - For a missed daily message, explicitly run `HK Daily Report` with `recover_daily=true` and no ticker. This sends today's saved report (or a transparent incomplete-research notice), labelled as a manual catch-up, with a confirmed receipt. It does not restart paid morning research.
 
@@ -47,6 +47,10 @@ The [Fincept Skill](skills/fincept-terminal/SKILL.md) now has a bounded headless
 ## Ponytail development efficiency
 
 The [Ponytail Skill](skills/ponytail/SKILL.md), adapted from [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail), guides the smallest complete code change, reuse of existing helpers, targeted reads and concise explanations while preserving necessary tests and validation. It is discoverable through `.agents/skills/ponytail`. This is a development Skill, not a runtime token compressor: registration does not change DeepSeek prompts, budgets, the four analysts, option gates or Telegram delivery. Actual provider usage remains measured through the existing token ledger; no savings percentage is claimed from installation alone.
+
+## Harness2 continuous improvement
+
+The [Harness2 Skill](skills/harness2/SKILL.md) is discoverable in `.agents/skills/harness2`. Use it during report reviews to compare one candidate against the current baseline and keep [evidence-backed lessons](skills/harness2/references/lessons.md) for future reviews. The existing Production Health Audit provides delivery and research evidence. Candidate changes run offline by default and go through review before adoption.
 
 ## Validation
 
