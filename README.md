@@ -5,9 +5,9 @@ Hong Kong equity and options research using four independent TradingAgents analy
 ## Daily operation
 
 - Start analysis at 10:00 Hong Kong time, with 10:10 and 10:20 research backups. The automatic run uses DeepSeek’s `deepseek-chat` for both model tiers.
-- Research up to two dynamically selected stocks, retaining technical, sentiment, news and fundamental analysts, investment debate and risk review.
+- Research one dynamically selected stock, retaining technical, sentiment, news and fundamental analysts, investment debate and risk review.
 - Attempt one concise Telegram text report immediately after scheduled research finishes, with 10:47 and 10:53 HKT delivery backups. All backup slots can start missing research. A shared daily concurrency group, durable claims and confirmed receipts prevent repeat research and sends.
-- Each date permits one scheduled paid morning session (not an intraday API quota): at most 300 calls, a 1,000,000-token accounting budget and 1,600 output tokens per call. Record DeepSeek-reported input/output/cache-hit usage in the Actions ledger.
+- Each date permits one scheduled paid morning session (not an intraday API quota): at most 300 calls, a 1,000,000-token accounting budget and 4,096 output tokens per call. Record DeepSeek-reported input/output/cache-hit usage in the Actions ledger.
 - Target delivery before 11:00 HKT. User-authorized delayed runs continue for at most 45 minutes (ending by 23:50 HKT), and reports sent after 11:00 carry an explicit delayed label and actual evidence time. GitHub schedule delays can still affect arrival.
 - Explicit Telegram stock requests are supported through the existing bridge: `hk-daily.yml` accepts `ticker`, `request_source` and `scope`, and routes a supplied ticker to the stock PDF workflow. Automatic polling remains disabled.
 - To start missing daily research and send its result, manually run `HK Daily Report` with no ticker and `recover_daily=false`. A dated `.github/daily-run-request.json` commit on main is an alternative recovery trigger; expired requests are ignored.
@@ -57,3 +57,5 @@ The [Harness2 Skill](skills/harness2/SKILL.md) is discoverable in `.agents/skill
 
 Run `python -m unittest discover -s tests`. Chinese PDF tests need an available CJK font (set `TAHK_CJK_FONT` when needed). Local tests do not prove live API savings or confirmed Telegram delivery; check the next production run's token ledger and delivery receipt.
 
+
+A dated recovery request with `retry_incomplete: true` explicitly permits one repair session for that request commit, restoring the same-day token ledger and reviewing one stock within the existing total budget. It requires a confirmed same-day Telegram receipt and updates that existing notice with `editMessageText`; it does not send a second daily message. Normal schedules cannot request this extra session. Truncated model outputs remain rejected; the per-call output allowance is 4,096 tokens to accommodate the real structured analyst reports.

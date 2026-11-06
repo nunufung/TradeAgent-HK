@@ -12,8 +12,8 @@ The `Budget` class supports `max_calls=0` or `max_tokens=0` to disable that part
 
 - Only `deepseek-chat`, through the official DeepSeek API; both graph model tiers use the local budget gateway. No daily reasoner, streaming or hidden SDK retries.
 - One paid research session per Hong Kong calendar date. A durable Actions research claim is uploaded before API work. A same-day rerun skips paid research, including after a crash that lost its final ledger.
-- One news-selection request over at most 24 bounded RSS candidates, selecting at most four stories. Up to two dynamically selected stocks; keep the four actual independent analyst agents and one investment/risk discussion round.
-- Up to 300 forwarded API calls, 1,000,000 input-plus-output token accounting budget, 1,600 output tokens per call, two tool rounds per analyst, 120,000 input bytes per request.
+- One news-selection request over at most 24 bounded RSS candidates, selecting at most four stories. One dynamically selected stock; keep the four actual independent analyst agents and one investment/risk discussion round.
+- Up to 300 forwarded API calls, 1,000,000 input-plus-output token accounting budget, 4,096 output tokens per call, two tool rounds per analyst, 120,000 input bytes per request.
 - Before each call, reserve a conservative bound based on complete serialized request bytes plus output allowance and overhead. After success, reconcile with DeepSeek's reported prompt/completion usage. Failed or unconfirmed calls keep their full reserved allowance. Truncated outputs are rejected rather than labeled complete research.
 - Save actual input, output and cache-hit tokens in `daily_token_usage.json`; never save keys or prompts in that ledger. Cache hits are measured, not assumed as savings. The budget controls this project's automatic session, not account-wide billing or manually invoked workflows.
 - Research runs for at most 45 minutes after 10:00 HKT; authorized delayed runs end no later than 23:50 on the same HKT date. With DAILY_ALLOW_LATE disabled, the original 10:50 cutoff remains. Before 10:00 the runner does not fetch data or analyze options, the gateway forwards no model calls, and the workflow does not create a research claim. Failed research is identified explicitly rather than presented as an expert Hold.
@@ -36,3 +36,5 @@ Unit/integration tests exercise reservation concurrency, persisted usage, uncert
 
 An earlier send claim without a receipt fails the workflow visibly; authorized late sends preserve that protection. A green run alone is never proof of delivery: check `hk-daily-delivery-receipt-YYYY-MM-DD`.
 
+
+A dated recovery request with `retry_incomplete: true` explicitly permits one repair session for that request commit, restoring the same-day token ledger and reviewing one stock within the existing total budget. It requires a confirmed same-day Telegram receipt and updates that existing notice with `editMessageText`; it does not send a second daily message. Normal schedules cannot request this extra session. Truncated model outputs remain rejected; the per-call output allowance is 4,096 tokens to accommodate the real structured analyst reports.

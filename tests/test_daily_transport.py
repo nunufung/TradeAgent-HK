@@ -66,7 +66,7 @@ class DailyTransportTests(unittest.TestCase):
                 self.assertEqual(self.post(url, {'model':'deepseek-chat','messages':[]})[0], 422)
                 self.assertEqual(upstream.call_count, 1)
                 forwarded = json.loads(upstream.call_args.args[0].data)
-            self.assertEqual(forwarded['max_tokens'],1600)
+            self.assertEqual(forwarded['max_tokens'],4096)
             self.assertEqual(budget.snapshot()['actual_tokens'],110)
 
     def test_uncertain_upstream_error_remains_charged_and_is_not_retried(self):

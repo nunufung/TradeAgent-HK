@@ -27,7 +27,7 @@ def run():
     if not before_start and seconds >= 300 and os.environ.get('DEEPSEEK_API_KEY'):
         reason = 'RESEARCH_INCOMPLETE'
         with gateway(budget, deadline=deadline) as backend:
-            env = dict(os.environ, TAHK_BUDGETED_DAILY='1', TAHK_SHORTLIST_LIMIT='1' if seconds < 1200 else '2',
+            env = dict(os.environ, TAHK_BUDGETED_DAILY='1', TAHK_SHORTLIST_LIMIT='1' if seconds < 1200 or os.environ.get('DAILY_RESEARCH_LIMIT') == '1' else '2',
                        TRADINGAGENTS_LLM_BACKEND_URL=backend, OPENAI_API_BASE=backend,
                        EVENT_NAME='schedule', REPORT_SCOPE='market')
             process = subprocess.Popen(['bash', 'scripts/run-report.sh'], env=env, start_new_session=True)
