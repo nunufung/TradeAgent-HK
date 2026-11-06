@@ -44,3 +44,37 @@ def test_early_hkt_morning_does_not_pass_a_future_date_to_upstream():
          patch('dashboard.space.research_runner.datetime',FrozenDatetime), \
          patch('dashboard.space.research_runner.date',FrozenDate,create=True):
         research(p,graph_factory=Graph,default_config={})
+
+
+def test_fcc_uses_messages_protocol_without_exposing_credentials():
+    from dashboard.space.research_runner import provider_choices
+    seen={}
+    class Graph:
+        def __init__(self,**kwargs): seen.update(kwargs)
+        def resolve_instrument_context(self,*args): return 'Instrument'
+        def propagate(self,*args): return {},'Hold'
+    env={'FCC_BASE_URL':'https://gateway.example/v1','FCC_API_KEY':'TEST_PRIVATE',
+         'FCC_MODEL':'groq/test-model'}
+    packet={'code':'HK.00700','source':'Yahoo','quote_at':'2026-11-06'}
+    with patch.dict(os.environ,env,clear=True):
+        result=research(packet,provider='fcc',graph_factory=Graph,default_config={})
+        assert os.environ['ANTHROPIC_API_KEY']=='TEST_PRIVATE'
+        assert 'OPENAI_API_KEY' not in os.environ
+        assert seen['config']['llm_provider']=='anthropic'
+        assert seen['config']['backend_url']=='https://gateway.example'
+        assert seen['config']['deep_think_llm']=='groq/test-model'
+        assert result['provider']=='fcc'
+        assert 'TEST_PRIVATE' not in str(result)+str(provider_choices())
+
+
+def test_provider_selection_fails_closed():
+    import pytest
+    from dashboard.space.research_runner import provider_config
+    with patch.dict(os.environ,{},clear=True):
+        for provider in ['fcc','unknown','deepseek']:
+            with pytest.raises(ValueError): provider_config(provider)
+    for base in ['http://gateway.example','https://user:pass@gateway.example',
+                 'https://gateway.example?token=x','https://gateway.example/v1/messages']:
+        with patch.dict(os.environ,{'FCC_BASE_URL':base,'FCC_API_KEY':'TEST',
+                                   'FCC_MODEL':'test'},clear=True):
+            with pytest.raises(ValueError): provider_config('fcc')

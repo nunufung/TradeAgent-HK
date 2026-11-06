@@ -36,7 +36,7 @@ def main():
     api = HfApi(token=token)
     if sdk=="static":
         # Clear backend-only secrets BEFORE exposing a static publication.
-        for key in ("CONNECTOR_SIGNING_KEY","DEEPSEEK_API_KEY"):
+        for key in ("CONNECTOR_SIGNING_KEY","DEEPSEEK_API_KEY","FCC_API_KEY"):
             try:
                 api.delete_space_secret(repo_id=SPACE,key=key)
             except HfHubHTTPError as exc:
@@ -50,6 +50,10 @@ def main():
         deepseek = os.getenv("DEEPSEEK_API_KEY", "").strip()
         if deepseek:
             api.add_space_secret(repo_id=SPACE, key="DEEPSEEK_API_KEY", value=deepseek)
+        for key in ('FCC_BASE_URL','FCC_API_KEY','FCC_MODEL'):
+            value=os.getenv(key,'').strip()
+            if value:
+                api.add_space_secret(repo_id=SPACE,key=key,value=value)
     api.upload_folder(repo_id=SPACE, repo_type="space", folder_path=str(FOLDER),
                       allow_patterns=sorted(ALLOWED),
                       commit_message="Update TradeAgent-HK dashboard and Futu/public lookup")

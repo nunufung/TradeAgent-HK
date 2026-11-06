@@ -21,10 +21,13 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from pydantic import BaseModel, Field
+from typing import Literal
 
 try:
+    from .research_runner import provider_config, provider_choices
     from .live_data import normalize_code, resolve_quote, sanitize_quote, technical_summary
 except ImportError:
+    from research_runner import provider_config, provider_choices
     from live_data import normalize_code, resolve_quote, sanitize_quote, technical_summary
 
 ROOT = Path(__file__).resolve().parent
@@ -74,6 +77,7 @@ class Pair(BaseModel):
 
 
 class Research(BaseModel):
+    provider: Literal['deepseek','fcc'] = 'deepseek'
     packet_id: str = Field(min_length=1,max_length=100)
 
 
@@ -151,7 +155,8 @@ def create_app():
     async def session(request: Request):
         owner=request.session.get('owner')==OWNER
         return {'owner':owner,'futu_connected':bridge.online if owner else False,
-                'research_configured':bool(os.getenv('DEEPSEEK_API_KEY')) if owner else False,
+                'research_configured':any(p['configured'] for p in provider_choices()) if owner else False,
+                'providers':provider_choices() if owner else [],
                 'login_url':'/auth/login','standalone_url':'https://'+os.environ['SPACE_HOST']+'/?view=lookup' if os.getenv('SPACE_HOST') else '/?view=lookup'}
 
     @app.get('/auth/login')
@@ -205,7 +210,7 @@ def create_app():
         packet_id=secrets.token_urlsafe(24)
         packets[packet_id]={'quote':quote,'owner':OWNER if owner else None,'created':now}
         return {'packet_id':packet_id,'quote':quote,'technical':technical_summary(quote),
-                'research_available':owner and bool(os.getenv('DEEPSEEK_API_KEY')),
+                'research_available':owner and any(p['configured'] for p in provider_choices()),
                 'research_note':'登入 lewisf 可執行四分析員；下方技術評論為計算結果，並非四分析員研究。' if not owner else '四分析員將另行顯示實際完成狀態。'}
 
     @app.post('/api/device/code',dependencies=[Depends(same_origin)])
@@ -255,14 +260,15 @@ def create_app():
             item['future'].set_result(packet)
         return {'accepted':True}
 
-    async def run_research(job_id, quote):
+    async def run_research(job_id, quote, provider):
         job=research_jobs[job_id]; job['state']='PREPARING'
         process=None
         try:
             python=await research_python()
             job['state']='RUNNING'
             process=await asyncio.create_subprocess_exec(python,str(ROOT/'research_runner.py'),
-                stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.DEVNULL)
+                stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.DEVNULL,
+                env={**os.environ,'TAHK_RESEARCH_PROVIDER':provider})
             output,_=await asyncio.wait_for(process.communicate(json.dumps(quote).encode()),timeout=600)
             if process.returncode or len(output)>150000: raise RuntimeError('Research unavailable')
             result=json.loads(output)
@@ -271,20 +277,21 @@ def create_app():
         except Exception:
             if process and process.returncode is None:
                 process.kill(); await process.wait()
-            job.update(state='FAILED',error='四分析員未完成；請檢查 DeepSeek 設定、額度或資料供應。未以技術評論冒充研究。')
+            job.update(state='FAILED',error='四分析員未完成；請檢查所選 API 來源設定、額度或資料供應。未以技術評論冒充研究。')
 
     @app.post('/api/research',dependencies=[Depends(same_origin)])
     async def research(body: Research,owner=Depends(require_owner)):
-        if not os.getenv('DEEPSEEK_API_KEY'): raise HTTPException(503,'DeepSeek backend credential is not configured.')
+        try: provider_config(body.provider)
+        except ValueError: raise HTTPException(503,'Selected API provider is not configured.') from None
         item=packets.get(body.packet_id)
         if not item or item['owner']!=owner or time.monotonic()-item['created']>900:
             raise HTTPException(404,'Lookup expired; retrieve a new quote first.')
         quote=item['quote']
         for key,job in research_jobs.items():
             if job['state'] in {'QUEUED','PREPARING','RUNNING'}:
-                if job['code']==quote['code']: return {'job_id':key,'state':job['state']}
+                if job['code']==quote['code'] and job.get('provider','deepseek')==body.provider: return {'job_id':key,'state':job['state']}
                 raise HTTPException(429,'已有一項四分析員研究進行中，請稍後再試。')
-            if job['code']==quote['code'] and job['state']=='COMPLETED' and time.monotonic()-job.get('completed',job['created'])<600:
+            if job['code']==quote['code'] and job.get('provider','deepseek')==body.provider and job['state']=='COMPLETED' and time.monotonic()-job.get('completed',job['created'])<600:
                 return {'job_id':key,'state':job['state']}
         today=datetime.now(timezone.utc).date().isoformat()
         count=research_days.get(today,0)
@@ -292,8 +299,8 @@ def create_app():
         research_days.clear(); research_days[today]=count+1
         if len(research_jobs)>=20: research_jobs.pop(next(iter(research_jobs)))
         key=secrets.token_urlsafe(24)
-        research_jobs[key]={'state':'QUEUED','code':quote['code'],'created':time.monotonic()}
-        task=asyncio.create_task(run_research(key,quote))
+        research_jobs[key]={'state':'QUEUED','code':quote['code'],'provider':body.provider,'created':time.monotonic()}
+        task=asyncio.create_task(run_research(key,quote,body.provider))
         app.state.tasks.add(task); task.add_done_callback(app.state.tasks.discard)
         return {'job_id':key,'state':'QUEUED'}
 

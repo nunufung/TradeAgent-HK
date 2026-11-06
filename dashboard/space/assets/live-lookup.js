@@ -19,18 +19,22 @@ async function api(path,body,signal){
 async function session(){
  try{
   const s=await api('/api/session');
+  const picker=$('research-provider');
+  picker.replaceChildren(...(s.providers||[]).map(p=>{const o=node('option',p.label+(p.configured?'':' · 未設定'));o.value=p.id;o.disabled=!p.configured;return o;}));
+  picker.disabled=!s.owner||!(s.providers||[]).some(p=>p.configured);
+  const ready=(s.providers||[]).find(p=>p.configured);if(ready)picker.value=ready.id;
   $('pair-mac').classList.toggle('hidden',!s.owner);
   $('live-login').href=s.owner?s.standalone_url:'/auth/login';
   $('live-login').textContent=s.owner?'開啟獨立分析頁 ↗':'擁有者登入／開啟獨立分析頁 ↗';
   $('live-connection').textContent=s.owner
-   ?'已登入 lewisf · '+(s.futu_connected?'Futu connector 已連線':'Futu connector 未連線，使用公開行情')+' · '+(s.research_configured?'DeepSeek 已設定':'DeepSeek 未設定')
+   ?'已登入 lewisf · '+(s.futu_connected?'Futu connector 已連線':'Futu connector 未連線，使用公開行情')+' · '+(s.research_configured?'API 來源已設定':'API 來源未設定')
    :'公開行情可直接查詢；登入 lewisf 後可用私人 Futu 連線及四分析員。登入會在獨立頁面完成。';
  }catch(e){$('live-connection').textContent='行情服務尚未可用：'+e.message;}
 }
-async function research(packetId,seq,signal){
+async function research(packetId,seq,signal,provider){
  const box=$('live-research');box.classList.remove('hidden');box.replaceChildren(node('h2','四分析員研究'),node('p','正在啟動 Market、Fundamental、News、Sentiment；完成前不視為研究結論。'));
  try{
-  const started=await api('/api/research',{packet_id:packetId},signal);
+  const started=await api('/api/research',{packet_id:packetId,provider},signal);
   for(let i=0;i<900;i++){
    if(seq!==generation)return;
    const job=await api('/api/research/'+encodeURIComponent(started.job_id),null,signal);
@@ -40,6 +44,7 @@ async function research(packetId,seq,signal){
    if(job.state==='RUNNING')box.replaceChildren(node('h2','四分析員研究中'),node('p','Market、Fundamental、News、Sentiment 正在分析；完成前不視為研究結論。'));
    if(job.state==='COMPLETED'){
     const result=job.result;box.replaceChildren(node('h2',result.complete?'四分析員研究已完成':'四分析員研究未齊備'));
+    section(box,'API 來源',result.provider+' · '+result.model);
     section(box,'行情及分析時間',result.quote_source+' · 報價 '+date(result.quote_at)+' · 分析 '+date(result.generated_at));
     for(const [role,report] of Object.entries(result.reports||{}))section(box,role,report||'該分析員未產生報告。');
     section(box,'綜合研究結論',result.summary||'未取得綜合結論。');section(box,'研究邊界',result.boundary);return;
@@ -50,6 +55,7 @@ async function research(packetId,seq,signal){
  }catch(e){if(seq===generation&&e.name!=='AbortError')box.replaceChildren(node('h2','四分析員尚未完成'),node('p',e.message));}
 }
 async function lookup(raw){
+ const provider=$('research-provider').value||'deepseek';
  const seq=++generation;
  if(controller)controller.abort();controller=new AbortController();
  const signal=controller.signal;
@@ -73,7 +79,7 @@ async function lookup(raw){
   section(content,'技術指標','SMA20：'+num(t.sma20)+' · RSI14（簡單平均）：'+num(t.rsi14)+' · 20日收市價範圍：'+num(t.support20)+' – '+num(t.resistance20));
   section(content,'即席技術評論',t.commentary);
   $('lookup-source').textContent='此處係本次取得嘅行情及技術計算，與其他頁面嘅每日快照分開。'+result.research_note;
-  if(result.research_available)void research(result.packet_id,seq,signal);
+  if(result.research_available)void research(result.packet_id,seq,signal,provider);
   else{
    const box=$('live-research');box.classList.remove('hidden');box.replaceChildren(node('h2','四分析員研究'),node('p',result.research_note));
    const link=node('a','登入 lewisf 並開啟分析頁 ↗');link.href='/auth/login';link.target='_blank';link.rel='noopener noreferrer';box.append(link);
