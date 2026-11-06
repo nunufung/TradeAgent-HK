@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
@@ -16,6 +16,14 @@ RESEARCH_START = time(10)
 RESEARCH_CUTOFF = time(10, 50)
 DELIVERY_DEADLINE = time(11)
 DELIVERY_LAST_START = time(10, 59, 30)
+
+def research_deadline(now, *, allow_late=False):
+    """Bound an authorized catch-up to 45 minutes and the same HKT date."""
+    now = now.astimezone(HKT)
+    if allow_late:
+        return min(now + timedelta(minutes=45), datetime.combine(now.date(), time(23, 50), HKT))
+    return datetime.combine(now.date(), RESEARCH_CUTOFF, HKT)
+
 
 class BudgetExceeded(RuntimeError):
     pass
@@ -99,7 +107,7 @@ def apply_daily_profile(config: dict, backend: str):
                   news_article_limit=5, global_news_article_limit=3, global_news_lookback_days=2)
 
 @contextmanager
-def gateway(budget: Budget):
+def gateway(budget: Budget, *, deadline=None):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
             pass  # Never log headers, prompts or keys.
@@ -115,8 +123,9 @@ def gateway(budget: Budget):
             ticket = None
             try:
                 now = datetime.now(HKT)
-                if now.date().isoformat() != budget.day or not RESEARCH_START <= now.time() < RESEARCH_CUTOFF:
-                    raise BudgetExceeded('Outside the 10:00–10:50 HKT daily research window.')
+                expired = now >= deadline if deadline is not None else now.time() >= RESEARCH_CUTOFF
+                if now.date().isoformat() != budget.day or now.time() < RESEARCH_START or expired:
+                    raise BudgetExceeded('Outside the bounded daily research session.')
                 if self.path not in ('/chat/completions','/v1/chat/completions'):
                     raise BudgetExceeded('Unsupported API route.')
                 size = int(self.headers.get('Content-Length','0'))
@@ -159,6 +168,8 @@ def attach_daily_context(graph):
     original = graph.resolve_instrument_context
     instruction = (f'Current user schedule: start daily analysis at {RESEARCH_START:%H:%M} HKT after market opening; '
                    f'deliver the single report after completion, targeting before {DELIVERY_DEADLINE:%H:%M} HKT. '
+                   'User-authorized delayed sessions may continue after that target within their bounded deadline; '
+                   'retain the actual evidence time and never describe delayed research as an on-time morning report. '
                    'Older premarket preparation and pre-open delivery instructions in book skills are superseded. '
                    'Daily research budget: respond in concise Traditional Chinese. '
                    'Each analyst report should use at most 180 Chinese characters, covering conclusion, '

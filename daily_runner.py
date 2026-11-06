@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import signal
 import subprocess
-from daily_budget import Budget, gateway, HKT, RESEARCH_START, RESEARCH_CUTOFF
+from daily_budget import Budget, gateway, HKT, RESEARCH_START, research_deadline
 from daily_delivery import fallback_summary, validate_summary
 from public_option_data import refresh_public_options
 from option_review import build_reviews
@@ -13,19 +13,20 @@ from option_review import build_reviews
 
 def run():
     now = datetime.now(HKT)
+    allow_late = os.environ.get('DAILY_ALLOW_LATE') == 'true'
     before_start = now.time() < RESEARCH_START
     public_options = None if before_start else refresh_public_options(now=now)
     now = datetime.now(HKT)
     ledger = Path('daily_token_usage.json')
     budget = Budget(ledger, now.date().isoformat())
-    deadline = datetime.combine(now.date(), RESEARCH_CUTOFF, HKT)
+    deadline = research_deadline(now, allow_late=allow_late)
     seconds = min(45 * 60, int((deadline - now).total_seconds()))
     status = 'incomplete'
     reviewed_underlyings = 0
     reason = 'BEFORE_RESEARCH_START' if before_start else 'STARTED_AFTER_CUTOFF' if seconds <= 0 else 'INSUFFICIENT_RESEARCH_WINDOW' if seconds < 300 else 'MISSING_API_KEY'
     if not before_start and seconds >= 300 and os.environ.get('DEEPSEEK_API_KEY'):
         reason = 'RESEARCH_INCOMPLETE'
-        with gateway(budget) as backend:
+        with gateway(budget, deadline=deadline) as backend:
             env = dict(os.environ, TAHK_BUDGETED_DAILY='1', TAHK_SHORTLIST_LIMIT='1' if seconds < 1200 else '2',
                        TRADINGAGENTS_LLM_BACKEND_URL=backend, OPENAI_API_BASE=backend,
                        EVENT_NAME='schedule', REPORT_SCOPE='market')
@@ -33,7 +34,7 @@ def run():
             try:
                 if process.wait(timeout=seconds) == 0:
                     text = Path('final_summary.txt').read_text()
-                    validate_summary(text, now=datetime.now(HKT))
+                    validate_summary(text, now=datetime.now(HKT), allow_late=allow_late)
                     payload = json.loads(Path('stock_signals.json').read_text())
                     reviewed_underlyings = len(build_reviews(payload, now=datetime.now(HKT)))
                     if reviewed_underlyings:
@@ -65,6 +66,7 @@ def run():
         'date': now.date().isoformat(), 'started_at': now.isoformat(), 'status': status,
         'reason': reason, 'api_calls': budget.snapshot()['calls'],
         'reviewed_underlyings': reviewed_underlyings,
+        'late_recovery': allow_late and now.hour >= 11,
         'research_deadline': deadline.isoformat()}, ensure_ascii=False))
     print('Daily research status:', status, '; usage ledger recorded.')
 

@@ -6,6 +6,7 @@ on:
       - daily_budget.py
       - daily_runner.py
       - daily_delivery.py
+      - tests/test_daily_late_recovery.py
       - option_review.py
       - book_skill_context.py
       - tests/test_book_skill_context.py
@@ -22,6 +23,7 @@ on:
       - daily_budget.py
       - daily_runner.py
       - daily_delivery.py
+      - tests/test_daily_late_recovery.py
       - option_review.py
       - book_skill_context.py
       - tests/test_book_skill_context.py
@@ -47,6 +49,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - run: python -m unittest discover -s tests -p test_daily_late_recovery.py -v
       - run: python -m unittest discover -s tests -p test_daily_budget.py -v
       - run: python -m unittest discover -s tests -p test_daily_transport.py -v
       - run: python -m unittest discover -s tests -p test_tactical_options.py -v

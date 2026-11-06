@@ -253,7 +253,7 @@ const Intl = {DateTimeFormat: function(_,options) {return {format: () => options
 const github = {paginate: async () => {outputs.artifacts_queried=true; return [];}, rest: {actions: {listArtifactsForRepo: () => {}}}};
 const context = {repo: {owner: 'test', repo: 'test'}};
 process.env.TELEGRAM_BOT_TOKEN = 'test'; process.env.TELEGRAM_CHAT_ID = 'test';
-process.env.DAILY_MANUAL_RECOVERY = 'false';
+process.env.DAILY_MANUAL_RECOVERY = 'false'; process.env.DAILY_ALLOW_LATE = 'false';
 await (async () => { BODY })();
 console.log(JSON.stringify(outputs));
 '''.replace('CLOCK', json.dumps(clock)).replace('BODY', script)
