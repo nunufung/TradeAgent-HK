@@ -61,6 +61,7 @@ jobs:
   report:
     outputs:
       request_accepted: ${{ steps.morning.outputs.request_accepted }}
+      repair: ${{ steps.morning.outputs.repair }}
     if: inputs.ticker == '' && !inputs.recover_daily
     runs-on: ubuntu-latest
     timeout-minutes: 70
@@ -78,9 +79,11 @@ jobs:
             core.setOutput('date', day);
             core.setOutput('request_accepted', 'true');
             const clock = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Hong_Kong', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).format(new Date());
+            let repair = false;
             if (context.eventName === 'push') {
               const {data} = await github.rest.repos.getContent({...context.repo, path:'.github/daily-run-request.json', ref:context.sha});
               const request = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8'));
+              repair = request.retry_incomplete === true;
               if (request.date !== day) {
                 core.setOutput('request_accepted', 'false');
                 core.setOutput('skip', 'true');
@@ -88,6 +91,9 @@ jobs:
                 return;
               }
             }
+            core.setOutput('repair', repair ? 'true' : 'false');
+            const researchClaim = 'hk-daily-research-claim-' + day + (repair ? '-repair-' + context.sha : '');
+            core.setOutput('research_claim', researchClaim);
             const late = process.env.DAILY_ALLOW_LATE === 'true';
             if (clock < '10:00' || clock >= '23:45' || (!late && clock >= '10:50')) {
               core.setOutput('skip', 'true');
@@ -96,8 +102,14 @@ jobs:
             }
             const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
             const current = artifacts.filter(a => !a.expired && a.name.startsWith('hk-morning-' + day + '-')).sort((a,b) => b.id-a.id);
-            const claimed = artifacts.some(a => !a.expired && a.name === 'hk-daily-research-claim-' + day);
-            core.setOutput('skip', current.length || claimed ? 'true' : 'false');
+            const claimed = artifacts.some(a => !a.expired && a.name === researchClaim);
+            if (repair && !artifacts.some(a => !a.expired && a.name === 'hk-daily-delivery-receipt-' + day)) {
+              core.setOutput('skip', 'true');
+              core.setOutput('request_accepted', 'false');
+              core.setFailed('A same-day confirmed receipt is required for repair and message update.');
+              return;
+            }
+            core.setOutput('skip', (!repair && current.length) || claimed ? 'true' : 'false');
             const ledger = artifacts.filter(a => !a.expired && a.name.startsWith('hk-token-budget-' + day + '-')).sort((a,b) => b.id-a.id)[0];
             if (ledger) {
               core.setOutput('ledger_name', ledger.name);
@@ -125,7 +137,7 @@ jobs:
         if: steps.morning.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: hk-daily-research-claim-${{ steps.morning.outputs.date }}
+          name: ${{ steps.morning.outputs.research_claim }}
           path: research_claim.txt
           if-no-files-found: error
           retention-days: 7
@@ -187,6 +199,7 @@ jobs:
         if: steps.morning.outputs.skip != 'true'
         env:
           TAHK_RESEARCH_INPUT_JSON: ${{ secrets.TAHK_RESEARCH_INPUT_JSON }}
+          DAILY_RESEARCH_LIMIT: '1'
         run: python daily_runner.py
       - name: Prepare a safe concise fallback if research failed
         if: always() && steps.morning.outputs.skip != 'true'
@@ -273,6 +286,7 @@ jobs:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       DAILY_MANUAL_RECOVERY: ${{ inputs.recover_daily && 'true' || 'false' }}
+      DAILY_REPAIR: ${{ needs.report.outputs.repair }}
     steps:
       - uses: actions/checkout@v4
       - name: Check deadline, daily delivery claim and current report
@@ -283,7 +297,9 @@ jobs:
             const now = new Date();
             const day = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Hong_Kong', year:'numeric', month:'2-digit', day:'2-digit'}).format(now);
             const clock = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Hong_Kong', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).format(now);
-            const claim = 'hk-daily-delivery-claim-' + day;
+            const repair = process.env.DAILY_REPAIR === 'true';
+            const claim = repair ? 'hk-daily-delivery-edit-claim-' + day + '-' + context.runId : 'hk-daily-delivery-claim-' + day;
+            core.setOutput('receipt_name', repair ? 'hk-daily-delivery-update-receipt-' + day + '-' + context.runId : 'hk-daily-delivery-receipt-' + day);
             core.setOutput('date',day);
             core.setOutput('claim',claim);
             if (clock < '10:00') {
@@ -308,6 +324,17 @@ jobs:
               core.setFailed('Missed 11:00 HKT delivery deadline. No Telegram report sent. Use recover_daily for an explicit catch-up.');
               return;
             }
+            if (repair) {
+              const receipt = artifacts.find(a => !a.expired && a.name === 'hk-daily-delivery-receipt-' + day);
+              if (!receipt) {
+                core.setOutput('skip','true');
+                core.setFailed('Cannot update the earlier message without its confirmed receipt.');
+                return;
+              }
+              core.setOutput('prior_receipt', receipt.name);
+              core.setOutput('prior_run', String(receipt.workflow_run.id));
+              core.setOutput('update_existing', 'true');
+            }
             const report = artifacts.filter(a => !a.expired && a.name.startsWith('hk-morning-' + day + '-')).sort((a,b) => b.id-a.id)[0];
             // Let bounded late research finish and upload before claiming delivery.
             // The 10:53 slot sends the final fallback if no valid artifact arrives.
@@ -330,6 +357,14 @@ jobs:
           run-id: ${{ steps.locate.outputs.run_id }}
           github-token: ${{ github.token }}
           path: morning_report
+      - name: Load confirmed receipt for the explicitly requested message update
+        if: steps.locate.outputs.skip == 'false' && steps.locate.outputs.update_existing == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.locate.outputs.prior_receipt }}
+          run-id: ${{ steps.locate.outputs.prior_run }}
+          github-token: ${{ github.token }}
+          path: prior_delivery
       - name: Prepare durable delivery claim
         if: steps.locate.outputs.skip == 'false'
         run: |
@@ -358,12 +393,13 @@ jobs:
         if: steps.locate.outputs.skip == 'false'
         env:
           DAILY_DELIVERY_CLAIMED: 'true'
+          DAILY_UPDATE_EXISTING: ${{ steps.locate.outputs.update_existing }}
         run: python daily_delivery.py
       - name: Save confirmed delivery receipt
         if: success() && steps.locate.outputs.skip == 'false'
         uses: actions/upload-artifact@v4
         with:
-          name: hk-daily-delivery-receipt-${{ steps.locate.outputs.date }}
+          name: ${{ steps.locate.outputs.receipt_name }}
           path: delivery_receipt.json
           if-no-files-found: error
           retention-days: 30

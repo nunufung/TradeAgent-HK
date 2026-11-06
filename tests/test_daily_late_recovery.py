@@ -125,3 +125,39 @@ await (async()=>{BODY})();console.log(JSON.stringify(outputs));
         result=subprocess.run(['node','--input-type=module'],input=harness,text=True,capture_output=True,check=True)
         self.assertEqual(json.loads(result.stdout)['request_accepted'], 'false')
         self.assertEqual(json.loads(result.stdout)['skip'], 'true')
+
+    def test_structured_analyst_can_finish_above_the_old_1600_token_cap(self):
+        now = datetime(2026, 11, 6, 15, 10, tzinfo=HKT)
+        clock = Mock()
+        clock.now.return_value = now
+        with temporary_cwd() as root, patch('daily_budget.datetime', clock), patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test'}):
+            budget = Budget(root/'usage.json', '2026-11-06')
+            result = Response({'choices': [{'finish_reason': 'stop'}], 'usage': {'prompt_tokens': 100, 'completion_tokens': 2500}})
+            with patch('daily_budget.urllib.request.urlopen', return_value=result) as upstream, gateway(budget, deadline=now + timedelta(minutes=45)) as url:
+                self.assertEqual(transport.DailyTransportTests().post(url, {'model': 'deepseek-chat', 'max_tokens': 4096, 'messages': []})[0], 200)
+                self.assertEqual(json.loads(upstream.call_args.args[0].data)['max_tokens'], 4096)
+            self.assertEqual(budget.snapshot()['actual_tokens'], 2600)
+
+    def test_repair_updates_original_message_and_rejects_a_stale_receipt(self):
+        now = datetime(2026, 11, 6, 16, 30, tzinfo=HKT)
+        clock = Mock()
+        clock.now.return_value = now
+        env = {'DAILY_ALLOW_LATE': 'true', 'DAILY_MANUAL_RECOVERY': 'false', 'DAILY_DELIVERY_CLAIMED': 'true', 'DAILY_UPDATE_EXISTING': 'true', 'TELEGRAM_BOT_TOKEN': 'test', 'TELEGRAM_CHAT_ID': 'test'}
+        with temporary_cwd() as root, patch('daily_delivery.datetime', clock), patch.dict(os.environ, env):
+            (root/'morning_report').mkdir()
+            (root/'morning_report/final_summary.txt').write_text('研究截至：2026-11-06 16:25 HKT\n股票：條件式提議')
+            (root/'prior_delivery').mkdir()
+            prior = root/'prior_delivery/delivery_receipt.json'
+            prior.write_text(json.dumps({'date': '2026-11-06', 'message_id': 321}))
+            with patch('daily_delivery.urllib.request.urlopen', return_value=Response({'ok': True, 'result': {'message_id': 321}})) as send:
+                daily_delivery.main()
+                send.assert_called_once()
+                request = send.call_args.args[0]
+                self.assertTrue(request.full_url.endswith('/editMessageText'))
+                self.assertEqual(json.loads(request.data)['message_id'], 321)
+                self.assertTrue(json.loads((root/'delivery_receipt.json').read_text())['updated_existing'])
+            prior.write_text(json.dumps({'date': '2026-11-05', 'message_id': 321}))
+            with patch('daily_delivery.urllib.request.urlopen') as send:
+                with self.assertRaises(ValueError):
+                    daily_delivery.main()
+                send.assert_not_called()

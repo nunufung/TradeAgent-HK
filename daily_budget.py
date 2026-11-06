@@ -30,7 +30,7 @@ class BudgetExceeded(RuntimeError):
 
 class Budget:
     def __init__(self, path: Path, day: str, *, max_calls=300, max_tokens=1000000,
-                 max_output=1600, max_input_bytes=120000):
+                 max_output=4096, max_input_bytes=120000):
         self.path, self.day = path, day
         self.max_calls, self.max_tokens = max_calls, max_tokens
         self.max_output, self.max_input_bytes = max_output, max_input_bytes
@@ -102,7 +102,7 @@ def apply_daily_profile(config: dict, backend: str):
     config.update(llm_provider='openai', deep_think_provider='openai', quick_think_provider='openai',
                   backend_url=backend, deep_think_backend_url=backend, quick_think_backend_url=backend,
                   deep_think_llm='deepseek-chat', quick_think_llm='deepseek-chat',
-                  max_tokens=1600, llm_max_retries=0, max_tool_rounds=2, max_recur_limit=64,
+                  max_tokens=4096, llm_max_retries=0, max_tool_rounds=2, max_recur_limit=64,
                   max_debate_rounds=1, max_risk_discuss_rounds=1,
                   news_article_limit=5, global_news_article_limit=3, global_news_lookback_days=2)
 

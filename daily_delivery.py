@@ -74,15 +74,24 @@ def main():
     token, chat = os.environ['TELEGRAM_BOT_TOKEN'].strip(), os.environ['TELEGRAM_CHAT_ID'].strip()
     if not (recovery or allow_late) and datetime.now(HKT).time() >= DELIVERY_LAST_START:
         raise RuntimeError('Insufficient time for delivery before 11:00 HKT.')
-    request = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage',
-        data=json.dumps({'chat_id':chat,'text':text,'disable_web_page_preview':True}).encode(),
+    updating = os.environ.get('DAILY_UPDATE_EXISTING') == 'true'
+    payload = {'chat_id':chat,'text':text,'disable_web_page_preview':True}
+    if updating:
+        prior = json.loads(Path('prior_delivery/delivery_receipt.json').read_text())
+        if prior.get('date') != now.date().isoformat() or type(prior.get('message_id')) is not int or prior['message_id'] <= 0:
+            raise ValueError('A valid same-day receipt is required to update the earlier notice.')
+        payload['message_id'] = prior['message_id']
+        payload['text'] = '【更新分析｜取代先前研究未完成通知】\n' + text
+    method = 'editMessageText' if updating else 'sendMessage'
+    request = urllib.request.Request(f'https://api.telegram.org/bot{token}/{method}',
+        data=json.dumps(payload).encode(),
         headers={'Content-Type':'application/json'},method='POST')
     with urllib.request.urlopen(request,timeout=20) as response:
         result=json.loads(response.read())
     if result.get('ok') is not True:
         raise RuntimeError('Telegram rejected the report.')
-    Path('delivery_receipt.json').write_text(json.dumps({'date':now.date().isoformat(),'message_id':result['result']['message_id'],'delayed':now.time() >= DELIVERY_DEADLINE,'manual_recovery':recovery,'sent_at':datetime.now(HKT).isoformat()}))
-    print('One concise daily report sent.')
+    Path('delivery_receipt.json').write_text(json.dumps({'date':now.date().isoformat(),'message_id':result['result']['message_id'],'delayed':now.time() >= DELIVERY_DEADLINE,'manual_recovery':recovery,'updated_existing':updating,'sent_at':datetime.now(HKT).isoformat()}))
+    print('Daily report updated.' if updating else 'One concise daily report sent.')
 
 if __name__=='__main__':
     import sys
