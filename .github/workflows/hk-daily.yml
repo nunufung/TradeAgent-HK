@@ -6,7 +6,10 @@ on:
     - cron: '10 2 * * *'  # 10:10 HKT: research backup; existing claim prevents duplicate API sessions
     - cron: '20 2 * * *'  # 10:20 HKT: research backup
     - cron: '47 2 * * *'  # 10:47 HKT: send completed research if available
-    - cron: '53 2 * * *'  # 10:53 HKT: final delivery after the 10:50 research cutoff
+    - cron: '53 2 * * *'  # 10:53 HKT: final backup; delayed sessions may continue
+  push:
+    branches: [main]
+    paths: ['.github/daily-run-request.json']
   workflow_dispatch:
     inputs:
       ticker:
@@ -34,12 +37,15 @@ on:
         type: boolean
         default: false
 
+env:
+  DAILY_ALLOW_LATE: 'true'
+
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  group: hk-daily-${{ inputs.ticker != '' && 'stock' || inputs.recover_daily && 'recovery' || contains(fromJSON('["0 2 * * *","10 2 * * *","20 2 * * *"]'), github.event.schedule) && 'research' || github.event_name == 'workflow_dispatch' && 'research' || 'delivery' }}
+  group: hk-daily-${{ inputs.ticker != '' && 'stock' || 'daily' }}
   cancel-in-progress: false
 
 jobs:
@@ -50,8 +56,12 @@ jobs:
       ticker: ${{ inputs.ticker }}
     secrets: inherit
 
+  # Every backup can start missing research; the shared group and daily claim
+  # serialize recovery and prevent a fallback from overtaking active research.
   report:
-    if: inputs.ticker == '' && !inputs.recover_daily && (github.event_name == 'workflow_dispatch' || contains(fromJSON('["0 2 * * *","10 2 * * *","20 2 * * *"]'), github.event.schedule))
+    outputs:
+      request_accepted: ${{ steps.morning.outputs.request_accepted }}
+    if: inputs.ticker == '' && !inputs.recover_daily
     runs-on: ubuntu-latest
     timeout-minutes: 70
     env:
@@ -66,10 +76,22 @@ jobs:
           script: |
             const day = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Hong_Kong', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date());
             core.setOutput('date', day);
+            core.setOutput('request_accepted', 'true');
             const clock = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Hong_Kong', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).format(new Date());
-            if (clock < '10:00' || clock >= '10:50') {
+            if (context.eventName === 'push') {
+              const {data} = await github.rest.repos.getContent({...context.repo, path:'.github/daily-run-request.json', ref:context.sha});
+              const request = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8'));
+              if (request.date !== day) {
+                core.setOutput('request_accepted', 'false');
+                core.setOutput('skip', 'true');
+                core.info('Ignoring an expired daily recovery request.');
+                return;
+              }
+            }
+            const late = process.env.DAILY_ALLOW_LATE === 'true';
+            if (clock < '10:00' || clock >= '23:45' || (!late && clock >= '10:50')) {
               core.setOutput('skip', 'true');
-              core.info('Daily analysis starts at 10:00 HKT and stops at 10:50; no research claim created.');
+              core.info('Outside the authorized daily research start window; no research claim created.');
               return;
             }
             const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...context.repo, per_page:100});
@@ -241,7 +263,7 @@ jobs:
 
   send_morning:
     needs: report
-    if: always() && inputs.ticker == '' && (github.event_name == 'schedule' || inputs.recover_daily)
+    if: always() && inputs.ticker == '' && needs.report.outputs.request_accepted != 'false'
     concurrency:
       group: hk-daily-telegram-delivery
       cancel-in-progress: false
@@ -264,7 +286,7 @@ jobs:
             const claim = 'hk-daily-delivery-claim-' + day;
             core.setOutput('date',day);
             core.setOutput('claim',claim);
-            if (clock < '10:00' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
+            if (clock < '10:00') {
               core.setOutput('skip','true');
               core.info('Daily analysis starts at 10:00 HKT; no earlier report.');
               return;
@@ -281,7 +303,7 @@ jobs:
               if (!confirmed) core.setFailed('A previous send attempt has no confirmed receipt; inspect it before retrying.');
               return;
             }
-            if (clock >= '10:59' && process.env.DAILY_MANUAL_RECOVERY !== 'true') {
+            if (clock >= '10:59' && process.env.DAILY_MANUAL_RECOVERY !== 'true' && process.env.DAILY_ALLOW_LATE !== 'true') {
               core.setOutput('skip','true');
               core.setFailed('Missed 11:00 HKT delivery deadline. No Telegram report sent. Use recover_daily for an explicit catch-up.');
               return;
@@ -318,7 +340,9 @@ jobs:
           from daily_delivery import HKT
           from daily_budget import RESEARCH_START, DELIVERY_LAST_START
           now = datetime.now(HKT)
-          if os.getenv('DAILY_MANUAL_RECOVERY') != 'true' and not RESEARCH_START <= now.time() < DELIVERY_LAST_START:
+          if now.time() < RESEARCH_START:
+              raise SystemExit('No daily delivery before 10:00 HKT.')
+          if os.getenv('DAILY_MANUAL_RECOVERY') != 'true' and os.getenv('DAILY_ALLOW_LATE') != 'true' and now.time() >= DELIVERY_LAST_START:
               raise SystemExit('Outside the daily delivery window.')
           Path('delivery_claim.txt').write_text(now.isoformat())
           PY

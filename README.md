@@ -6,11 +6,12 @@ Hong Kong equity and options research using four independent TradingAgents analy
 
 - Start analysis at 10:00 Hong Kong time, with 10:10 and 10:20 research backups. The automatic run uses DeepSeek’s `deepseek-chat` for both model tiers.
 - Research up to two dynamically selected stocks, retaining technical, sentiment, news and fundamental analysts, investment debate and risk review.
-- Attempt one concise Telegram text report immediately after scheduled research finishes, with 10:47 and 10:53 HKT delivery backups. A durable claim and confirmed receipt prevent repeat sends.
+- Attempt one concise Telegram text report immediately after scheduled research finishes, with 10:47 and 10:53 HKT delivery backups. All backup slots can start missing research. A shared daily concurrency group, durable claims and confirmed receipts prevent repeat research and sends.
 - Each date permits one scheduled paid morning session (not an intraday API quota): at most 300 calls, a 1,000,000-token accounting budget and 1,600 output tokens per call. Record DeepSeek-reported input/output/cache-hit usage in the Actions ledger.
-- Stop automatic research at 10:50 and target delivery before 11:00 HKT. Missed sends fail visibly. GitHub schedule delays can affect arrival.
+- Target delivery before 11:00 HKT. User-authorized delayed runs continue for at most 45 minutes (ending by 23:50 HKT), and reports sent after 11:00 carry an explicit delayed label and actual evidence time. GitHub schedule delays can still affect arrival.
 - Explicit Telegram stock requests are supported through the existing bridge: `hk-daily.yml` accepts `ticker`, `request_source` and `scope`, and routes a supplied ticker to the stock PDF workflow. Automatic polling remains disabled.
-- For a missed daily message, explicitly run `HK Daily Report` with `recover_daily=true` and no ticker. This sends today's saved report (or a transparent incomplete-research notice), labelled as a manual catch-up, with a confirmed receipt. It does not restart paid morning research.
+- To start missing daily research and send its result, manually run `HK Daily Report` with no ticker and `recover_daily=false`. A dated `.github/daily-run-request.json` commit on main is an alternative recovery trigger; expired requests are ignored.
+- To send a saved report without restarting research, explicitly run `HK Daily Report` with `recover_daily=true` and no ticker. This sends today's saved report (or a transparent incomplete-research notice), labelled as a manual catch-up, with a confirmed receipt. It does not restart paid morning research.
 
 Trading-hour testing, manual research and review may use DeepSeek API calls independently of the morning-only cutoff and budget; maintain token accounting, cost monitoring and option-entry safeguards. The morning limits are relaxed, and controlled test code can disable numeric call/token caps via `Budget(max_calls=0, max_tokens=0)`. This does not alter provider billing or authorize trading.
 
