@@ -1,4 +1,5 @@
 {
   "date": "2026-11-06",
-  "reason": "User-requested same-day analysis and Telegram catch-up after repairing delayed daily execution."
+  "retry_incomplete": true,
+  "reason": "Verify the analyst truncation fix within the existing same-day budget and update the confirmed earlier Telegram notice."
 }
