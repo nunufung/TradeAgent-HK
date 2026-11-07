@@ -166,6 +166,9 @@
             <div class="eyebrow muted">REQUEST NEW ANALYSIS</div>
             <h2>需要重新執行四分析員？</h2>
             <p>目前 Hugging Face 係公開 Static Space，無法安全地直接啟動需要 GitHub 權限及 DeepSeek API 嘅工作流。你可以用現有 GitHub Actions 手動觸發指定股票分析，再查閱 GitHub／Telegram 結果。期權合約仍須 Futu OpenD 即時鏈數據及完整 HKEX 風控驗證。</p>
+            <label for="research-provider">研究 API 來源</label>
+            <select id="research-provider" disabled><option value="deepseek">DeepSeek</option><option value="fcc">Free Claude Code gateway</option></select>
+            <p>API 選擇需擁有者登入及運行中的私人研究後端；目前 Static Space 尚未啟用。FCC 需另設 HTTPS gateway、認證及供應商額度。</p>
             <div class="lookup-actions"><button id="lookup-copy" class="outline-btn" type="button" disabled>複製正股代號</button><a class="outline-btn" href="https://github.com/nunufung/TradeAgent-HK/actions/workflows/telegram-stock-request.yml" target="_blank" rel="noopener noreferrer">開啟 GitHub 單股分析 ↗</a></div>
           </div>
         </section>

@@ -7,19 +7,50 @@ from datetime import date, datetime
 import json
 import os
 import sys
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 
-def research(packet, *, graph_factory=None, default_config=None):
+# FCC exposes Anthropic Messages, not OpenAI Chat Completions.
+def provider_config(provider='deepseek'):
+    if provider == 'deepseek':
+        key=os.getenv('DEEPSEEK_API_KEY','').strip()
+        if not key: raise ValueError('DeepSeek not configured')
+        return {'llm_provider':'openai','backend_url':'https://api.deepseek.com/v1',
+                'model':'deepseek-chat','key':key,'key_env':'OPENAI_API_KEY'}
+    if provider != 'fcc': raise ValueError('Unknown research provider')
+    base=os.getenv('FCC_BASE_URL','').strip().rstrip('/')
+    key=os.getenv('FCC_API_KEY','').strip()
+    model=os.getenv('FCC_MODEL','').strip()
+    url=urlsplit(base)
+    if (url.scheme != 'https' or not url.hostname or url.username or url.password
+            or url.query or url.fragment or url.path not in ('','/v1')
+            or not key or not model or len(model)>200):
+        raise ValueError('FCC requires an authenticated HTTPS endpoint and model')
+    # Anthropic SDK adds /v1/messages; its base is the origin.
+    return {'llm_provider':'anthropic','backend_url':base.removesuffix('/v1'),
+            'model':model,'key':key,'key_env':'ANTHROPIC_API_KEY'}
+
+
+def provider_choices():
+    choices=[]
+    for provider,label in [('deepseek','DeepSeek'),('fcc','Free Claude Code gateway')]:
+        try: provider_config(provider); configured=True
+        except ValueError: configured=False
+        choices.append({'id':provider,'label':label,'configured':configured})
+    return choices
+
+
+def research(packet, *, graph_factory=None, default_config=None, provider='deepseek'):
     if graph_factory is None:
         from tradingagents.graph.trading_graph import TradingAgentsGraph
         from tradingagents.default_config import DEFAULT_CONFIG
         graph_factory=TradingAgentsGraph; default_config=DEFAULT_CONFIG
-    if not os.getenv('DEEPSEEK_API_KEY'): raise RuntimeError('DeepSeek not configured')
-    os.environ['OPENAI_API_KEY']=os.environ['DEEPSEEK_API_KEY']
+    selected=provider_config(provider)
+    os.environ[selected['key_env']]=selected['key']
     config=deepcopy(default_config or {})
-    config.update(llm_provider='openai',backend_url='https://api.deepseek.com/v1',
-                  deep_think_llm='deepseek-chat',quick_think_llm='deepseek-chat',
+    config.update(llm_provider=selected['llm_provider'],backend_url=selected['backend_url'],
+                  deep_think_llm=selected['model'],quick_think_llm=selected['model'],
                   output_language='Traditional Chinese',max_debate_rounds=1,
                   max_risk_discuss_rounds=1,max_tool_rounds=3,max_tokens=1500,
                   llm_max_retries=1,max_recur_limit=80,checkpoint_enabled=False)
@@ -44,7 +75,7 @@ def research(packet, *, graph_factory=None, default_config=None):
     mapping={'Market':'market_report','Fundamental':'fundamentals_report','News':'news_report','Sentiment':'sentiment_report'}
     reports={label:str(state.get(key) or '')[:10000] for label,key in mapping.items()}
     complete=all(value.strip() for value in reports.values())
-    return {'complete':complete,'reports':reports,
+    return {'provider':provider,'model':selected['model'],'complete':complete,'reports':reports,
             'summary':str(state.get('final_trade_decision') or decision or '')[:10000],
             'generated_at':datetime.now(ZoneInfo('Asia/Hong_Kong')).isoformat(),
             'quote_source':packet['source'],'quote_at':packet['quote_at'],
@@ -54,7 +85,7 @@ def research(packet, *, graph_factory=None, default_config=None):
 if __name__=='__main__':
     try:
         packet=json.loads(sys.stdin.buffer.read(65536))
-        with redirect_stdout(sys.stderr): result=research(packet)
+        with redirect_stdout(sys.stderr): result=research(packet,provider=os.getenv('TAHK_RESEARCH_PROVIDER','deepseek'))
         print(json.dumps(result,ensure_ascii=False))
     except Exception:
         # Never return credentials, tool prompts or raw provider exceptions to the browser.

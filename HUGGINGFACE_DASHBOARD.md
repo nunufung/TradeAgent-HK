@@ -1,3 +1,42 @@
+# API provider integration — 2026-11-06
+
+The live Space is still static. Provider selection is prepared in the backend,
+not enabled for live inference. No FCC gateway or upstream account was provisioned.
+
+The owner-only research request accepts `provider: deepseek` (default) or `fcc`.
+The frontend captures the choice at lookup submission; job reuse is separated
+by stock and provider. The existing concurrency and daily limits still apply.
+Only configured providers can run; failures do not silently switch providers.
+
+FCC integration source: https://github.com/Alishahryar1/free-claude-code
+The reviewed FCC routes provide `/v1/messages` and `/v1/responses`, not Chat
+Completions. This integration uses TradingAgents' Anthropic client with the
+Messages protocol. It does not install FCC's desktop, coding agents or Admin UI
+in this public Space. No upstream source is copied or vendored.
+
+Before enabling the live backend:
+
+1. Run an authenticated FCC gateway on a reachable HTTPS origin. Keep its Admin
+   UI private. Configure the upstream providers and their credentials there.
+2. Set GitHub Actions secrets `FCC_BASE_URL` (HTTPS origin, optional `/v1`),
+   `FCC_API_KEY` (gateway proxy credential), and `FCC_MODEL` (exact model ID
+   advertised by that gateway). Never put keys in browser storage or source.
+3. Restore a working owner-authenticated CPU backend and its live frontend.
+   The static UI deliberately disables provider selection until then. Existing
+   hosting limitations are described below; this change does not purchase hosting.
+4. The publisher provisions those secrets only for the backend SDK. Static
+   publication removes the FCC proxy key along with other backend credentials.
+5. Verify a real four-agent request through each configured provider before
+   claiming operational readiness. Local mocked tests establish routing only.
+
+Select the gateway's provider/model in FCC Admin; `FCC_MODEL` pins the model
+requested by TradeAgent-HK. This first integration offers two routes in the
+TradeAgent selector: direct DeepSeek or the configured FCC gateway model.
+Additional FCC models can be configured server-side later. Free quotas and
+model access depend on upstream accounts; FCC does not grant free Claude access.
+
+---
+
 # Current deployment status — 2026-10-30
 
 The live Space has been restored to the working STATIC snapshot dashboard. The Futu-first/public-fallback backend is implemented and passes focused tests, but is NOT running in the live UI. The account's free ZeroGPU runtime rejected startup with `No @spaces.GPU function detected during startup`; this CPU-only API needs CPU-capable hosting (for example an eligible Hugging Face subscription) or another backend host. No paid plan or hardware was purchased.
