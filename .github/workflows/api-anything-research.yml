@@ -1,0 +1,46 @@
+name: API Anything Public Research
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: Public Hacker News search terms sent to Algolia
+        required: true
+        default: Hong Kong
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  public-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: goodnight000/api-anything
+          ref: d40abd44f171c5cc444f1ac6b947afefa8605b78
+          path: .api-anything-upstream
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+      - name: Build pinned API Anything
+        working-directory: .api-anything-upstream
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run --ignore-scripts build
+      - name: Query public stories
+        env:
+          PUBLIC_RESEARCH_QUERY: ${{ inputs.query }}
+        run: node scripts/api-anything-research.mjs "$PUBLIC_RESEARCH_QUERY" > api-anything-research.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: api-anything-research
+          path: api-anything-research.json
+          if-no-files-found: error
+          retention-days: 3
