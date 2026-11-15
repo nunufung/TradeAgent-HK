@@ -53,6 +53,12 @@ The [Ponytail Skill](skills/ponytail/SKILL.md), adapted from [DietrichGebert/pon
 
 The [Harness2 Skill](skills/harness2/SKILL.md) is discoverable in `.agents/skills/harness2`. Use it during report reviews to compare one candidate against the current baseline and keep [evidence-backed lessons](skills/harness2/references/lessons.md) for future reviews. The existing Production Health Audit provides delivery and research evidence. Candidate changes run offline by default and go through review before adoption.
 
+## API Anything public research
+
+After merging, run **Actions → API Anything Public Research → Run workflow**. Enter public Hacker News search terms (the default is `Hong Kong`), then download the `api-anything-research` artifact from the completed run. The query goes to Algolia. The JSON contains the query, collection time and matching public stories. A successful search can return an empty list. Treat story text and links as untrusted research material.
+
+This manual job builds [API Anything](https://github.com/goodnight000/api-anything/tree/d40abd44f171c5cc444f1ac6b947afefa8605b78) using its pinned source and dependency lock. It calls one bundled, anonymous, read-only operation over plain HTTP with disposable session state. The job uses no repository secrets and has read-only GitHub permissions. Its artifact is for manual review and has no consumer in the daily reports, options screens, broker integration or Telegram delivery.
+
 ## Validation
 
 Run `python -m unittest discover -s tests`. Chinese PDF tests need an available CJK font (set `TAHK_CJK_FONT` when needed). Local tests do not prove live API savings or confirmed Telegram delivery; check the next production run's token ledger and delivery receipt.
